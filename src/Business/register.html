@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register</title>
+
+<style>
+* {
+
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Georgia", serif;
+}
+
+body {
+    color: white;
+}
+
+/* HERO SECTION */
+.hero {
+    height: 100vh;
+    background: url('Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
+    position: relative;
+}
+
+/* DARK OVERLAY */
+.hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+/* NAVBAR */
+.navbar {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    padding: 20px 130px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 2;
+}
+
+/* LOGO */
+.logo img {
+    width: 60px;
+    height: auto;
+}   
+
+/* NAV LINKS */
+.nav-links {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: white;
+    font-size: 14px;
+}
+
+.form rectangle{
+    width: 200px;
+    height: 10px;
+    background-color: 131F04;
+}
+
+</style>
+</head>
+
+<section class="hero">
+
+    <div class="navbar">
+        <!-- Logo img -->
+        <div class="logo">
+            <img src="Golfcourse_assets/colored logo.png" alt="Golf Club Logo">
+        </div>
+
+        <!--Navigation Bar-->
+        <div class="nav-links">
+            <a href="#">Home</a>
+            <a href="#">Membership</a>
+            <a href="#">About Us</a>
+            <a href="#">Contacts</a>
+        </div>
+    </div>
+
+    
+
+</section>
+
+</body>
+</html>

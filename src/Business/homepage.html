@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Private Golf Club</title>
+
+<style>
+* {
+
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Georgia", serif;
+}
+
+body {
+    color: white;
+}
+
+/* HERO SECTION */
+.hero {
+    height: 100vh;
+    background: url('Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
+    position: relative;
+}
+
+/* DARK OVERLAY */
+.hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+/* NAVBAR */
+.navbar {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    padding: 20px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 2;
+}
+
+/* LOGO */
+.logo img {
+    width: 60px;
+    height: auto;
+}
+
+/* NAV LINKS */
+.nav-links {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: white;
+    font-size: 14px;
+}
+
+/* SIGN IN BUTTON */
+.sign-in {
+    border: 1px solid #d4b36a;
+    padding: 6px 14px;
+    border-radius: 20px;
+}
+
+/* CONTENT */
+.content {
+    position: relative;
+    z-index: 2;
+    max-width: 600px;
+    padding: 150px 60px;
+}
+
+.content h1 {
+    font-size: 64px;
+    line-height: 1.1;
+    margin-bottom: 20px;
+}
+
+.line {
+    width: 450px;
+    height: 2px;
+    background: #d4b36a;
+    margin: 20px 0;
+}
+
+.content p {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 30px;
+    color: #ddd;
+}
+
+/* BUTTONS */
+.buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.btn {
+    padding: 12px 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-primary {
+    background: #d4b36a;
+    color: black;
+}
+
+.btn-outline {
+    border: 1px solid #d4b36a;
+    color: #d4b36a;
+    background: transparent;
+}
+</style>
+</head>
+
+<body>
+
+<section class="hero">
+
+    <div class="navbar">
+        <!-- Logo img -->
+        <div class="logo">
+            <img src="Golfcourse_assets/colored logo.png" alt="Golf Club Logo">
+        </div>
+
+        <!--Navigation Bar-->
+        <div class="nav-links">
+            <a href="#">Home</a>
+            <a href="#">Membership</a>
+            <a href="#">About Us</a>
+            <a href="#">Contacts</a>
+            <a href="Sign-In.html" class="sign-in">Sign In</a>
+        </div>
+    </div>
+
+    <!-- HERO CONTENT -->
+    <div class="content">
+        <h1>Private<br>Golf Club</h1>
+
+        <div class="line"></div>
+
+        <p>
+            Enjoy one of the most popular leisure activities with high-quality equipment, 
+            a well-maintained environment, and refreshing amenities.
+        </p>
+
+        <div class="buttons">
+        <a href = "register.html">
+            <button class="btn btn-primary">Register Now</button>
+        </a>
+            <button class="btn btn-outline">More Details</button>
+        </div>
+    </div>
+
+</section>
+
+</body>
+</html>
