@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Golf Club - Home</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Georgia", serif;
+        }
+
+        body {
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* HERO SECTION */
+        .hero {
+            height: 100vh;
+            background: url('../Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
+            position: relative;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+        }
+
+        /* NAVBAR */
+        .navbar {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            padding: 20px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            border-bottom: 1px solid rgba(212, 179, 106, 0.2);
+        }
+
+        .logo img {
+            width: 60px;
+            height: auto;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #d4b36a;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: white;
+            text-shadow: 0 0 8px rgba(255,255,255,0.5);
+        }
+
+        .logout {
+            border: 1px solid #d4b36a;
+            padding: 6px 25px;
+            border-radius: 20px;
+        }
+
+        .logout:hover {
+            background-color: #d4b36a;
+            color: #000 !important;
+            transform: scale(1.05);
+        }
+
+        /* CONTENT */
+        .content {
+            position: relative;
+            z-index: 2;
+            max-width: 700px;
+            padding: 180px 60px;
+        }
+
+        .content h1 {
+            font-size: 64px;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .line {
+            width: 450px;
+            height: 2px;
+            background: #d4b36a;
+            margin: 20px 0;
+        }
+
+        .content p {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 40px;
+            color: #ddd;
+        }
+
+        /* BUTTONS */
+        .buttons {
+            display: flex;
+            gap: 20px;
+        }
+
+        .btn {
+            padding: 14px 30px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #d4b36a;
+            color: black;
+            font-weight: bold;
+        }
+
+        .btn-primary:hover {
+            background-color: #f1d592;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(212, 179, 106, 0.3);
+        }
+
+        .btn-outline {
+            border: 1px solid #d4b36a;
+            color: #d4b36a;
+            background: transparent;
+        }
+
+        .btn-outline:hover {
+            background-color: #d4b36a;
+            color: black;
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="navbar">
+            <div class="logo">
+                <img src="../Golfcourse_assets/colored logo.png" alt="Logo">
+            </div>
+            <div class="nav-links">
+                <a href="user_homepage.html">Home</a>
+                <a href="#">Membership</a>
+                <a href="#">About Us</a>
+                <a href="#">Messages</a>
+                <a href="user/user_reservation.html">Reservation</a>
+                <a href="#">Contacts</a>
+                <a href="../login.html" class="logout">Logout</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <h1>Private<br>Golf Club</h1>
+            <div class="line"></div>
+            <p>Welcome back! Experience world-class golfing facilities and exclusive member benefits tailored just for you.</p>
+            <div class="buttons">
+                <a href="user/user_reservation.html" class="btn btn-primary">Book a Tee Time</a>
+                <a href="#" class="btn btn-outline">My Membership</a>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

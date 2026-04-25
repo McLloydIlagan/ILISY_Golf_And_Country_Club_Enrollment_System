@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages | Private Golf Club</title>
+    <style>
+        :root {
+            --gold: #d4b36a;
+            --deep-green: #0d2b0f;
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Georgia", serif; /* Consistent with site branding */
+        }
+
+        body {
+            background-color: #f4f1f0; /* Matches user_reservation background */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* --- NAVBAR --- */
+        .navbar {
+            background-color: var(--deep-green);
+            padding: 15px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid var(--gold); /* Brand identity */
+            z-index: 10;
+        }
+
+        .logo img { width: 50px; }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--gold);
+            font-size: 14px;
+            margin-left: 25px;
+            transition: 0.3s;
+        }
+
+        /* --- MESSAGES LAYOUT --- */
+        .messaging-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Sidebar for conversation list */
+        .inbox-sidebar {
+            width: 350px;
+            background: var(--deep-green);
+            color: white;
+            border-right: 1px solid rgba(212, 179, 106, 0.3);
+        }
+
+        .inbox-header {
+            padding: 30px;
+            border-bottom: 1px solid rgba(212, 179, 106, 0.2);
+        }
+
+        .convo-item {
+            padding: 20px 30px;
+            cursor: pointer;
+            transition: 0.3s;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .convo-item:hover, .convo-item.active {
+            background: rgba(212, 179, 106, 0.15);
+        }
+
+        .convo-item h4 { color: var(--gold); margin-bottom: 5px; }
+        .convo-item p { font-size: 13px; color: #ccc; }
+
+        /* Chat window */
+        .chat-window {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .chat-header {
+            padding: 20px 40px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .chat-body {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Glassmorphism Bubbles */
+        .message {
+            max-width: 60%;
+            padding: 15px 20px;
+            border-radius: 15px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .msg-received {
+            background: #f0f0f0;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+
+        .msg-sent {
+            background: var(--deep-green);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+            border: 1px solid var(--gold); /* Gold border from logout style */
+        }
+
+        /* --- INPUT AREA --- */
+        .chat-footer {
+            padding: 20px 40px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 15px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: #ededed; /* Consistent field style */
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+        }
+
+        .btn-send {
+            background: var(--gold);
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-send:hover {
+            background: #f1d592; /* Light gold hover */
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <div class="logo"><img src="../Golfcourse_assets/colored logo.png" alt="Logo"></div>
+        <div class="nav-links">
+            <a href="user_homepage.html">Home</a>
+            <a href="user_reservation.html">Reservation</a>
+            <a href="#" style="color: white; border-bottom: 1px solid var(--gold);">Messages</a>
+            <a href="../login.html" style="border: 1px solid var(--gold); padding: 5px 15px; border-radius: 15px;">Logout</a>
+        </div>
+    </div>
+
+    <div class="messaging-container">
+        <div class="inbox-sidebar">
+            <div class="inbox-header">
+                <h2>Inquiries</h2>
+            </div>
+            <div class="convo-item active">
+                <h4>Club Secretary</h4>
+                <p>Regarding your tee time on the 15th...</p>
+            </div>
+            <div class="convo-item">
+                <h4>Membership Office</h4>
+                <p>Your premium card is ready for pickup.</p>
+            </div>
+        </div>
+
+        <div class="chat-window">
+            <div class="chat-header">
+                <h3>Club Secretary</h3>
+            </div>
+            <div class="chat-body">
+                <div class="message msg-received">
+                    Good morning! We noticed you booked a slot for the 15th. Would you like to reserve a caddy in advance?
+                </div>
+                <div class="message msg-sent">
+                    Yes, please. I would prefer an experienced caddy if available.
+                </div>
+                <div class="message msg-received">
+                    Understood. We have noted that on your reservation. We look forward to seeing you at the ILISY Club!
+                </div>
+            </div>
+            <div class="chat-footer">
+                <input type="text" placeholder="Type your message here...">
+                <button class="btn-send">Send</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

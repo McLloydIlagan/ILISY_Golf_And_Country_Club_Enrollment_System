@@ -3,168 +3,170 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Private Golf Club</title>
-
+<title>Private Golf Club | Welcome</title>
 <style>
-* {
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Georgia", serif;
+    }
 
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: "Georgia", serif;
-}
+    body {
+        color: white;
+        overflow: hidden;
+    }
 
-body {
-    color: white;
-}
+    .hero {
+        height: 100vh;
+        background: url('Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
+        position: relative;
+    }
 
-/* HERO SECTION */
-.hero {
-    height: 100vh;
-    background: url('Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
-    position: relative;
-}
+    .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+    }
 
-/* DARK OVERLAY */
-.hero::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-}
+    .navbar {
+        position: absolute;
+        top: 0;
+        width: 100%;
+        padding: 20px 60px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 2;
+    }
 
-/* NAVBAR */
-.navbar {
-    position: absolute;
-    top: 0;
-    width: 100%;
-    padding: 20px 60px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 2;
-}
+    .logo img {
+        width: 60px;
+    }
 
-/* LOGO */
-.logo img {
-    width: 60px;
-    height: auto;
-}
+    .nav-links {
+        display: flex;
+        gap: 30px;
+        align-items: center;
+    }
 
-/* NAV LINKS */
-.nav-links {
-    display: flex;
-    gap: 30px;
-    align-items: center;
-}
+    .nav-links a {
+        text-decoration: none;
+        color: white;
+        font-size: 14px;
+        transition: color 0.3s ease, transform 0.3s ease;
+    }
 
-.nav-links a {
-    text-decoration: none;
-    color: white;
-    font-size: 14px;
-}
+    .nav-links a:hover {
+        color: #d4b36a;
+        transform: translateY(-2px);
+    }
 
-/* SIGN IN BUTTON */
-.sign-in {
-    border: 1px solid #d4b36a;
-    padding: 6px 14px;
-    border-radius: 20px;
-}
+    .sign-in {
+        border: 1px solid #d4b36a;
+        padding: 6px 20px;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+    }
 
-/* CONTENT */
-.content {
-    position: relative;
-    z-index: 2;
-    max-width: 600px;
-    padding: 150px 60px;
-}
+    .sign-in:hover {
+        background: #d4b36a;
+        color: black;
+        transform: scale(1.05);
+    }
 
-.content h1 {
-    font-size: 64px;
-    line-height: 1.1;
-    margin-bottom: 20px;
-}
+    .content {
+        position: relative;
+        z-index: 2;
+        max-width: 600px;
+        padding: 150px 60px;
+    }
 
-.line {
-    width: 450px;
-    height: 2px;
-    background: #d4b36a;
-    margin: 20px 0;
-}
+    .content h1 {
+        font-size: 72px;
+        line-height: 1.1;
+        margin-bottom: 20px;
+    }
 
-.content p {
-    font-size: 16px;
-    line-height: 1.6;
-    margin-bottom: 30px;
-    color: #ddd;
-}
+    .line {
+        width: 450px;
+        height: 2px;
+        background: #d4b36a;
+        margin: 20px 0;
+    }
 
-/* BUTTONS */
-.buttons {
-    display: flex;
-    gap: 15px;
-}
+    .content p {
+        font-size: 18px;
+        line-height: 1.6;
+        margin-bottom: 30px;
+        color: #ddd;
+    }
 
-.btn {
-    padding: 12px 20px;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-}
+    .buttons {
+        display: flex;
+        gap: 15px;
+    }
 
-.btn-primary {
-    background: #d4b36a;
-    color: black;
-}
+    .btn {
+        padding: 12px 25px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: none;
+    }
 
-.btn-outline {
-    border: 1px solid #d4b36a;
-    color: #d4b36a;
-    background: transparent;
-}
+    .btn-primary {
+        background: #d4b36a;
+        color: black;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background: #f1d592;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(212, 179, 106, 0.4);
+    }
+
+    .btn-outline {
+        border: 1px solid #d4b36a;
+        color: #d4b36a;
+        background: transparent;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline:hover {
+        background: #d4b36a;
+        color: black;
+        transform: translateY(-3px);
+    }
 </style>
 </head>
-
 <body>
-
-<section class="hero">
-
-    <div class="navbar">
-        <!-- Logo img -->
-        <div class="logo">
-            <img src="Golfcourse_assets/colored logo.png" alt="Golf Club Logo">
+    <section class="hero">
+        <div class="navbar">
+            <div class="logo">
+                <img src="Golfcourse_assets/colored logo.png" alt="Logo">
+            </div>
+            <div class="nav-links">
+                <a href="homepage.html">Home</a>
+                <a href="#">Membership</a>
+                <a href="#">About Us</a>
+                <a href="#">Contacts</a>
+                <a href="login.html" class="sign-in">Sign In</a>
+            </div>
         </div>
 
-        <!--Navigation Bar-->
-        <div class="nav-links">
-            <a href="#">Home</a>
-            <a href="#">Membership</a>
-            <a href="#">About Us</a>
-            <a href="#">Contacts</a>
-            <a href="Sign-In.html" class="sign-in">Sign In</a>
+        <div class="content">
+            <h1>Private<br>Golf Club</h1>
+            <div class="line"></div>
+            <p>Enjoy one of the most popular leisure activities with high-quality equipment, a well-maintained environment, and refreshing amenities.</p>
+            <div class="buttons">
+                <a href="register.html" class="btn btn-primary">Register Now</a>
+                <a href="#" class="btn btn-outline">Learn More</a>
+            </div>
         </div>
-    </div>
-
-    <!-- HERO CONTENT -->
-    <div class="content">
-        <h1>Private<br>Golf Club</h1>
-
-        <div class="line"></div>
-
-        <p>
-            Enjoy one of the most popular leisure activities with high-quality equipment, 
-            a well-maintained environment, and refreshing amenities.
-        </p>
-
-        <div class="buttons">
-        <a href = "register.html">
-            <button class="btn btn-primary">Register Now</button>
-        </a>
-            <button class="btn btn-outline">More Details</button>
-        </div>
-    </div>
-
-</section>
-
+    </section>
 </body>
 </html>
