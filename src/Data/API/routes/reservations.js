@@ -5,6 +5,42 @@ const Payment = require('../models/Payment');
 const Application = require('../models/Application');
 const { authMiddleware } = require('../middleware/auth');
 
+
+// Get availability for a month
+router.get('/availability/month', authMiddleware, async (req, res) => {
+    try {
+        const { start, end, typeId } = req.query;
+        
+        if (!start || !end) {
+            return res.status(400).json({ message: 'Start and end dates required' });
+        }
+        
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        
+        // Get all confirmed reservations in date range
+        const reservations = await Reservation.find({
+            date: { $gte: startDate, $lte: endDate },
+            status: { $in: ['confirmed', 'approved'] }
+        });
+        
+        // Group by date
+        const availability = {};
+        reservations.forEach(res => {
+            const dateKey = res.date.toISOString().split('T')[0];
+            if (!availability[dateKey]) {
+                availability[dateKey] = { bookedCount: 0, totalSlots: 10, reservations: [] };
+            }
+            availability[dateKey].bookedCount++;
+            availability[dateKey].reservations.push(res);
+        });
+        
+        res.json(availability);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 // Check reservation availability > D2: Reservations
 router.get('/availability/:date', async (req, res) => {
     try {
