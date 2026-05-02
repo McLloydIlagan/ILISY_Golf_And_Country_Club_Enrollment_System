@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ILISY Golf Club | Member Portal</title>
+    <style>
+        :root {
+            --gold: #d4b36a;
+            --gold-light: #f1d592;
+            --deep-green: #0d2b0f;
+            --olive: #6b7e5f;
+            --booked: #9c403d;
+            --bg: #f0edf0;
+            --navbar-h: 65px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Georgia", serif; }
+        html { scroll-behavior: smooth; }
+        body { color: #333; background: var(--bg); }
+
+        /* ═══════════════════════════════════════
+           FIXED NAVBAR
+        ═══════════════════════════════════════ */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: var(--navbar-h);
+            background: var(--deep-green);
+            padding: 0 50px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 3px solid var(--gold);
+            z-index: 9999;
+            transition: box-shadow 0.3s;
+        }
+        .navbar.scrolled { box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+        .logo img { width: 42px; cursor: pointer; }
+        .nav-links { display: flex; gap: 28px; align-items: center; }
+        .nav-links a {
+            text-decoration: none; color: var(--gold);
+            font-size: 14px; cursor: pointer;
+            transition: color 0.3s, transform 0.2s;
+            position: relative; padding-bottom: 3px;
+        }
+        .nav-links a::after {
+            content: ''; position: absolute; bottom: 0; left: 0;
+            width: 0; height: 1px; background: white;
+            transition: width 0.3s;
+        }
+        .nav-links a:hover { color: white; }
+        .nav-links a:hover::after { width: 100%; }
+        .nav-links a.active { color: white; }
+        .nav-links a.active::after { width: 100%; }
+        .logout-btn {
+            border: 1px solid var(--gold) !important;
+            padding: 6px 20px; border-radius: 15px;
+            transition: all 0.3s !important;
+        }
+        .logout-btn:hover { background: var(--gold) !important; color: black !important; }
+        .logout-btn::after { display: none !important; }
+
+        /* Offset for fixed navbar */
+        section { scroll-margin-top: var(--navbar-h); }
+
+        /* ═══════════════════════════════════════
+           SECTION 1: HOME HERO
+        ═══════════════════════════════════════ */
+        #home {
+            height: 100vh;
+            background: url('../Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
+            position: relative; display: flex; align-items: center;
+        }
+        #home::before {
+            content: ""; position: absolute; inset: 0;
+            background: rgba(0,0,0,0.45);
+        }
+        .hero-content {
+            position: relative; z-index: 2;
+            padding: 0 60px; color: white;
+        }
+        .hero-content h1 { font-size: 68px; line-height: 1.1; margin-bottom: 15px; }
+        .gold-line { width: 420px; height: 2px; background: var(--gold); margin: 18px 0; }
+        .hero-content p { font-size: 17px; line-height: 1.7; color: #ddd; margin-bottom: 30px; max-width: 480px; }
+        .btn-hero {
+            display: inline-block; padding: 12px 28px;
+            background: transparent; border: 1px solid var(--gold);
+            color: var(--gold); text-decoration: none; font-size: 14px;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .btn-hero:hover { background: var(--gold); color: black; }
+
+        /* ═══════════════════════════════════════
+           SECTION 2: MEMBERSHIP
+        ═══════════════════════════════════════ */
+        #membership {
+            min-height: 100vh;
+            background: url('../Golfcourse_assets/golf_register_pic.jpg') no-repeat center/cover;
+            position: relative; display: flex; flex-direction: column;
+        }
+        #membership::before {
+            content: ""; position: absolute; inset: 0;
+            background: rgba(0,0,0,0.55);
+        }
+        .membership-hero {
+            flex: 1; position: relative; z-index: 2;
+            display: flex; align-items: flex-end; padding: 40px 60px;
+        }
+        .membership-hero h2 {
+            font-size: 48px; color: var(--gold);
+            font-style: italic; letter-spacing: 2px; text-transform: uppercase;
+        }
+        .features-bar {
+            position: relative; z-index: 2;
+            background: var(--deep-green);
+            border-top: 3px solid var(--gold);
+            display: flex; justify-content: space-around; padding: 25px 40px;
+        }
+        .feature-item {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 10px; color: white; font-size: 12px; text-align: center;
+        }
+        .feature-item .icon { font-size: 26px; }
+
+        /* MEMBERSHIP FORM */
+        .membership-form-wrap {
+            position: relative; z-index: 2;
+            background: var(--bg); padding: 50px 60px;
+        }
+        .section-card {
+            background: white; border-radius: 12px;
+            padding: 40px 50px; max-width: 860px; margin: 0 auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        .section-card h2 { font-size: 24px; color: #222; margin-bottom: 25px; }
+        .sub-title {
+            font-size: 13px; color: #666;
+            margin: 20px 0 15px; padding-bottom: 6px;
+            border-bottom: 1px solid #eee;
+        }
+        .form-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; margin-bottom: 16px; }
+        .form-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-bottom: 16px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 11px; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-group input, .form-group select {
+            background: #e8e8e8; border: none;
+            padding: 11px 12px; border-radius: 4px;
+            font-size: 14px; font-family: "Georgia", serif; outline: none;
+            transition: background 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus { background: #ddd; }
+
+        .btn-olive {
+            display: block; margin: 30px auto 0;
+            padding: 13px 55px;
+            background: var(--olive); color: white; border: none;
+            border-radius: 5px; font-size: 15px;
+            font-family: "Georgia", serif; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-olive:hover { background: var(--deep-green); transform: translateY(-2px); }
+
+        /* ═══════════════════════════════════════
+           SECTION 3: MESSAGES
+        ═══════════════════════════════════════ */
+        #messages { background: var(--bg); padding: 60px; min-height: 100vh; display: flex; flex-direction: column; }
+        #messages h1 { font-size: 26px; color: #222; margin-bottom: 25px; text-align: center; }
+
+        .chat-container {
+            background: white; border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            display: flex; flex-direction: column;
+            flex: 1; max-width: 800px; margin: 0 auto; width: 100%;
+            min-height: 500px; overflow: hidden;
+        }
+        .chat-body {
+            flex: 1; padding: 30px;
+            overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
+            min-height: 350px;
+        }
+        .msg-row { display: flex; align-items: flex-start; gap: 12px; }
+        .msg-row.right { justify-content: flex-end; }
+        .user-avatar {
+            width: 38px; height: 38px;
+            background: var(--olive); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; color: white; flex-shrink: 0;
+        }
+        .avatar-right {
+            width: 38px; height: 38px;
+            background: #bbb; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .msg-bubble {
+            background: #f0f0f0; padding: 11px 16px;
+            border-radius: 16px; font-size: 14px; line-height: 1.5;
+            max-width: 65%;
+        }
+        .msg-bubble.sent {
+            background: var(--deep-green); color: white;
+            border: 1px solid var(--gold);
+        }
+        .quick-replies { display: flex; flex-direction: column; gap: 10px; margin-left: 50px; }
+        .quick-btn {
+            background: #e8d9a8; border: none;
+            padding: 11px 22px; border-radius: 22px;
+            font-family: "Georgia", serif; font-size: 13px;
+            cursor: pointer; text-align: left; max-width: 360px; color: #333;
+            transition: all 0.2s;
+        }
+        .quick-btn:hover { background: var(--gold); color: black; transform: translateX(4px); }
+        .chat-footer {
+            padding: 16px 25px; border-top: 1px solid #eee;
+            background: var(--deep-green);
+            display: flex; align-items: center; gap: 14px;
+        }
+        .footer-icon { color: var(--gold); font-size: 20px; cursor: pointer; transition: transform 0.2s; }
+        .footer-icon:hover { transform: scale(1.2); }
+        .msg-input {
+            flex: 1; background: #e8e8e8; border: none;
+            padding: 11px 18px; border-radius: 22px;
+            font-size: 14px; font-family: "Georgia", serif; outline: none;
+        }
+        .send-btn {
+            background: none; border: none; color: var(--gold);
+            font-size: 22px; cursor: pointer; transition: transform 0.2s;
+        }
+        .send-btn:hover { transform: scale(1.2); }
+
+        /* ═══════════════════════════════════════
+           SECTION 4: RESERVATION
+        ═══════════════════════════════════════ */
+        #reservation { background: var(--bg); padding: 60px; min-height: 100vh; }
+        #reservation h1 { font-size: 26px; color: #222; margin-bottom: 30px; text-align: center; }
+
+        .reservation-card {
+            background: white; border-radius: 12px;
+            padding: 40px; max-width: 860px; margin: 0 auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+
+        /* Dual Calendar */
+        .dual-cal { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+        .cal-col { }
+        .cal-col + .cal-col { border-left: 1px solid #ddd; }
+        .cal-header {
+            background: var(--olive); color: white;
+            padding: 14px 18px; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .cal-header h3 { font-size: 15px; font-weight: normal; }
+        .nav-btn {
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            width: 28px; height: 28px; border-radius: 50%;
+            cursor: pointer; font-size: 13px; transition: background 0.2s;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.35); }
+        .cal-grid {
+            display: grid; grid-template-columns: repeat(7,1fr);
+            padding: 14px; gap: 5px; background: #f5f3f5;
+        }
+        .day-lbl { font-size: 10px; color: #aaa; text-align: center; font-weight: bold; text-transform: uppercase; }
+        .day-box {
+            aspect-ratio: 1; background: #d4cdd4; border-radius: 3px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; cursor: pointer; transition: all 0.2s;
+        }
+        .day-box:hover:not(.empty):not(.booked) { transform: scale(1.1); background: #bbb; }
+        .day-box.booked { background: var(--booked); color: white; cursor: not-allowed; }
+        .day-box.partial { background: var(--gold); color: white; }
+        .day-box.empty { background: transparent; cursor: default; }
+
+        .legend { display: flex; gap: 28px; margin-bottom: 25px; justify-content: center; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+        .leg-box { width: 18px; height: 18px; border-radius: 3px; }
+
+        /* ═══════════════════════════════════════
+           PAYMENT SECTION (inline, shown after submit)
+        ═══════════════════════════════════════ */
+        #payment-section {
+            background: var(--bg); padding: 60px; display: none;
+        }
+        #payment-section h1 { font-size: 26px; color: #222; margin-bottom: 30px; text-align: center; }
+        .payment-layout { display: grid; grid-template-columns: 1fr 300px; gap: 25px; max-width: 900px; margin: 0 auto; }
+        .payment-card {
+            background: white; border-radius: 12px;
+            padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .payment-card h2 { font-size: 22px; margin-bottom: 12px; }
+        .pay-msg { font-size: 13px; color: #555; margin-bottom: 22px; text-align: center; }
+        .method-row { display: flex; gap: 10px; margin-bottom: 22px; }
+        .method-btn {
+            flex: 1; padding: 9px 4px;
+            background: #e0dde0; border: 2px solid transparent;
+            border-radius: 5px; cursor: pointer; font-size: 12px;
+            text-align: center; font-family: "Georgia", serif; transition: all 0.2s;
+        }
+        .method-btn:hover, .method-btn.active { border-color: var(--olive); background: #d0d8cc; }
+        .pay-label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .pay-input {
+            width: 100%; background: #e8e8e8; border: none;
+            padding: 11px 13px; border-radius: 4px;
+            font-size: 14px; font-family: "Georgia", serif; outline: none;
+            margin-bottom: 18px;
+        }
+        .divider { border: none; border-top: 1px solid #ddd; margin: 18px 0; }
+        .detail-row { font-size: 14px; line-height: 2.2; color: #444; }
+
+        .slot-card {
+            background: white; border-radius: 12px; overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+        }
+        .slot-head { background: var(--olive); color: white; padding: 16px 20px; text-align: center; font-size: 15px; }
+        .slot-body { padding: 22px; }
+        .slot-opt { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; font-size: 14px; }
+        .slot-opt input[type="checkbox"] { accent-color: var(--olive); width: 15px; height: 15px; }
+
+        /* ═══════════════════════════════════════
+           MODALS
+        ═══════════════════════════════════════ */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+            display: none; justify-content: center; align-items: center; z-index: 10000;
+            backdrop-filter: blur(3px);
+        }
+        .modal-box { background: white; width: 340px; border-radius: 10px; overflow: hidden; }
+        .modal-head { background: var(--olive); color: white; padding: 16px 22px; font-size: 15px; }
+        .modal-body { padding: 25px 22px; }
+        .slot-modal-opt { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-size: 14px; }
+        .slot-modal-opt input[type="checkbox"] { accent-color: var(--olive); width: 15px; height: 15px; }
+
+        /* Confirm/Success Popup */
+        .popup-card {
+            background: var(--olive); border-radius: 10px;
+            width: 400px; padding: 42px 38px;
+            text-align: center; color: white;
+        }
+        .popup-card img { width: 65px; margin-bottom: 14px; }
+        .popup-card hr { border: none; border-top: 1px solid var(--gold); margin: 12px 0 20px; }
+        .popup-card h3 { font-size: 19px; font-weight: normal; margin-bottom: 14px; }
+        .popup-card p { font-size: 13px; line-height: 1.8; color: #eee; }
+        .popup-close {
+            margin-top: 22px; padding: 10px 28px;
+            background: var(--gold); border: none; color: black;
+            cursor: pointer; border-radius: 4px;
+            font-family: "Georgia", serif; font-size: 14px; transition: background 0.2s;
+        }
+        .popup-close:hover { background: var(--gold-light); }
+
+        /* Processing overlay */
+        .processing-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            display: none; justify-content: center; align-items: center; z-index: 10001;
+        }
+        .processing-card {
+            background: var(--olive); color: white;
+            padding: 45px 40px; text-align: center;
+            border-radius: 10px; max-width: 360px;
+        }
+        .processing-card img { width: 65px; margin-bottom: 14px; }
+        .processing-card hr { border: none; border-top: 1px solid var(--gold); margin: 12px 0 18px; }
+        .processing-card p { font-size: 14px; line-height: 1.7; }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     FIXED NAVBAR
+═══════════════════════════════════════ -->
+<nav class="navbar" id="mainNav">
+    <div class="logo" onclick="scrollToSection('home')">
+        <img src="../Golfcourse_assets/colored logo.png" alt="ILISY">
+    </div>
+    <div class="nav-links">
+        <a onclick="scrollToSection('home')" class="active" id="nav-home">Home</a>
+        <a onclick="scrollToSection('membership')" id="nav-membership">Membership</a>
+        <a onclick="scrollToSection('messages')" id="nav-messages">Messages</a>
+        <a onclick="scrollToSection('reservation')" id="nav-reservation">Reservation</a>
+        <a href="../login.html" class="logout-btn">Logout</a>
+    </div>
+</nav>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 1: HOME
+═══════════════════════════════════════ -->
+<section id="home">
+    <div class="hero-content">
+        <h1>Private<br>Golf Club</h1>
+        <div class="gold-line"></div>
+        <p>Enjoy one of the most popular leisure activities with high-quality equipment, a well-maintained environment, and refreshing amenities.</p>
+        <button class="btn-hero" onclick="scrollToSection('reservation')">Book a Tee Time</button>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 2: MEMBERSHIP
+═══════════════════════════════════════ -->
+<section id="membership">
+    <div class="membership-hero">
+        <h2>Join The Membership</h2>
+    </div>
+    <div class="features-bar">
+        <div class="feature-item"><div class="icon">🌲</div><span>Well-maintained environment</span></div>
+        <div class="feature-item"><div class="icon">🐾</div><span>Pet-friendly</span></div>
+        <div class="feature-item"><div class="icon">🏠</div><span>Amenities</span></div>
+        <div class="feature-item"><div class="icon">🏌️</div><span>High-quality equipments</span></div>
+        <div class="feature-item"><div class="icon">📅</div><span>Make-a-reservation</span></div>
+        <div class="feature-item"><div class="icon">😊</div><span>Accomodating Staff</span></div>
+    </div>
+
+    <!-- Membership Form -->
+    <div class="membership-form-wrap">
+        <div class="section-card">
+            <h2>Membership Form</h2>
+            <p class="sub-title">Personal Details</p>
+            <div class="form-grid-4">
+                <div class="form-group"><label>First Name</label><input type="text"></div>
+                <div class="form-group"><label>Last Name</label><input type="text"></div>
+                <div class="form-group"><label>Gender</label>
+                    <select><option></option><option>Male</option><option>Female</option><option>Prefer not to say</option></select>
+                </div>
+                <div class="form-group"><label>Age</label><input type="number"></div>
+            </div>
+            <div class="form-grid-3">
+                <div class="form-group"><label>Email Address</label><input type="email"></div>
+                <div class="form-group"><label>Address</label><input type="text"></div>
+                <div class="form-group"><label>Phone Number</label><input type="tel"></div>
+            </div>
+            <button class="btn-olive" onclick="showMembershipPopup()">Apply</button>
+        </div>
+
+        <!-- Payment (shown after membership apply) -->
+        <div class="section-card" id="membershipPayment" style="display:none; margin-top:30px;">
+            <h2>Payment Form — Membership</h2>
+            <p class="pay-msg">Please select your mode of payment</p>
+            <div class="method-row">
+                <button class="method-btn active" onclick="pickMethod(this)">GCash</button>
+                <button class="method-btn" onclick="pickMethod(this)">Maya</button>
+                <button class="method-btn" onclick="pickMethod(this)">BPI</button>
+                <button class="method-btn" onclick="pickMethod(this)">BDO</button>
+                <button class="method-btn" onclick="pickMethod(this)">Cash</button>
+            </div>
+            <p class="pay-label">Mode of Payment Account Details</p>
+            <input type="text" class="pay-input" placeholder="Enter account number / details">
+            <hr class="divider">
+            <div class="detail-row">
+                <div>Membership Fee</div>
+                <div>Total Amount: <strong>₱1,000,000</strong></div>
+            </div>
+            <button class="btn-olive" onclick="processPayment('membership')">Confirm Payment</button>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 3: MESSAGES
+═══════════════════════════════════════ -->
+<section id="messages">
+    <h1>Customer Service</h1>
+    <div class="chat-container">
+        <div class="chat-body" id="chatBody">
+            <div class="msg-row">
+                <div class="user-avatar">👤</div>
+            </div>
+            <div class="quick-replies" id="quickReplies">
+                <button class="quick-btn" onclick="selectQuickReply('I want to make a refund')">I want to make a refund</button>
+                <button class="quick-btn" onclick="selectQuickReply('My payment did not processed')">My payment did not processed</button>
+                <button class="quick-btn" onclick="selectQuickReply('I have inquiry about my reservation')">I have inquiry about my reservation</button>
+            </div>
+        </div>
+        <div class="chat-footer">
+            <span class="footer-icon">📎</span>
+            <span class="footer-icon">📷</span>
+            <input type="text" class="msg-input" id="msgInput" placeholder="Type your message here..." onkeydown="if(event.key==='Enter') sendMessage()">
+            <button class="send-btn" onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 4: RESERVATION
+═══════════════════════════════════════ -->
+<section id="reservation">
+    <h1>Reservation Form</h1>
+    <div class="reservation-card">
+        <p class="sub-title">Personal Details</p>
+        <div class="form-grid-4">
+            <div class="form-group"><label>First Name</label><input type="text"></div>
+            <div class="form-group"><label>Last Name</label><input type="text"></div>
+            <div class="form-group"><label>Gender</label>
+                <select><option></option><option>Male</option><option>Female</option></select>
+            </div>
+            <div class="form-group"><label>Phone Number</label><input type="tel"></div>
+        </div>
+        <div class="form-grid-4" style="margin-bottom:24px;">
+            <div class="form-group" style="grid-column:span 2"><label>Email Address</label><input type="email"></div>
+        </div>
+
+        <p class="sub-title">Make A Reservation</p>
+        <div class="dual-cal">
+            <div class="cal-col">
+                <div class="cal-header">
+                    <button class="nav-btn" onclick="changeMonth(-1)">&#10094;</button>
+                    <h3 id="cal1Title"></h3>
+                    <button class="nav-btn" onclick="changeMonth(1)">&#10095;</button>
+                </div>
+                <div class="cal-grid" id="cal1"></div>
+            </div>
+            <div class="cal-col">
+                <div class="cal-header">
+                    <span></span>
+                    <h3 id="cal2Title"></h3>
+                    <span></span>
+                </div>
+                <div class="cal-grid" id="cal2"></div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><div class="leg-box" style="background:var(--booked)"></div>Fullybooked</div>
+            <div class="legend-item"><div class="leg-box" style="background:var(--gold)"></div>Partially booked</div>
+            <div class="legend-item"><div class="leg-box" style="background:#d4cdd4"></div>Available</div>
+        </div>
+
+        <button class="btn-olive" onclick="showReservationPayment()">Submit</button>
+    </div>
+
+    <!-- Payment (shown after reservation submit) -->
+    <div id="reservationPayment" style="display:none; margin-top:30px;">
+        <h1 style="text-align:center; font-size:22px; color:#222; margin-bottom:25px;">Payment Form — Reservation</h1>
+        <div class="payment-layout">
+            <div class="payment-card">
+                <h2>Payment Form</h2>
+                <p class="pay-msg">Your application has been approved! Please select your mode of payment</p>
+                <div class="method-row">
+                    <button class="method-btn active" onclick="pickMethod(this)">GCash</button>
+                    <button class="method-btn" onclick="pickMethod(this)">Maya</button>
+                    <button class="method-btn" onclick="pickMethod(this)">BPI</button>
+                    <button class="method-btn" onclick="pickMethod(this)">BDO</button>
+                    <button class="method-btn" onclick="pickMethod(this)">Cash</button>
+                </div>
+                <p class="pay-label">Mode of Payment Account Details</p>
+                <input type="text" class="pay-input" placeholder="Enter account number / details">
+                <hr class="divider">
+                <div class="detail-row">
+                    <div>Day of Reservation: <strong>February 2, 2026</strong></div>
+                    <div>Time of Reservation: <strong>10:00 – 12:00 PM</strong></div>
+                    <div>Total Amount: <strong>₱1,000,000</strong></div>
+                </div>
+                <button class="btn-olive" style="margin-top:25px;" onclick="processPayment('reservation')">Confirm</button>
+            </div>
+            <div class="slot-card">
+                <div class="slot-head">February 1, 2026</div>
+                <div class="slot-body">
+                    <p style="font-size:12px; color:#666; margin-bottom:14px;">Available Slots</p>
+                    <div class="slot-opt"><input type="checkbox" id="p1"><label for="p1">10:00 AM – 12:00 PM</label></div>
+                    <div class="slot-opt"><input type="checkbox" id="p2"><label for="p2">12:30 – 2:30 PM</label></div>
+                    <button class="btn-olive" style="margin-top:10px; padding:10px; width:100%;">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     MODALS
+═══════════════════════════════════════ -->
+
+<!-- Time Slot Modal -->
+<div class="modal-overlay" id="timeModal">
+    <div class="modal-box">
+        <div class="modal-head" id="modalTitle">Select Time Slot</div>
+        <div class="modal-body">
+            <p style="font-size:12px;color:#666;margin-bottom:14px;">Available Slots</p>
+            <div class="slot-modal-opt"><input type="checkbox" id="s1"><label for="s1">10:00 AM – 12:00 PM</label></div>
+            <div class="slot-modal-opt"><input type="checkbox" id="s2"><label for="s2">12:30 – 2:30 PM</label></div>
+            <button class="btn-olive" style="width:100%;margin-top:10px;" onclick="document.getElementById('timeModal').style.display='none'">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Membership Popup -->
+<div class="modal-overlay" id="membershipPopup">
+    <div class="popup-card">
+        <img src="../Golfcourse_assets/colored logo.png" alt="Logo">
+        <hr>
+        <h3>Thank you for choosing ILISY Club.</h3>
+        <p>Your membership form is being processed. Kindly pay the membership fee to be part of ILISY CLUB Membership.</p>
+        <button class="popup-close" onclick="proceedToMembershipPayment()">Proceed to Payment</button>
+    </div>
+</div>
+
+<!-- Processing Overlay -->
+<div class="processing-overlay" id="processingOverlay">
+    <div class="processing-card">
+        <img src="../Golfcourse_assets/colored logo.png" alt="Logo">
+        <hr>
+        <p id="processingMsg">Your Payment is being processed, please wait for a few moments.</p>
+    </div>
+</div>
+
+<!-- Success Popup -->
+<div class="modal-overlay" id="successPopup">
+    <div class="popup-card">
+        <img src="../Golfcourse_assets/colored logo.png" alt="Logo">
+        <hr>
+        <h3>Thank you for choosing ILISY Club.</h3>
+        <p id="successMsg">Kindly wait for an email confirmation before proceeding. You may contact us at ILISYGolfClub@gmail.com or call 123456789.</p>
+        <button class="popup-close" onclick="document.getElementById('successPopup').style.display='none'">Close</button>
+    </div>
+</div>
+
+
+<script>
+    // ── SCROLL NAV ──────────────────────────────
+    function scrollToSection(id) {
+        document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Active nav link on scroll
+    const sections = ['home', 'membership', 'messages', 'reservation'];
+    window.addEventListener('scroll', () => {
+        const nav = document.getElementById('mainNav');
+        nav.classList.toggle('scrolled', window.scrollY > 10);
+
+        const scrollY = window.scrollY + 80;
+        sections.forEach(id => {
+            const el = document.getElementById(id);
+            const navEl = document.getElementById('nav-' + id);
+            if (!el || !navEl) return;
+            const top = el.offsetTop;
+            const bottom = top + el.offsetHeight;
+            navEl.classList.toggle('active', scrollY >= top && scrollY < bottom);
+        });
+    });
+
+    // ── CALENDAR ────────────────────────────────
+    let baseDate = new Date();
+    const bookedDays = [15, 20];
+    const partialDays = [5, 10];
+
+    function renderCal(containerId, titleId, date, booked, partial) {
+        const grid = document.getElementById(containerId);
+        const title = document.getElementById(titleId);
+        grid.innerHTML = '';
+        title.textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date);
+
+        ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d => {
+            grid.innerHTML += `<div class="day-lbl">${d}</div>`;
+        });
+
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+        const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+        const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
+
+        for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="day-box empty"></div>`;
+        for (let d = 1; d <= daysInMonth; d++) {
+            let cls = booked.includes(d) ? 'booked' : partial.includes(d) ? 'partial' : '';
+            const click = cls !== 'booked' ? `openTimeModal(${d}, '${monthName}', ${date.getFullYear()})` : '';
+            grid.innerHTML += `<div class="day-box ${cls}" onclick="${click}">${d}</div>`;
+        }
+    }
+
+    function renderCalendars() {
+        const next = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1);
+        renderCal('cal1', 'cal1Title', baseDate, bookedDays, partialDays);
+        renderCal('cal2', 'cal2Title', next, [], []);
+    }
+
+    function changeMonth(n) { baseDate.setMonth(baseDate.getMonth() + n); renderCalendars(); }
+
+    function openTimeModal(day, month, year) {
+        document.getElementById('modalTitle').textContent = `${month} ${day}, ${year}`;
+        document.getElementById('timeModal').style.display = 'flex';
+    }
+
+    renderCalendars();
+
+    // ── CHAT ────────────────────────────────────
+    function selectQuickReply(text) {
+        document.getElementById('quickReplies').style.display = 'none';
+        addMsg(text, 'sent');
+        setTimeout(() => addMsg("Thank you for reaching out! One of our staff members will assist you shortly.", 'received'), 800);
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('msgInput');
+        const text = input.value.trim();
+        if (!text) return;
+        addMsg(text, 'sent');
+        input.value = '';
+        setTimeout(() => addMsg("Thank you for your message. Our team will get back to you as soon as possible.", 'received'), 800);
+    }
+
+    function addMsg(text, type) {
+        const chatBody = document.getElementById('chatBody');
+        const row = document.createElement('div');
+        row.className = 'msg-row' + (type === 'sent' ? ' right' : '');
+        row.innerHTML = type === 'received'
+            ? `<div class="user-avatar">👤</div><div class="msg-bubble">${text}</div>`
+            : `<div class="msg-bubble sent">${text}</div><div class="avatar-right">👤</div>`;
+        chatBody.appendChild(row);
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    // ── MEMBERSHIP FLOW ──────────────────────────
+    function showMembershipPopup() {
+        document.getElementById('membershipPopup').style.display = 'flex';
+    }
+
+    function proceedToMembershipPayment() {
+        document.getElementById('membershipPopup').style.display = 'none';
+        const payEl = document.getElementById('membershipPayment');
+        payEl.style.display = 'block';
+        setTimeout(() => payEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+
+    // ── RESERVATION FLOW ─────────────────────────
+    function showReservationPayment() {
+        const payEl = document.getElementById('reservationPayment');
+        payEl.style.display = 'block';
+        setTimeout(() => payEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+
+    // ── PAYMENT ──────────────────────────────────
+    function pickMethod(btn) {
+        btn.closest('.method-row').querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function processPayment(type) {
+        const overlay = document.getElementById('processingOverlay');
+        document.getElementById('processingMsg').textContent = type === 'membership'
+            ? 'Your Payment is being processed, please wait for a few moments to receive your membership receipt from the email.'
+            : 'Your Payment is being processed, please wait for a few moments.';
+        overlay.style.display = 'flex';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            document.getElementById('successMsg').textContent = type === 'membership'
+                ? 'Your membership payment has been processed. Please check your email for your membership receipt.'
+                : 'Kindly wait for an email confirmation of your reservation. You may contact us at ILISYGolfClub@gmail.com or call 123456789.';
+            document.getElementById('successPopup').style.display = 'flex';
+        }, 3000);
+    }
+</script>
+</body>
+</html>
