@@ -3,211 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Messages | Private Golf Club</title>
+    <title>Customer Service | ILISY Golf Club</title>
     <style>
         :root {
             --gold: #d4b36a;
             --deep-green: #0d2b0f;
-            --glass: rgba(255, 255, 255, 0.1);
+            --olive: #6b7e5f;
         }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Georgia", serif; }
+        body { background: #f0edf0; display: flex; flex-direction: column; height: 100vh; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Georgia", serif; /* Consistent with site branding */
-        }
-
-        body {
-            background-color: #f4f1f0; /* Matches user_reservation background */
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-
-        /* --- NAVBAR --- */
+        /* NAVBAR */
         .navbar {
-            background-color: var(--deep-green);
-            padding: 15px 60px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 3px solid var(--gold); /* Brand identity */
-            z-index: 10;
-        }
-
-        .logo img { width: 50px; }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--gold);
-            font-size: 14px;
-            margin-left: 25px;
-            transition: 0.3s;
-        }
-
-        /* --- MESSAGES LAYOUT --- */
-        .messaging-container {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        /* Sidebar for conversation list */
-        .inbox-sidebar {
-            width: 350px;
             background: var(--deep-green);
-            color: white;
-            border-right: 1px solid rgba(212, 179, 106, 0.3);
+            padding: 14px 50px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 3px solid var(--gold);
+            flex-shrink: 0;
         }
-
-        .inbox-header {
-            padding: 30px;
-            border-bottom: 1px solid rgba(212, 179, 106, 0.2);
+        .logo img { width: 40px; }
+        .nav-links { display: flex; gap: 28px; align-items: center; }
+        .nav-links a { text-decoration: none; color: var(--gold); font-size: 14px; transition: color 0.3s; }
+        .nav-links a:hover { color: white; }
+        .logout-btn {
+            border: 1px solid var(--gold); padding: 5px 16px;
+            border-radius: 14px; transition: all 0.3s;
         }
+        .logout-btn:hover { background: var(--gold); color: black !important; }
 
-        .convo-item {
-            padding: 20px 30px;
-            cursor: pointer;
-            transition: 0.3s;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+        /* PAGE TITLE */
+        .page-title {
+            background: #e8e4e8;
+            padding: 20px 50px;
+            border-bottom: 1px solid #ddd;
+            flex-shrink: 0;
         }
+        .page-title h1 { font-size: 24px; color: #222; }
 
-        .convo-item:hover, .convo-item.active {
-            background: rgba(212, 179, 106, 0.15);
-        }
-
-        .convo-item h4 { color: var(--gold); margin-bottom: 5px; }
-        .convo-item p { font-size: 13px; color: #ccc; }
-
-        /* Chat window */
-        .chat-window {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: white;
-        }
-
-        .chat-header {
-            padding: 20px 40px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+        /* CHAT AREA */
+        .chat-area {
+            flex: 1; display: flex; flex-direction: column;
+            background: white; overflow: hidden;
         }
 
         .chat-body {
-            flex: 1;
-            padding: 40px;
+            flex: 1; padding: 30px 50px;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* Glassmorphism Bubbles */
-        .message {
-            max-width: 60%;
-            padding: 15px 20px;
-            border-radius: 15px;
-            font-size: 15px;
-            line-height: 1.5;
-        }
-
-        .msg-received {
-            background: #f0f0f0;
-            align-self: flex-start;
-            border-bottom-left-radius: 2px;
-        }
-
-        .msg-sent {
-            background: var(--deep-green);
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 2px;
-            border: 1px solid var(--gold); /* Gold border from logout style */
-        }
-
-        /* --- INPUT AREA --- */
-        .chat-footer {
-            padding: 20px 40px;
-            border-top: 1px solid #eee;
-            display: flex;
+            display: flex; flex-direction: column;
             gap: 15px;
         }
 
-        input[type="text"] {
-            flex: 1;
-            background: #ededed; /* Consistent field style */
-            border: none;
-            padding: 12px 20px;
-            border-radius: 25px;
+        /* User avatar */
+        .user-avatar {
+            width: 42px; height: 42px;
+            background: var(--olive);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; color: white;
+            flex-shrink: 0;
         }
 
-        .btn-send {
-            background: var(--gold);
-            border: none;
-            padding: 10px 25px;
-            border-radius: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
+        .msg-row {
+            display: flex; align-items: flex-start; gap: 12px;
+        }
+        .msg-row.right { justify-content: flex-end; }
+
+        /* Quick reply buttons */
+        .quick-replies {
+            display: flex; flex-direction: column; gap: 10px;
+            margin-left: 54px; margin-top: 5px;
+        }
+        .quick-btn {
+            background: #e8d9a8; border: none;
+            padding: 12px 25px; border-radius: 25px;
+            font-family: "Georgia", serif; font-size: 14px;
+            cursor: pointer; text-align: left;
+            transition: all 0.2s; max-width: 340px;
+            color: #333;
+        }
+        .quick-btn:hover { background: var(--gold); color: black; transform: translateX(3px); }
+
+        .message-bubble {
+            background: #f0f0f0;
+            padding: 12px 18px;
+            border-radius: 18px;
+            font-size: 14px; line-height: 1.5;
+            max-width: 60%;
         }
 
-        .btn-send:hover {
-            background: #f1d592; /* Light gold hover */
-            transform: translateY(-2px);
+        .message-bubble.sent {
+            background: var(--deep-green);
+            color: white;
+            border: 1px solid var(--gold);
+        }
+
+        /* FOOTER */
+        .chat-footer {
+            padding: 18px 50px;
+            border-top: 1px solid #eee;
+            background: var(--deep-green);
+            display: flex; align-items: center; gap: 15px;
+        }
+
+        .footer-icons { display: flex; gap: 15px; align-items: center; }
+        .footer-icon {
+            color: var(--gold); font-size: 20px;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .footer-icon:hover { transform: scale(1.2); }
+
+        .msg-input {
+            flex: 1; background: #e8e8e8;
+            border: none; padding: 12px 20px;
+            border-radius: 25px; font-size: 14px;
+            font-family: "Georgia", serif; outline: none;
+        }
+
+        .send-btn {
+            background: none; border: none;
+            color: var(--gold); font-size: 22px;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .send-btn:hover { transform: scale(1.2); }
+
+        /* Right-side avatar */
+        .avatar-right {
+            width: 42px; height: 42px;
+            background: #ccc; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; flex-shrink: 0;
         }
     </style>
 </head>
 <body>
 
-    <div class="navbar">
-        <div class="logo"><img src="../Golfcourse_assets/colored logo.png" alt="Logo"></div>
-        <div class="nav-links">
-            <a href="user_homepage.html">Home</a>
-            <a href="user_reservation.html">Reservation</a>
-            <a href="#" style="color: white; border-bottom: 1px solid var(--gold);">Messages</a>
-            <a href="../login.html" style="border: 1px solid var(--gold); padding: 5px 15px; border-radius: 15px;">Logout</a>
+<div class="navbar">
+    <div class="logo"><img src="../Golfcourse_assets/colored logo.png" alt="ILISY"></div>
+    <div class="nav-links">
+        <a href="user_homepage.html">Home</a>
+        <a href="membership_form.html">Membership</a>
+        <a href="user_messages.html">Messages</a>
+        <a href="user_reservation.html">Reservation</a>
+        <a href="../login.html" class="logout-btn">Logout</a>
+    </div>
+</div>
+
+<div class="page-title">
+    <h1>Customer Service</h1>
+</div>
+
+<div class="chat-area">
+    <div class="chat-body" id="chatBody">
+        <div class="msg-row">
+            <div class="user-avatar">👤</div>
+        </div>
+        <div class="quick-replies" id="quickReplies">
+            <button class="quick-btn" onclick="selectQuickReply('I want to make a refund')">I want to make a refund</button>
+            <button class="quick-btn" onclick="selectQuickReply('My payment did not processed')">My payment did not processed</button>
+            <button class="quick-btn" onclick="selectQuickReply('I have inquiry about my reservation')">I have inquiry about my reservation</button>
         </div>
     </div>
 
-    <div class="messaging-container">
-        <div class="inbox-sidebar">
-            <div class="inbox-header">
-                <h2>Inquiries</h2>
-            </div>
-            <div class="convo-item active">
-                <h4>Club Secretary</h4>
-                <p>Regarding your tee time on the 15th...</p>
-            </div>
-            <div class="convo-item">
-                <h4>Membership Office</h4>
-                <p>Your premium card is ready for pickup.</p>
-            </div>
+    <div class="chat-footer">
+        <div class="footer-icons">
+            <span class="footer-icon">📎</span>
+            <span class="footer-icon">📷</span>
         </div>
-
-        <div class="chat-window">
-            <div class="chat-header">
-                <h3>Club Secretary</h3>
-            </div>
-            <div class="chat-body">
-                <div class="message msg-received">
-                    Good morning! We noticed you booked a slot for the 15th. Would you like to reserve a caddy in advance?
-                </div>
-                <div class="message msg-sent">
-                    Yes, please. I would prefer an experienced caddy if available.
-                </div>
-                <div class="message msg-received">
-                    Understood. We have noted that on your reservation. We look forward to seeing you at the ILISY Club!
-                </div>
-            </div>
-            <div class="chat-footer">
-                <input type="text" placeholder="Type your message here...">
-                <button class="btn-send">Send</button>
-            </div>
-        </div>
+        <input type="text" class="msg-input" id="msgInput" placeholder="Type your message here..." onkeydown="if(event.key==='Enter') sendMessage()">
+        <button class="send-btn" onclick="sendMessage()">➤</button>
     </div>
+</div>
 
+<script>
+    const chatBody = document.getElementById('chatBody');
+
+    function selectQuickReply(text) {
+        document.getElementById('quickReplies').style.display = 'none';
+        addMessage(text, 'sent');
+        setTimeout(() => {
+            addMessage("Thank you for reaching out! One of our staff members will assist you shortly. Please hold on.", 'received');
+        }, 800);
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('msgInput');
+        const text = input.value.trim();
+        if (!text) return;
+        addMessage(text, 'sent');
+        input.value = '';
+        setTimeout(() => {
+            addMessage("Thank you for your message. Our team will get back to you as soon as possible.", 'received');
+        }, 800);
+    }
+
+    function addMessage(text, type) {
+        const row = document.createElement('div');
+        row.className = 'msg-row' + (type === 'sent' ? ' right' : '');
+
+        if (type === 'received') {
+            row.innerHTML = `<div class="user-avatar">👤</div><div class="message-bubble">${text}</div>`;
+        } else {
+            row.innerHTML = `<div class="message-bubble sent">${text}</div><div class="avatar-right">👤</div>`;
+        }
+        chatBody.appendChild(row);
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+</script>
 </body>
 </html>

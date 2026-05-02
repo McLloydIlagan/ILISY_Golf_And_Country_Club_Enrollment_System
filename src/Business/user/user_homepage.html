@@ -3,176 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Private Golf Club - Home</title>
+    <title>ILISY Golf Club | Home</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Georgia", serif;
+        :root {
+            --gold: #d4b36a;
+            --gold-light: #f1d592;
+            --deep-green: #0d2b0f;
+            --olive: #6b7e5f;
         }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Georgia", serif; }
+        body { color: white; overflow-x: hidden; }
 
-        body {
-            color: white;
-            overflow-x: hidden;
+        /* NAVBAR */
+        .navbar {
+            position: absolute; top: 0; width: 100%;
+            padding: 18px 50px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 10;
+            border-bottom: 1px solid rgba(212,179,106,0.3);
         }
+        .logo img { width: 60px; }
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-links a {
+            text-decoration: none; color: white; font-size: 14px;
+            transition: color 0.3s;
+        }
+        .nav-links a:hover { color: var(--gold); }
+        .logout-btn {
+            border: 1px solid var(--gold); padding: 6px 22px;
+            border-radius: 20px; color: white !important;
+            transition: all 0.3s;
+        }
+        .logout-btn:hover { background: var(--gold); color: black !important; }
 
         /* HERO SECTION */
         .hero {
             height: 100vh;
             background: url('../Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
-            position: relative;
+            position: relative; display: flex; align-items: center;
         }
-
         .hero::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.45);
+            content: ""; position: absolute; inset: 0;
+            background: rgba(0,0,0,0.45);
         }
+        .hero-content {
+            position: relative; z-index: 2;
+            padding: 0 60px; margin-top: 60px;
+        }
+        .hero-content h1 { font-size: 68px; line-height: 1.1; margin-bottom: 15px; }
+        .gold-line { width: 420px; height: 2px; background: var(--gold); margin: 18px 0; }
+        .hero-content p { font-size: 17px; line-height: 1.7; color: #ddd; margin-bottom: 30px; max-width: 480px; }
+        .btn-hero {
+            display: inline-block; padding: 12px 28px;
+            background: transparent; border: 1px solid var(--gold);
+            color: var(--gold); text-decoration: none; font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-hero:hover { background: var(--gold); color: black; }
 
-        /* NAVBAR */
-        .navbar {
-            position: absolute;
-            top: 0;
-            width: 100%;
-            padding: 20px 60px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* MEMBERSHIP SECTION */
+        .membership-section {
+            height: 100vh;
+            background: url('../Golfcourse_assets/golf_register_pic.jpg') no-repeat center/cover;
+            position: relative; display: flex; flex-direction: column; justify-content: flex-end;
+        }
+        .membership-section::before {
+            content: ""; position: absolute; inset: 0;
+            background: rgba(0,0,0,0.5);
+        }
+        /* Second navbar for membership section */
+        .navbar-2 {
+            position: absolute; top: 0; width: 100%;
+            padding: 18px 50px;
+            display: flex; justify-content: space-between; align-items: center;
             z-index: 10;
-            border-bottom: 1px solid rgba(212, 179, 106, 0.2);
+        }
+        .membership-text {
+            position: relative; z-index: 2;
+            padding: 30px 60px;
+            background: rgba(0,0,0,0.3);
+        }
+        .membership-text h2 {
+            font-size: 48px; color: var(--gold);
+            font-style: italic; letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
-        .logo img {
-            width: 60px;
-            height: auto;
+        /* FEATURES BAR */
+        .features-bar {
+            background: var(--deep-green);
+            border-top: 3px solid var(--gold);
+            display: flex; justify-content: space-around;
+            padding: 25px 40px;
         }
-
-        .nav-links {
-            display: flex;
-            gap: 30px;
-            align-items: center;
+        .feature-item {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 10px; color: white; font-size: 12px; text-align: center;
         }
-
-        .nav-links a {
-            text-decoration: none;
-            color: #d4b36a;
-            font-size: 15px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-links a:hover {
-            color: white;
-            text-shadow: 0 0 8px rgba(255,255,255,0.5);
-        }
-
-        .logout {
-            border: 1px solid #d4b36a;
-            padding: 6px 25px;
-            border-radius: 20px;
-        }
-
-        .logout:hover {
-            background-color: #d4b36a;
-            color: #000 !important;
-            transform: scale(1.05);
-        }
-
-        /* CONTENT */
-        .content {
-            position: relative;
-            z-index: 2;
-            max-width: 700px;
-            padding: 180px 60px;
-        }
-
-        .content h1 {
-            font-size: 64px;
-            line-height: 1.1;
-            margin-bottom: 20px;
-        }
-
-        .line {
-            width: 450px;
-            height: 2px;
-            background: #d4b36a;
-            margin: 20px 0;
-        }
-
-        .content p {
-            font-size: 18px;
-            line-height: 1.6;
-            margin-bottom: 40px;
-            color: #ddd;
-        }
-
-        /* BUTTONS */
-        .buttons {
-            display: flex;
-            gap: 20px;
-        }
-
-        .btn {
-            padding: 14px 30px;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: #d4b36a;
-            color: black;
-            font-weight: bold;
-        }
-
-        .btn-primary:hover {
-            background-color: #f1d592;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(212, 179, 106, 0.3);
-        }
-
-        .btn-outline {
-            border: 1px solid #d4b36a;
-            color: #d4b36a;
-            background: transparent;
-        }
-
-        .btn-outline:hover {
-            background-color: #d4b36a;
-            color: black;
-            transform: translateY(-3px);
-        }
+        .feature-item .icon { font-size: 28px; }
+        .feature-item span { max-width: 90px; line-height: 1.3; }
     </style>
 </head>
 <body>
+    <!-- HERO SECTION -->
     <section class="hero">
         <div class="navbar">
-            <div class="logo">
-                <img src="../Golfcourse_assets/colored logo.png" alt="Logo">
-            </div>
+            <div class="logo"><img src="../Golfcourse_assets/colored logo.png" alt="ILISY"></div>
             <div class="nav-links">
                 <a href="user_homepage.html">Home</a>
-                <a href="#">Membership</a>
-                <a href="#">About Us</a>
-                <a href="#">Messages</a>
-                <a href="user/user_reservation.html">Reservation</a>
-                <a href="#">Contacts</a>
-                <a href="../login.html" class="logout">Logout</a>
+                <a href="membership_form.html">Membership</a>
+                <a href="user_messages.html">Messages</a>
+                <a href="user_reservation.html">Reservation</a>
+                <a href="../login.html" class="logout-btn">Logout</a>
             </div>
         </div>
-
-        <div class="content">
+        <div class="hero-content">
             <h1>Private<br>Golf Club</h1>
-            <div class="line"></div>
-            <p>Welcome back! Experience world-class golfing facilities and exclusive member benefits tailored just for you.</p>
-            <div class="buttons">
-                <a href="user/user_reservation.html" class="btn btn-primary">Book a Tee Time</a>
-                <a href="#" class="btn btn-outline">My Membership</a>
+            <div class="gold-line"></div>
+            <p>Enjoy one of the most popular leisure activities with high-quality equipment, a well-maintained environment, and refreshing amenities.</p>
+            <a href="user/user_reservation.html" class="btn-hero">Register Now</a>
+        </div>
+    </section>
+
+    <!-- MEMBERSHIP SECTION -->
+    <section class="membership-section">
+        <div class="navbar-2">
+            <div class="logo"><img src="../Golfcourse_assets/colored logo.png" alt="ILISY"></div>
+            <div class="nav-links">
+                <a href="user_homepage.html">Home</a>
+                <a href="user/membership_form.html">Membership</a>
+                <a href="user/user_messages.html">Messages</a>
+                <a href="user/user_reservation.html">Reservation</a>
+                <a href="login.html" class="logout-btn">Logout</a>
             </div>
+        </div>
+        <div class="membership-text">
+            <h2>Join The Membership</h2>
+        </div>
+        <div class="features-bar">
+            <div class="feature-item"><div class="icon">🌲</div><span>Well-maintained environment</span></div>
+            <div class="feature-item"><div class="icon">🐾</div><span>Pet-friendly</span></div>
+            <div class="feature-item"><div class="icon">🏠</div><span>Amenities</span></div>
+            <div class="feature-item"><div class="icon">🏌️</div><span>High-quality equipments</span></div>
+            <div class="feature-item"><div class="icon">📅</div><span>Make-a-reservation</span></div>
+            <div class="feature-item"><div class="icon">😊</div><span>Accomodating Staff</span></div>
         </div>
     </section>
 </body>

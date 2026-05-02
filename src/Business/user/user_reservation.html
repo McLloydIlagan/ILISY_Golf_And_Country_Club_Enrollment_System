@@ -3,401 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reservation Form - Private Golf Club</title>
+    <title>Reservation Form | ILISY Golf Club</title>
     <style>
         :root {
             --gold: #d4b36a;
             --gold-light: #f1d592;
             --deep-green: #0d2b0f;
             --olive: #6b7e5f;
-            --muted-bg: #6e7d63; 
-            --glass: rgba(255, 255, 255, 0.1);
+            --booked: #9c403d;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Georgia", serif; }
+        body { background: #f0edf0; color: #333; }
+
+        /* NAVBAR */
+        .navbar {
+            background: var(--deep-green);
+            padding: 14px 50px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 3px solid var(--gold);
+        }
+        .logo img { width: 40px; }
+        .nav-links { display: flex; gap: 28px; align-items: center; }
+        .nav-links a { text-decoration: none; color: var(--gold); font-size: 14px; transition: color 0.3s; }
+        .nav-links a:hover { color: white; }
+        .logout-btn {
+            border: 1px solid var(--gold); padding: 5px 16px;
+            border-radius: 14px; transition: all 0.3s;
+        }
+        .logout-btn:hover { background: var(--gold); color: black !important; }
+
+        /* PAGE HEADER */
+        .page-header { background: #e8e4e8; padding: 22px 60px; border-bottom: 1px solid #ddd; }
+        .page-header h1 { font-size: 26px; color: #222; }
+
+        /* MAIN CONTENT */
+        .main-wrapper {
+            display: flex; gap: 0;
+            max-width: 1100px; margin: 30px auto;
+            padding: 0 20px;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Georgia", serif;
-        }
-
-        body {
-            background-color: #f4f1f0;
-            color: #333;
-        }
-
-        /* --- SHIMMER ANIMATION --- */
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-
-        .shimmer-effect {
-            background: linear-gradient(90deg, var(--gold) 25%, var(--gold-light) 50%, var(--gold) 75%);
-            background-size: 200% 100%;
-            animation: shimmer 3s infinite linear;
-            border: none;
-            color: #000;
-            font-weight: bold;
-        }
-
-
-        /* --- NAVBAR --- */
-.navbar {
-    background-color: var(--deep-green);
-    padding: 15px 60px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 3px solid var(--gold);
-}
-
-.logo img { 
-    width: 50px; 
-    height: auto; 
-}
-
-.nav-links { 
-    display: flex; 
-    gap: 25px; 
-    align-items: center; 
-}
-
-/* Re-added the hover for regular links */
-.nav-links a {
-    text-decoration: none;
-    color: var(--gold);
-    font-size: 14px;
-    transition: color 0.3s ease, transform 0.2s ease;
-}
-
-.nav-links a:hover {
-    color: white; /* Glows white when hovered */
-    transform: translateY(-1px);
-}
-
-/* GLASS HOVER EFFECT FOR LOGOUT */
-.logout-btn {
-    border: 1px solid var(--gold) !important;
-    padding: 6px 20px;
-    border-radius: 15px;
-    background: var(--glass);
-    backdrop-filter: blur(5px);
-    transition: all 0.4s ease !important;
-    color: var(--gold) !important;
-}
-
-.logout-btn:hover {
-    background: rgba(212, 179, 106, 0.4) !important; /* Slightly stronger gold tint on hover */
-    box-shadow: 0 0 15px rgba(212, 179, 106, 0.5);
-    color: white !important;
-    border-color: white !important;
-}
-
-        /* --- MAIN CONTAINER --- */
-        .main-container {
-            max-width: 950px;
-            margin: 40px auto;
+        /* LEFT: FORM */
+        .form-section {
+            flex: 1;
             background: white;
-            padding: 50px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
 
-        h1 { text-align: center; font-size: 36px; margin-bottom: 40px; color: #000; }
+        .form-section h1 { font-size: 26px; margin-bottom: 30px; color: #222; }
 
-        h3 { margin-bottom: 20px; color: #444; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px; }
+        .sub-title {
+            font-size: 14px; color: #555;
+            margin: 20px 0 15px;
+            border-bottom: 1px solid #eee; padding-bottom: 6px;
+        }
 
-        /* FORM GRID */
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+        .form-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
+        .form-row-2 { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 16px; }
+
+        .form-group { display: flex; flex-direction: column; }
+        label { font-size: 11px; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+        input, select {
+            background: #e8e8e8; border: none;
+            padding: 10px 12px; border-radius: 4px;
+            font-size: 14px; font-family: "Georgia", serif; outline: none;
+        }
+
+        /* CALENDAR */
+        .dual-calendar {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 0;
+            border: 1px solid #ddd; border-radius: 8px; overflow: hidden;
             margin-bottom: 20px;
         }
 
-        .form-group { display: flex; flex-direction: column; }
-        label { font-size: 12px; margin-bottom: 8px; color: #666; font-weight: bold; }
-        input, select { background: #ededed; border: none; padding: 12px; border-radius: 4px; font-size: 14px; }
+        .cal-col { }
 
-        /* --- REFINED CALENDAR HEADER --- */
-        .calendar-section {
-            background: #fff;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-            overflow: hidden;
-            margin-bottom: 30px;
+        .cal-header {
+            background: var(--olive); color: white;
+            padding: 14px 20px;
+            display: flex; justify-content: space-between; align-items: center;
         }
-
-        .calendar-header {
-            background-color: var(--olive);
-            color: white;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
+        .cal-header h3 { font-size: 16px; font-weight: normal; }
         .nav-btn {
-            background: rgba(255,255,255,0.15);
-            border: none;
-            color: white;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.3s, transform 0.2s;
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            width: 28px; height: 28px; border-radius: 50%;
+            cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
         }
+        .nav-btn:hover { background: rgba(255,255,255,0.35); }
 
-        .nav-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: scale(1.1);
+        .cal-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            padding: 15px; gap: 6px;
+            background: #f5f3f5;
         }
-
-        #monthDisplay {
-            font-size: 20px;
-            letter-spacing: 1px;
-            font-weight: normal;
-        }
-
-        .calendar-days-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            padding: 25px;
-            gap: 12px;
-            text-align: center;
-        }
-
-        .day-label { font-size: 11px; font-weight: bold; color: #aaa; text-transform: uppercase; }
-
+        .day-lbl { font-size: 10px; color: #aaa; text-align: center; font-weight: bold; text-transform: uppercase; }
         .day-box {
             aspect-ratio: 1;
-            background-color: #cdc1c1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 14px;
+            background: #d4cdd4; border-radius: 3px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; cursor: pointer;
+            transition: all 0.2s;
         }
+        .day-box:hover:not(.empty):not(.booked) { transform: scale(1.1); background: #bbb; }
+        .day-box.booked { background: var(--booked); color: white; cursor: not-allowed; }
+        .day-box.partial { background: var(--gold); color: white; }
+        .day-box.empty { background: transparent; cursor: default; }
 
-        .day-box:hover:not(.empty):not(.booked) {
-            transform: scale(1.1);
-            background-color: #bbb;
+        /* LEGEND */
+        .legend { display: flex; gap: 30px; margin-bottom: 25px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+        .leg-box { width: 20px; height: 20px; border-radius: 3px; }
+
+        /* SUBMIT */
+        .btn-submit {
+            display: block; margin: 0 auto;
+            padding: 13px 60px;
+            background: var(--olive); color: white; border: none;
+            border-radius: 5px; font-size: 15px;
+            font-family: "Georgia", serif; cursor: pointer;
+            transition: all 0.3s;
         }
+        .btn-submit:hover { background: var(--deep-green); transform: translateY(-2px); }
 
-        .day-box.booked { background-color: #9c403d; color: white; cursor: not-allowed; }
-        .day-box.partial { background-color: var(--gold); color: white; }
-        .day-box.empty { cursor: default; background: transparent; }
-
-        /* --- LEGEND --- */
-        .legend {
-            display: flex;
-            gap: 40px;
-            margin-bottom: 40px;
-            justify-content: center;
-        }
-
-        .legend-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-        .color-box { width: 25px; height: 25px; border-radius: 3px; }
-
-        /* --- SUBMIT BUTTON --- */
-        .btn-main-submit {
-            display: block;
-            width: 320px;
-            margin: 40px auto 0;
-            padding: 15px;
-            background-color: var(--olive);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: 0.3s;
-        }
-
-        .btn-main-submit:hover { opacity: 0.9; transform: translateY(-2px); }
-
-        /* --- SUCCESS MODAL --- */
-        .success-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            backdrop-filter: blur(5px);
-        }
-
-        .success-card {
-            background-color: var(--muted-bg);
-            width: 650px;
-            padding: 50px;
-            text-align: center;
-            color: white;
-            position: relative;
-            border-radius: 10px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-
-        .success-card .logo-large { width: 90px; margin-bottom: 20px; }
-
-        .success-card hr {
-            border: 0;
-            border-top: 2px solid var(--gold);
-            width: 100%;
-            margin: 20px 0 40px;
-        }
-
-        .success-card h2 { font-size: 26px; margin-bottom: 30px; font-weight: normal; }
-
-        .success-card p {
-            font-size: 17px;
-            line-height: 1.6;
-            text-align: left;
-        }
-
-        .close-success {
-            position: absolute;
-            top: 20px;
-            right: 25px;
-            font-size: 30px;
-            cursor: pointer;
-            color: white;
-        }
-
-        /* --- TIME MODAL --- */
+        /* TIME MODAL */
         .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
         }
-        .modal-content { background: white; width: 380px; border-radius: 12px; overflow: hidden; }
-        .modal-header { background: var(--olive); color: white; padding: 20px; text-align: center; font-size: 18px; }
-        .modal-body { padding: 30px; }
-        .slot { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; }
+        .modal-box {
+            background: white; width: 340px; border-radius: 10px; overflow: hidden;
+        }
+        .modal-head { background: var(--olive); color: white; padding: 18px 25px; font-size: 16px; }
+        .modal-body { padding: 28px 25px; }
+        .slot { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; font-size: 14px; }
+        .slot input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--olive); }
+        .btn-confirm-slot {
+            width: 100%; padding: 12px;
+            background: var(--gold); border: none;
+            font-family: "Georgia", serif; font-size: 14px;
+            cursor: pointer; border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .btn-confirm-slot:hover { background: var(--gold-light); }
     </style>
 </head>
 <body>
 
-    <div class="success-overlay" id="successPopup">
-        <div class="success-card">
-            <span class="close-success" onclick="closeSuccess()">&times;</span>
-            <img src="../Golfcourse_assets/colored logo.png" class="logo-large" alt="Logo">
-            <hr>
-            <h2>Thank you for choosing ILISY Club.</h2>
-            <p>Kindly wait for an email confirmation of your reservation before proceeding with the payment. You may contact us through our email ILISYGolfClub@gmail.com or you may reach out to our staffs with the phone number 123456789</p>
+<!-- TIME MODAL -->
+<div class="modal-overlay" id="timeModal">
+    <div class="modal-box">
+        <div class="modal-head" id="modalTitle">Date</div>
+        <div class="modal-body">
+            <p style="font-size:13px; color:#666; margin-bottom:18px;">Available Slots</p>
+            <div class="slot"><input type="checkbox" id="s1"><label for="s1">10:00 AM – 12:00 PM</label></div>
+            <div class="slot"><input type="checkbox" id="s2"><label for="s2">12:30 – 2:30 PM</label></div>
+            <button class="btn-confirm-slot" onclick="confirmSlot()">Confirm</button>
         </div>
     </div>
+</div>
 
-    <div class="modal-overlay" id="timeModal">
-        <div class="modal-content">
-            <div class="modal-header" id="modalDate">Date Selection</div>
-            <div class="modal-body">
-                <div class="slot"><input type="checkbox" id="s1"> <label for="s1">10:00 AM - 12:00 PM</label></div>
-                <div class="slot"><input type="checkbox" id="s2"> <label for="s2">12:30 PM - 02:30 PM</label></div>
-                <button class="shimmer-effect" style="width:100%; padding: 12px; border-radius: 5px; cursor: pointer; margin-top: 10px;" onclick="document.getElementById('timeModal').style.display='none'">Confirm</button>
-            </div>
-        </div>
+<div class="navbar">
+    <div class="logo"><img src="../Golfcourse_assets/colored logo.png" alt="ILISY"></div>
+    <div class="nav-links">
+        <a href="user_homepage.html">Home</a>
+        <a href="membership_form.html">Membership</a>
+        <a href="user_messages.html">Messages</a>
+        <a href="user_reservation.html">Reservation</a>
+        <a href="../login.html" class="logout-btn">Logout</a>
     </div>
+</div>
 
-    <div class="navbar">
-        <div class="logo"><img src="../Golfcourse_assets/colored logo.png" alt="Logo"></div>
-        <div class="nav-links">
-            <a href="../user_homepage.html">Home</a>
-            <a href="#">Membership</a>
-            <a href="#">About Us</a>
-            <a href="#">Messages</a>
-            <a href="user_reservation.html">Reservation</a>
-            <a href="#">Contacts</a>
-            <a href="../login.html" class="logout-btn">Logout</a>
-        </div>
-    </div>
+<div class="page-header">
+    <h1>Reservation Form</h1>
+</div>
 
-    <div class="main-container">
+<div class="main-wrapper">
+    <div class="form-section">
         <h1>Reservation Form</h1>
-        
-        <h3>Personal Details</h3>
-        <div class="form-grid">
+
+        <p class="sub-title">Personal Details</p>
+        <div class="form-row">
             <div class="form-group"><label>First Name</label><input type="text"></div>
             <div class="form-group"><label>Last Name</label><input type="text"></div>
-            <div class="form-group">
-                <label>Gender</label>
+            <div class="form-group"><label>Gender</label>
                 <select><option></option><option>Male</option><option>Female</option></select>
             </div>
-            <div class="form-group"><label>Phone Number</label><input type="text"></div>
-            <div class="form-group"><label>Email Address</label><input type="email"></div>
+            <div class="form-group"><label>Phone Number</label><input type="tel"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group" style="grid-column:span 2"><label>Email Address</label><input type="email"></div>
         </div>
 
-        <h3>Make A Reservation</h3>
-        <div class="calendar-section">
-            <div class="calendar-header">
-                <button class="nav-btn" onclick="changeMonth(-1)">&#10094;</button>
-                <h2 id="monthDisplay">Month Year</h2>
-                <button class="nav-btn" onclick="changeMonth(1)">&#10095;</button>
+        <p class="sub-title">Make A Reservation</p>
+
+        <div class="dual-calendar">
+            <div class="cal-col">
+                <div class="cal-header">
+                    <button class="nav-btn" onclick="changeMonth(-1)">&#10094;</button>
+                    <h3 id="month1Display">Month Year</h3>
+                    <button class="nav-btn" onclick="changeMonth(1)">&#10095;</button>
+                </div>
+                <div class="cal-grid" id="cal1"></div>
             </div>
-            <div class="calendar-days-grid" id="calendarGrid"></div>
+            <div class="cal-col" style="border-left:1px solid #ddd;">
+                <div class="cal-header">
+                    <span></span>
+                    <h3 id="month2Display">Month Year</h3>
+                    <span></span>
+                </div>
+                <div class="cal-grid" id="cal2"></div>
+            </div>
         </div>
 
         <div class="legend">
-            <div class="legend-item"><div class="color-box" style="background:#9c403d;"></div> Fullybooked</div>
-            <div class="legend-item"><div class="color-box" style="background:var(--gold);"></div> Partially booked</div>
-            <div class="legend-item"><div class="color-box" style="background:#cdc1c1;"></div> Available</div>
+            <div class="legend-item"><div class="leg-box" style="background:var(--booked)"></div>Fullybooked</div>
+            <div class="legend-item"><div class="leg-box" style="background:var(--gold)"></div>Partially booked</div>
+            <div class="legend-item"><div class="leg-box" style="background:#d4cdd4"></div>Available</div>
         </div>
 
-        <button class="btn-main-submit" onclick="showSuccess()">Submit</button>
+        <button class="btn-submit" onclick="window.location.href='payment_reservation.html'">Submit</button>
     </div>
+</div>
 
-    <script>
-        let currentDate = new Date();
+<script>
+    let baseDate = new Date();
 
-        function renderCalendar() {
-            const grid = document.getElementById('calendarGrid');
-            const monthDisplay = document.getElementById('monthDisplay');
-            grid.innerHTML = '';
+    const bookedDays1 = [15, 20];
+    const partialDays1 = [5, 10];
 
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            
-            monthDisplay.innerText = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate);
+    function renderCal(containerId, displayId, date, bookedDays, partialDays) {
+        const grid = document.getElementById(containerId);
+        const display = document.getElementById(displayId);
+        grid.innerHTML = '';
 
-            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
-                grid.innerHTML += `<div class="day-label">${day}</div>`;
-            });
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        display.textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date);
 
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+        ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d => {
+            grid.innerHTML += `<div class="day-lbl">${d}</div>`;
+        });
 
-            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="day-box empty"></div>`;
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            for (let d = 1; d <= daysInMonth; d++) {
-                let status = (d === 15 || d === 20) ? 'booked' : (d === 5 || d === 10 ? 'partial' : '');
-                grid.innerHTML += `<div class="day-box ${status}" onclick="openTimeModal(${d}, '${status}')">${d}</div>`;
-            }
+        for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="day-box empty"></div>`;
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            let cls = '';
+            if (bookedDays.includes(d)) cls = 'booked';
+            else if (partialDays.includes(d)) cls = 'partial';
+            const onclick = cls !== 'booked' ? `openModal(${d}, '${new Intl.DateTimeFormat('en-US',{month:'long'}).format(date)}', ${year})` : '';
+            grid.innerHTML += `<div class="day-box ${cls}" onclick="${onclick}">${d}</div>`;
         }
+    }
 
-        function openTimeModal(day, status) {
-            if(status === 'booked') return;
-            const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(currentDate);
-            document.getElementById('modalDate').innerText = `${monthName} ${day}, ${currentDate.getFullYear()}`;
-            document.getElementById('timeModal').style.display = 'flex';
-        }
+    function renderCalendars() {
+        const next = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1);
+        renderCal('cal1', 'month1Display', baseDate, bookedDays1, partialDays1);
+        renderCal('cal2', 'month2Display', next, [], []);
+    }
 
-        function showSuccess() { document.getElementById('successPopup').style.display = 'flex'; }
-        function closeSuccess() { document.getElementById('successPopup').style.display = 'none'; }
-        function changeMonth(n) { currentDate.setMonth(currentDate.getMonth() + n); renderCalendar(); }
+    function changeMonth(n) { baseDate.setMonth(baseDate.getMonth() + n); renderCalendars(); }
 
-        renderCalendar();
-    </script>
+    function openModal(day, month, year) {
+        document.getElementById('modalTitle').textContent = `${month} ${day}, ${year}`;
+        document.getElementById('timeModal').style.display = 'flex';
+    }
+
+    function confirmSlot() {
+        document.getElementById('timeModal').style.display = 'none';
+    }
+
+    renderCalendars();
+</script>
 </body>
 </html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment | Membership | ILISY Golf Club</title>
+    <style>
+        :root {
+            --gold: #d4b36a;
+            --gold-light: #f1d592;
+            --deep-green: #0d2b0f;
+            --olive: #6b7e5f;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Georgia", serif; }
+        body { background: #f0edf0; color: #333; }
+
+        /* NAVBAR */
+        .navbar {
+            background: var(--deep-green);
+            padding: 14px 50px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 3px solid var(--gold);
+        }
+        .logo img { width: 40px; }
+        .nav-links { display: flex; gap: 28px; align-items: center; }
+        .nav-links a { text-decoration: none; color: var(--gold); font-size: 14px; transition: color 0.3s; }
+        .nav-links a:hover { color: white; }
+        .logout-btn { border: 1px solid var(--gold); padding: 5px 16px; border-radius: 14px; transition: all 0.3s; }
+        .logout-btn:hover { background: var(--gold); color: black !important; }
+
+        .page-header { background: #e8e4e8; padding: 22px 60px; border-bottom: 1px solid #ddd; }
+        .page-header h1 { font-size: 26px; color: #222; }
+
+        /* LAYOUT */
+        .page-layout {
+            display: grid; grid-template-columns: 1fr 300px;
+            gap: 25px; max-width: 950px;
+            margin: 30px auto; padding: 0 20px;
+        }
+
+        /* PAYMENT FORM */
+        .payment-form {
+            background: white; border-radius: 12px;
+            padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .payment-form h1 { font-size: 24px; margin-bottom: 15px; color: #222; text-align: center; }
+        .select-msg { font-size: 13px; color: #555; margin-bottom: 25px; text-align: center; }
+
+        .method-row { display: flex; gap: 10px; margin-bottom: 25px; }
+        .method-btn {
+            flex: 1; padding: 10px 6px;
+            background: #e0dde0; border: 2px solid transparent;
+            border-radius: 6px; cursor: pointer;
+            font-size: 12px; text-align: center;
+            transition: all 0.2s; font-family: "Georgia", serif;
+        }
+        .method-btn:hover, .method-btn.active { border-color: var(--olive); background: #d0d8cc; }
+
+        label { font-size: 12px; color: #666; display: block; margin-bottom: 6px; }
+        input {
+            width: 100%; background: #e8e8e8; border: none;
+            padding: 11px 14px; border-radius: 4px;
+            font-size: 14px; font-family: "Georgia", serif; outline: none;
+            margin-bottom: 20px;
+        }
+
+        .divider { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+        .details-block { font-size: 14px; line-height: 2.2; color: #444; }
+
+        .btn-confirm {
+            display: block; margin: 30px auto 0;
+            padding: 13px 60px;
+            background: var(--olive); color: white; border: none;
+            border-radius: 5px; font-size: 15px;
+            font-family: "Georgia", serif; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-confirm:hover { background: var(--deep-green); transform: translateY(-2px); }
+
+        /* RIGHT PANEL */
+        .right-panel { display: flex; flex-direction: column; gap: 20px; }
+
+        /* POPUP CARD (application msg) */
+        .popup-card {
+            background: var(--olive); border-radius: 10px;
+            padding: 30px 25px; text-align: center; color: white;
+            display: none;
+        }
+        .popup-card img { width: 55px; margin-bottom: 12px; }
+        .popup-card hr { border: none; border-top: 1px solid var(--gold); margin: 10px 0 16px; }
+        .popup-card p { font-size: 13px; line-height: 1.7; color: #eee; }
+
+        /* PROCESSING OVERLAY */
+        .processing-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .processing-card {
+            background: var(--olive); color: white;
+            padding: 45px 40px; text-align: center;
+            border-radius: 10px; max-width: 360px;
+        }
+        .processing-card img { width: 65px; margin-bottom: 15px; }
+        .processing-card hr { border: none; border-top: 1px solid var(--gold); margin: 12px 0 18px; }
+        .processing-card p { font-size: 14px; line-height: 1.7; }
+    </style>
+</head>
+<body>
+
+<!-- PROCESSING OVERLAY -->
+<div class="processing-overlay" id="processingOverlay">
+    <div class="processing-card">
+        <img src="../Golfcourse_assets/colored logo.png" alt="Logo">
+        <hr>
+        <p>Your Payment is being processed, please wait for a few moment to recieve your membership reciept from the email</p>
+    </div>
+</div>
+
+<div class="navbar">
+    <div class="logo"><img src="../Golfcourse_assets/colored logo.png" alt="ILISY"></div>
+    <div class="nav-links">
+        <a href="user_homepage.html">Home</a>
+        <a href="membership_form.html">Membership</a>
+        <a href="user_messages.html">Messages</a>
+        <a href="user_reservation.html">Reservation</a>
+        <a href="../login.html" class="logout-btn">Logout</a>
+    </div>
+</div>
+
+<div class="page-header">
+    <h1>Payment Membership Page</h1>
+</div>
+
+<div class="page-layout">
+
+    <!-- PAYMENT FORM -->
+    <div class="payment-form">
+        <h1>Payment Form</h1>
+        <p class="select-msg">Please select your mode of payment</p>
+
+        <div class="method-row">
+            <button class="method-btn active" onclick="selectMethod(this)">GCash</button>
+            <button class="method-btn" onclick="selectMethod(this)">Maya</button>
+            <button class="method-btn" onclick="selectMethod(this)">BPI</button>
+            <button class="method-btn" onclick="selectMethod(this)">BDO</button>
+            <button class="method-btn" onclick="selectMethod(this)">Cash</button>
+        </div>
+
+        <label>Mode of Payment Account Details</label>
+        <input type="text" placeholder="Enter account number / details">
+
+        <hr class="divider">
+
+        <p style="font-size:13px; color:#666; margin-bottom:10px; font-weight:bold;">Details</p>
+        <div class="details-block">
+            <div>Membership Fee</div>
+            <div>Total Amount: <strong>₱1,000,000</strong></div>
+        </div>
+
+        <button class="btn-confirm" onclick="processPayment()">Confirm</button>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+        <div class="popup-card" id="appPopup">
+            <img src="../Golfcourse_assets/colored logo.png" alt="Logo">
+            <hr>
+            <p>Thank you for choosing ILISY Club.<br><br>
+            Your membership form is being processed. Kindly pay the membership fee to be part ILISY CLUB Membership.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show app popup on load since user came from membership form
+    window.onload = () => {
+        document.getElementById('appPopup').style.display = 'block';
+    };
+
+    function selectMethod(btn) {
+        document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function processPayment() {
+        document.getElementById('processingOverlay').style.display = 'flex';
+        setTimeout(() => {
+            document.getElementById('processingOverlay').style.display = 'none';
+            alert('Membership confirmed! Check your email for the receipt.');
+        }, 3000);
+    }
+</script>
+</body>
+</html>
