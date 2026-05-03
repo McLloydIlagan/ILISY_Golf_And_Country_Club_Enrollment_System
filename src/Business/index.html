@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ILISY Private Golf Club</title>
+    <style>
+        :root {
+            --gold: #d4b36a;
+            --gold-light: #f1d592;
+            --deep-green: #0d2b0f;
+            --navbar-h: 65px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Georgia", serif; }
+        html { scroll-behavior: smooth; }
+        body { color: white; overflow-x: hidden; }
+
+        section { scroll-margin-top: var(--navbar-h); }
+
+        /* ═══════════════════════════════════════
+           FIXED NAVBAR
+        ═══════════════════════════════════════ */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: var(--navbar-h);
+            padding: 0 60px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 9999;
+            background: transparent;
+            transition: background 0.4s ease, box-shadow 0.4s ease;
+        }
+        .navbar.scrolled {
+            background: var(--deep-green);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            border-bottom: 2px solid var(--gold);
+        }
+        .logo img { width: 55px; cursor: pointer; transition: transform 0.3s; }
+        .logo img:hover { transform: scale(1.05); }
+
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-links a {
+            text-decoration: none; color: white; font-size: 14px;
+            cursor: pointer; transition: color 0.3s, transform 0.2s;
+            position: relative; padding-bottom: 3px;
+        }
+        .nav-links a::after {
+            content: ''; position: absolute; bottom: 0; left: 0;
+            width: 0; height: 1px; background: var(--gold);
+            transition: width 0.3s;
+        }
+        .nav-links a:hover { color: var(--gold); }
+        .nav-links a:hover::after { width: 100%; }
+
+        .sign-in-btn {
+            border: 1px solid var(--gold) !important;
+            padding: 6px 22px; border-radius: 20px;
+            transition: all 0.3s !important;
+            color: white !important;
+        }
+        .sign-in-btn:hover {
+            background: var(--gold) !important;
+            color: black !important;
+            transform: scale(1.05) !important;
+        }
+        .sign-in-btn::after { display: none !important; }
+
+        /* ═══════════════════════════════════════
+           SECTION 1: HOME HERO
+        ═══════════════════════════════════════ */
+        #home {
+            height: 100vh;
+            background: url('Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
+            position: relative;
+            display: flex; align-items: center;
+        }
+        #home::before {
+            content: ""; position: absolute; inset: 0;
+            background: rgba(0,0,0,0.45);
+        }
+        .hero-content {
+            position: relative; z-index: 2;
+            max-width: 600px; padding: 0 60px;
+        }
+        .hero-content h1 { font-size: 72px; line-height: 1.1; margin-bottom: 20px; }
+        .gold-line { width: 450px; height: 2px; background: var(--gold); margin: 20px 0; }
+        .hero-content p { font-size: 18px; line-height: 1.6; margin-bottom: 30px; color: #ddd; }
+        .hero-btns { display: flex; gap: 15px; }
+
+        .btn {
+            padding: 12px 26px; border: none; cursor: pointer;
+            font-size: 14px; font-family: "Georgia", serif;
+            text-decoration: none; display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .btn-primary { background: var(--gold); color: black; font-weight: bold; }
+        .btn-primary:hover {
+            background: var(--gold-light); transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(212,179,106,0.4);
+        }
+        .btn-outline {
+            border: 1px solid var(--gold); color: var(--gold); background: transparent;
+        }
+        .btn-outline:hover { background: var(--gold); color: black; transform: translateY(-3px); }
+
+        /* ═══════════════════════════════════════
+           SECTION 2: LOGIN
+        ═══════════════════════════════════════ */
+        #login {
+            height: 100vh;
+            display: flex;
+        }
+        .login-left {
+            width: 50%; background: var(--deep-green);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .login-box {
+            width: 70%; max-width: 400px; text-align: center;
+        }
+        .login-box .logo-img { width: 60px; margin-bottom: 15px; }
+        .login-box h1 { font-size: 40px; color: var(--gold); letter-spacing: 2px; margin-bottom: 10px; }
+        .login-box .sub { font-size: 14px; margin-bottom: 25px; color: #a4966a; }
+
+        .login-box form { text-align: left; }
+        .login-box label { display: block; margin: 15px 0 5px; font-size: 14px; color: #d4c17c; }
+        .login-box input {
+            width: 100%; padding: 12px; border: none; border-radius: 3px;
+            background: #d9d9d9; margin-bottom: 10px; font-family: "Georgia", serif;
+            outline: none; font-size: 14px;
+        }
+        .login-box button {
+            width: 100%; margin-top: 20px; padding: 12px;
+            background: #c5a96b; border: none; color: #000;
+            font-weight: bold; cursor: pointer; font-family: "Georgia", serif;
+            font-size: 14px; transition: all 0.3s ease;
+        }
+        .login-box button:hover { background: var(--gold-light); transform: translateY(-2px); }
+
+        .divider {
+            margin: 22px 0; display: flex; align-items: center; color: #c5a96b;
+        }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #c5a96b; }
+        .divider span { margin: 0 10px; font-size: 13px; }
+
+        .google-btn {
+            width: 100%; padding: 12px;
+            background: transparent; border: 1px solid #c5a96b;
+            color: #c5a96b; cursor: pointer; font-family: "Georgia", serif;
+            font-size: 14px; transition: all 0.3s;
+        }
+        .google-btn:hover { background: rgba(197,169,107,0.12); }
+
+        .signup-link { margin-top: 22px; font-size: 13px; color: white; }
+        .signup-link a {
+            color: #c5a96b; text-decoration: none; font-weight: bold;
+            cursor: pointer;
+        }
+        .signup-link a:hover { text-decoration: underline; }
+
+        .login-right {
+            width: 50%;
+            background: url('Golfcourse_assets/golf_register_pic.jpg') no-repeat center/cover;
+            position: relative;
+        }
+        .login-right nav {
+            position: absolute; top: 20px; right: 40px;
+        }
+        .login-right nav a {
+            color: white; margin-left: 28px; text-decoration: none;
+            font-size: 14px; cursor: pointer; transition: color 0.3s;
+        }
+        .login-right nav a:hover { color: var(--gold); }
+
+        /* ═══════════════════════════════════════
+           SECTION 3: REGISTER
+        ═══════════════════════════════════════ */
+        #register {
+            min-height: 100vh;
+            background: url('Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
+            position: relative;
+            display: flex; justify-content: center; align-items: center;
+        }
+        #register::before {
+            content: ""; position: absolute; inset: 0;
+            background: rgba(0,0,0,0.6);
+        }
+        .reg-card {
+            position: relative; z-index: 2;
+            background: rgba(13,43,15,0.92);
+            padding: 45px 40px; border-radius: 10px;
+            width: 100%; max-width: 460px;
+            border-top: 4px solid var(--gold);
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+        .reg-card h2 { color: var(--gold); font-size: 26px; letter-spacing: 2px; margin-bottom: 8px; }
+        .reg-card .sub { font-size: 14px; margin-bottom: 28px; color: #ccc; }
+
+        .input-group { text-align: left; margin-bottom: 14px; }
+        .input-group label { display: block; font-size: 12px; margin-bottom: 5px; color: var(--gold); }
+        .input-group input {
+            width: 100%; padding: 10px 12px; border: none;
+            background: #f0f0f0; border-radius: 3px;
+            font-family: "Georgia", serif; font-size: 14px; outline: none;
+            transition: background 0.2s;
+        }
+        .input-group input:focus { background: #e0e0e0; }
+
+        .reg-divider {
+            margin: 18px 0; display: flex; align-items: center; color: #c5a96b;
+        }
+        .reg-divider::before, .reg-divider::after { content: ''; flex: 1; border-bottom: 1px solid #c5a96b; }
+        .reg-divider span { margin: 0 10px; font-size: 13px; }
+
+        .btn-reg {
+            width: 100%; padding: 12px; background: var(--gold);
+            border: none; font-weight: bold; margin-top: 8px;
+            cursor: pointer; font-family: "Georgia", serif; font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-reg:hover { background: var(--gold-light); transform: translateY(-2px); }
+
+        .btn-google-reg {
+            width: 100%; padding: 12px;
+            background: transparent; border: 1px solid #c5a96b;
+            color: #c5a96b; cursor: pointer; font-family: "Georgia", serif;
+            font-size: 14px; transition: all 0.3s; margin-top: 8px;
+        }
+        .btn-google-reg:hover { background: rgba(197,169,107,0.1); }
+
+        .terms-row {
+            display: flex; align-items: flex-start; gap: 10px;
+            margin: 14px 0 6px; text-align: left;
+        }
+        .terms-row input[type="checkbox"] { accent-color: var(--gold); margin-top: 2px; flex-shrink: 0; }
+        .terms-row label { font-size: 12px; color: #ccc; }
+        .terms-row label a { color: var(--gold); text-decoration: none; }
+        .terms-row label a:hover { text-decoration: underline; }
+
+        .footer-link { margin-top: 18px; font-size: 13px; color: #ccc; }
+        .footer-link a { color: var(--gold); text-decoration: none; cursor: pointer; }
+        .footer-link a:hover { text-decoration: underline; }
+
+        /* ═══════════════════════════════════════
+           ABOUT / CONTACTS PLACEHOLDER SECTIONS
+        ═══════════════════════════════════════ */
+        #about, #contacts {
+            min-height: 60vh;
+            background: var(--deep-green);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            text-align: center; padding: 80px 60px;
+            border-top: 2px solid rgba(212,179,106,0.2);
+        }
+        #about h2, #contacts h2 { font-size: 36px; color: var(--gold); margin-bottom: 18px; }
+        #about p, #contacts p { font-size: 16px; color: #ccc; max-width: 560px; line-height: 1.8; }
+        #contacts .contact-info { margin-top: 28px; font-size: 15px; color: #d4c17c; line-height: 2.2; }
+
+        /* ═══════════════════════════════════════
+           TERMS MODAL
+        ═══════════════════════════════════════ */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            display: none; justify-content: center; align-items: center;
+            z-index: 10000; backdrop-filter: blur(3px);
+        }
+        .modal-box {
+            background: var(--deep-green); color: white;
+            border-radius: 10px; padding: 40px; max-width: 500px; width: 90%;
+            border-top: 4px solid var(--gold);
+        }
+        .modal-box h3 { color: var(--gold); font-size: 20px; margin-bottom: 16px; }
+        .modal-box p { font-size: 13px; line-height: 1.9; color: #ccc; }
+        .modal-close {
+            margin-top: 24px; padding: 10px 30px;
+            background: var(--gold); border: none; color: black;
+            cursor: pointer; border-radius: 4px;
+            font-family: "Georgia", serif; font-size: 14px;
+            transition: background 0.2s; display: block; margin-left: auto;
+        }
+        .modal-close:hover { background: var(--gold-light); }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     FIXED NAVBAR
+═══════════════════════════════════════ -->
+<nav class="navbar" id="mainNav">
+    <div class="logo" onclick="goTo('home')">
+        <img src="Golfcourse_assets/colored logo.png" alt="ILISY Logo">
+    </div>
+    <div class="nav-links">
+        <a onclick="goTo('home')">Home</a>
+        <a onclick="goTo('about')">About Us</a>
+        <a onclick="goTo('contacts')">Contacts</a>
+        <a onclick="goTo('register')">Membership</a>
+        <a onclick="goTo('login')" class="sign-in-btn">Sign In</a>
+    </div>
+</nav>
+
+<!-- TERMS MODAL -->
+<div class="modal-overlay" id="termsModal">
+    <div class="modal-box">
+        <h3>Terms &amp; Conditions</h3>
+        <p>By registering, you agree to abide by the rules and regulations of ILISY Golf and Country Club. Membership is subject to approval. All fees are non-refundable unless otherwise stated. Members must conduct themselves with decorum at all times on club premises. ILISY reserves the right to revoke membership for violations of club policy.</p>
+        <button class="modal-close" onclick="document.getElementById('termsModal').style.display='none'">I Understand</button>
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 1: HOME
+═══════════════════════════════════════ -->
+<section id="home">
+    <div class="hero-content">
+        <h1>Private<br>Golf Club</h1>
+        <div class="gold-line"></div>
+        <p>Enjoy one of the most popular leisure activities with high-quality equipment, a well-maintained environment, and refreshing amenities.</p>
+        <div class="hero-btns">
+            <a class="btn btn-primary" onclick="goTo('register')">Register Now</a>
+            <a class="btn btn-outline" onclick="goTo('about')">Learn More</a>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 2: LOGIN
+═══════════════════════════════════════ -->
+<section id="login">
+    <div class="login-left">
+        <div class="login-box">
+            <img src="Golfcourse_assets/colored logo.png" class="logo-img" alt="Logo">
+            <h1>LOGIN</h1>
+            <p class="sub">Please enter your personal details below.</p>
+            <form onsubmit="handleLogin(event)">
+                <label>Email Address</label>
+                <input type="email" id="loginEmail" required placeholder="email@example.com">
+                <label>Password</label>
+                <input type="password" id="loginPass" required placeholder="••••••••">
+                <button type="submit">Login</button>
+            </form>
+            <div class="divider"><span>or</span></div>
+            <button class="google-btn">&#x1F310; Login with Google</button>
+            <p class="signup-link">Don't have an account? <a onclick="goTo('register')">Click here</a></p>
+        </div>
+    </div>
+    <div class="login-right">
+        <nav>
+            <a onclick="goTo('home')">Home</a>
+            <a onclick="goTo('about')">About Us</a>
+            <a onclick="goTo('contacts')">Contacts</a>
+        </nav>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 3: REGISTER
+═══════════════════════════════════════ -->
+<section id="register">
+    <div class="reg-card">
+        <h2>REGISTER</h2>
+        <p class="sub">Please enter your personal details below.</p>
+        <form onsubmit="handleRegister(event)">
+            <div class="input-group">
+                <label>Full Name</label>
+                <input type="text" placeholder="Enter your full name" required>
+            </div>
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" placeholder="email@example.com" required>
+            </div>
+            <div class="input-group">
+                <label>Phone Number</label>
+                <input type="tel" placeholder="+63 000 000 0000">
+            </div>
+            <div class="input-group">
+                <label>Username</label>
+                <input type="text" placeholder="Choose a username" required>
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" placeholder="••••••••" required>
+            </div>
+            <div class="input-group">
+                <label>Password Verification</label>
+                <input type="password" placeholder="••••••••" required>
+            </div>
+            <div class="input-group">
+                <label>CAPTCHA</label>
+                <input type="text" placeholder="Enter CAPTCHA">
+            </div>
+            <div class="terms-row">
+                <input type="checkbox" id="terms" required>
+                <label for="terms">By clicking the checkbox, you <a onclick="document.getElementById('termsModal').style.display='flex'">Accept the Terms &amp; Conditions</a></label>
+            </div>
+            <button type="submit" class="btn-reg">Sign Up</button>
+        </form>
+        <div class="reg-divider"><span>or</span></div>
+        <button class="btn-google-reg">&#x1F310; Sign up with Google</button>
+        <div class="footer-link">Already have an account? <a onclick="goTo('login')">Click here</a></div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 4: ABOUT US
+═══════════════════════════════════════ -->
+<section id="about">
+    <h2>About Us</h2>
+    <p>ILISY Golf and Country Club is a premier private golf destination offering world-class facilities, meticulously maintained greens, and an atmosphere of refined leisure. Founded with a passion for the sport, we welcome members who share our commitment to excellence.</p>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 5: CONTACTS
+═══════════════════════════════════════ -->
+<section id="contacts">
+    <h2>Contact Us</h2>
+    <p>We'd love to hear from you. Reach out to our team for inquiries about membership, reservations, or any other matters.</p>
+    <div class="contact-info">
+        <div>📧 ILISYGolfClub@gmail.com</div>
+        <div>📞 123-456-789</div>
+        <div>📍 ILISY Golf and Country Club, Philippines</div>
+    </div>
+</section>
+
+
+<script>
+    // ── SCROLL ──────────────────────────────────
+    function goTo(id) {
+        document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Navbar background on scroll
+    window.addEventListener('scroll', () => {
+        document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 50);
+    });
+
+    // ── LOGIN ───────────────────────────────────
+    function handleLogin(e) {
+        e.preventDefault();
+        // Redirect to user portal after login
+        window.location.href = 'user_portal.html';
+    }
+
+    // ── REGISTER ────────────────────────────────
+    function handleRegister(e) {
+        e.preventDefault();
+        // After register, go to login
+        alert('Account created successfully! Please log in.');
+        goTo('login');
+    }
+</script>
+</body>
+</html>

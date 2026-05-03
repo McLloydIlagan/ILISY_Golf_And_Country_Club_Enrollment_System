@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ILISY Golf Club | Admin Portal</title>
+    <style>
+        :root {
+            --gold: #d4b36a;
+            --gold-light: #f1d592;
+            --deep-green: #0d2b0f;
+            --olive: #6b7e5f;
+            --sage: #c8d5bc;
+            --sage-dark: #b0c0a0;
+            --booked: #9c403d;
+            --sidebar-w: 160px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Georgia", serif; }
+        body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
+
+        /* ═══════════════════════════════
+           SIDEBAR
+        ═══════════════════════════════ */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--deep-green);
+            display: flex; flex-direction: column;
+            align-items: center;
+            padding: 25px 0;
+            flex-shrink: 0;
+            border-right: 1px solid rgba(212,179,106,0.2);
+        }
+        .sidebar-logo { width: 70px; margin-bottom: 8px; }
+        .sidebar-title {
+            font-size: 10px; color: var(--gold);
+            letter-spacing: 1px; margin-bottom: 30px;
+            text-transform: uppercase;
+        }
+        .sidebar-divider {
+            width: 80%; height: 1px;
+            background: rgba(212,179,106,0.25);
+            margin: 10px 0;
+        }
+        .nav-item {
+            width: 100%; text-align: center;
+            padding: 12px 10px; color: white;
+            font-size: 13px; cursor: pointer;
+            transition: all 0.25s;
+            border-left: 3px solid transparent;
+        }
+        .nav-item:hover { background: rgba(212,179,106,0.1); color: var(--gold); }
+        .nav-item.active {
+            color: var(--gold);
+            border-left-color: var(--gold);
+            background: rgba(212,179,106,0.08);
+        }
+        .sidebar-spacer { flex: 1; }
+        .nav-item.customer-svc { border-top: 1px solid rgba(212,179,106,0.25); }
+        .nav-item.logout { color: var(--gold); font-size: 13px; margin-top: 5px; }
+        .nav-item.logout:hover { color: #fff; }
+
+        /* ═══════════════════════════════
+           MAIN CONTENT
+        ═══════════════════════════════ */
+        .main {
+            flex: 1; overflow-y: auto;
+            background: #f4f4f4;
+            display: flex; flex-direction: column;
+        }
+
+        /* Top bar */
+        .topbar {
+            background: white;
+            padding: 18px 40px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+        .topbar h1 { font-size: 26px; color: #111; font-weight: normal; }
+        .admin-info { display: flex; align-items: center; gap: 12px; }
+        .admin-avatar {
+            width: 42px; height: 42px; background: #ccc;
+            border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; font-size: 18px;
+        }
+        .admin-text { font-size: 13px; color: #333; }
+        .admin-text span { display: block; color: #888; font-size: 12px; }
+
+        /* Search bar */
+        .search-bar {
+            display: flex; align-items: center;
+            background: #f0f0f0; border-radius: 20px;
+            padding: 7px 16px; gap: 8px;
+        }
+        .search-bar input {
+            border: none; background: transparent;
+            font-family: "Georgia", serif; font-size: 13px; outline: none;
+            width: 200px;
+        }
+        .search-icon { color: #888; font-size: 14px; }
+
+        /* Page sections */
+        .page { display: none; flex-direction: column; flex: 1; }
+        .page.active { display: flex; }
+        .page-body { padding: 35px 40px; flex: 1; }
+
+        /* ═══════════════════════════════
+           DASHBOARD
+        ═══════════════════════════════ */
+        .stats-row {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 20px; margin-bottom: 25px;
+        }
+        .stat-card {
+            background: var(--sage); border-radius: 8px;
+            padding: 25px 20px; text-align: center;
+        }
+        .stat-card.highlighted { background: var(--olive); color: white; }
+        .stat-card .stat-num { font-size: 32px; font-weight: bold; margin-bottom: 6px; }
+        .stat-card .stat-label { font-size: 13px; color: #555; }
+        .stat-card.highlighted .stat-label { color: #ddd; }
+
+        .dashboard-grid {
+            display: grid; grid-template-columns: 1fr 260px;
+            gap: 20px;
+        }
+        .chart-card {
+            background: var(--sage); border-radius: 8px; padding: 25px;
+        }
+        .chart-card h3 { font-size: 14px; color: #444; margin-bottom: 20px; text-align: center; }
+        .chart-bars {
+            display: flex; align-items: flex-end;
+            gap: 8px; height: 160px; padding: 0 10px;
+            border-left: 2px solid #888; border-bottom: 2px solid #888;
+        }
+        .bar-group { display: flex; gap: 3px; align-items: flex-end; }
+        .bar {
+            width: 22px; border-radius: 3px 3px 0 0;
+            transition: opacity 0.2s;
+        }
+        .bar:hover { opacity: 0.8; }
+        .bar.red { background: var(--booked); }
+        .bar.green { background: var(--olive); }
+
+        .side-cards { display: flex; flex-direction: column; gap: 16px; }
+        .mini-card {
+            background: var(--sage); border-radius: 8px;
+            padding: 20px; flex: 1;
+            display: flex; flex-direction: column;
+            justify-content: space-between;
+        }
+        .mini-card h4 { font-size: 14px; color: #333; margin-bottom: 12px; }
+        .see-more-btn {
+            align-self: flex-end;
+            padding: 6px 20px; background: var(--olive);
+            color: white; border: none; border-radius: 4px;
+            font-size: 12px; cursor: pointer; font-family: "Georgia", serif;
+            transition: background 0.2s;
+        }
+        .see-more-btn:hover { background: var(--deep-green); }
+
+        /* ═══════════════════════════════
+           RESERVATIONS
+        ═══════════════════════════════ */
+        .res-calendar {
+            background: var(--sage); border-radius: 10px;
+            overflow: hidden; margin-bottom: 25px;
+        }
+        .res-cal-header {
+            background: var(--olive); color: white;
+            padding: 16px 30px; text-align: center; font-size: 18px;
+        }
+        .res-cal-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            gap: 8px; padding: 20px;
+        }
+        .res-day {
+            aspect-ratio: 1; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; cursor: pointer; transition: all 0.2s;
+            background: #d8cfd8;
+        }
+        .res-day:hover:not(.booked) { transform: scale(1.1); }
+        .res-day.booked { background: var(--booked); color: white; cursor: pointer; }
+        .res-day.partial { background: var(--gold); }
+        .res-day.empty { background: transparent; cursor: default; }
+
+        .legend-row {
+            display: flex; gap: 30px; padding: 0 20px 16px;
+            justify-content: center;
+        }
+        .leg { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #444; }
+        .leg-box { width: 22px; height: 22px; border-radius: 3px; }
+
+        /* Tables */
+        .table-section { margin-bottom: 25px; }
+        .table-section h3 { font-size: 16px; color: #333; margin-bottom: 12px; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table thead tr { background: var(--gold); }
+        .data-table thead th {
+            padding: 12px 16px; text-align: left;
+            font-size: 13px; font-weight: normal; color: #222;
+        }
+        .data-table tbody tr { background: var(--sage); border-bottom: 4px solid #f4f4f4; }
+        .data-table tbody td { padding: 12px 16px; font-size: 13px; color: #333; }
+        .data-table tbody tr:hover { background: var(--sage-dark); }
+
+        .action-btn {
+            padding: 4px 12px; border: none; border-radius: 3px;
+            font-size: 12px; cursor: pointer; font-family: "Georgia", serif;
+            transition: opacity 0.2s;
+        }
+        .action-btn:hover { opacity: 0.8; }
+        .btn-approve { background: var(--olive); color: white; }
+        .btn-remove { background: none; color: var(--booked); text-decoration: underline; border: none; cursor: pointer; font-size: 12px; font-family: "Georgia", serif; }
+        .btn-edit { background: none; color: var(--olive); text-decoration: underline; border: none; cursor: pointer; font-size: 12px; font-family: "Georgia", serif; }
+        .btn-refund { background: var(--sage-dark); color: #333; padding: 5px 14px; border: none; border-radius: 3px; font-size: 12px; cursor: pointer; font-family: "Georgia", serif; }
+
+        /* ═══════════════════════════════
+           REGISTERED ACCOUNTS
+        ═══════════════════════════════ */
+        .badge {
+            display: inline-block; padding: 4px 14px;
+            border-radius: 4px; font-size: 12px;
+        }
+        .badge-active { background: var(--olive); color: white; }
+        .badge-none { background: var(--sage-dark); color: #555; }
+
+        /* ═══════════════════════════════
+           MESSAGES
+        ═══════════════════════════════ */
+        .msg-layout {
+            display: grid; grid-template-columns: 260px 1fr;
+            flex: 1; border-radius: 10px; overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            min-height: 500px;
+        }
+        .msg-sidebar {
+            background: #7a6e7a;
+            display: flex; flex-direction: column;
+        }
+        .msg-contact {
+            padding: 16px 20px; cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            transition: background 0.2s;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .msg-contact:hover, .msg-contact.active { background: rgba(255,255,255,0.12); }
+        .msg-contact-name { font-size: 14px; color: white; }
+        .msg-contact-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #888; flex-shrink: 0;
+        }
+        .msg-contact-dot.online { background: #e05555; }
+        .contact-avatar {
+            width: 32px; height: 32px; background: #999;
+            border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; font-size: 14px; flex-shrink: 0;
+        }
+
+        .msg-window { background: var(--sage); display: flex; flex-direction: column; }
+        .msg-window-header {
+            background: var(--olive); color: white;
+            padding: 16px 25px; font-size: 15px;
+        }
+        .msg-body {
+            flex: 1; padding: 25px;
+            display: flex; flex-direction: column; gap: 14px;
+            overflow-y: auto;
+        }
+        .chat-bubble {
+            max-width: 60%; padding: 12px 16px;
+            border-radius: 16px; font-size: 14px; line-height: 1.5;
+        }
+        .bubble-received { background: white; align-self: flex-start; border-bottom-left-radius: 3px; }
+        .bubble-sent { background: var(--deep-green); color: white; align-self: flex-end; border-bottom-right-radius: 3px; border: 1px solid var(--gold); }
+        .msg-row-wrap { display: flex; gap: 10px; align-items: flex-end; }
+        .msg-row-wrap.sent { justify-content: flex-end; }
+        .chat-avatar {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: #aaa; display: flex; align-items: center;
+            justify-content: center; font-size: 16px; flex-shrink: 0;
+        }
+
+        .msg-footer {
+            padding: 16px 25px; border-top: 1px solid #ddd;
+            background: var(--deep-green);
+            display: flex; align-items: center; gap: 14px;
+        }
+        .msg-footer-icon { color: var(--gold); font-size: 20px; cursor: pointer; }
+        .msg-input {
+            flex: 1; background: #e8e8e8; border: none;
+            padding: 11px 18px; border-radius: 22px;
+            font-size: 14px; font-family: "Georgia", serif; outline: none;
+        }
+        .send-btn {
+            background: none; border: none; color: var(--gold);
+            font-size: 22px; cursor: pointer;
+        }
+
+        /* ═══════════════════════════════
+           CUSTOMER SERVICE RECORDS
+        ═══════════════════════════════ */
+        .btn-add { background: var(--olive); color: white; padding: 4px 12px; border: none; border-radius: 3px; font-size: 12px; cursor: pointer; font-family: "Georgia", serif; }
+        .btn-transcript { background: var(--sage-dark); color: #333; padding: 4px 12px; border: none; border-radius: 3px; font-size: 12px; cursor: pointer; font-family: "Georgia", serif; }
+        .btn-view { background: var(--sage-dark); color: #333; padding: 4px 12px; border: none; border-radius: 3px; font-size: 12px; cursor: pointer; font-family: "Georgia", serif; }
+
+        /* ═══════════════════════════════
+           MODALS
+        ═══════════════════════════════ */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.72);
+            display: none; justify-content: center; align-items: center;
+            z-index: 9999; backdrop-filter: blur(3px);
+        }
+        .modal-overlay.show { display: flex; }
+
+        .modal-card {
+            background: var(--deep-green); color: white;
+            border-radius: 10px; padding: 45px 40px;
+            text-align: center; max-width: 360px; width: 90%;
+        }
+        .modal-card img { width: 65px; margin-bottom: 14px; }
+        .modal-card hr { border: none; border-top: 1px solid var(--gold); margin: 12px 0 20px; }
+        .modal-card p { font-size: 14px; line-height: 1.7; color: #ddd; margin-bottom: 25px; }
+        .modal-btns { display: flex; gap: 15px; justify-content: center; }
+        .btn-confirm-modal {
+            padding: 10px 30px; background: var(--sage);
+            border: none; color: #333; border-radius: 6px;
+            font-family: "Georgia", serif; font-size: 14px; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-confirm-modal:hover { background: var(--gold-light); }
+        .btn-cancel-modal {
+            padding: 10px 30px; background: var(--olive);
+            border: none; color: white; border-radius: 6px;
+            font-family: "Georgia", serif; font-size: 14px; cursor: pointer;
+        }
+
+        /* Refund Modal */
+        .refund-modal {
+            background: white; border-radius: 10px;
+            max-width: 520px; width: 90%; overflow: hidden;
+        }
+        .refund-header {
+            padding: 22px 30px; display: flex;
+            justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #eee;
+        }
+        .refund-header h3 { font-size: 20px; color: #222; }
+        .refund-admin { display: flex; align-items: center; gap: 10px; }
+        .refund-admin-av { width: 36px; height: 36px; background: #ccc; border-radius: 50%; }
+        .refund-admin-txt { font-size: 12px; color: #555; }
+        .refund-body { background: var(--sage); padding: 35px 40px; }
+        .refund-body h4 { font-size: 16px; color: #333; margin-bottom: 22px; text-align: center; letter-spacing: 1px; }
+        .refund-option { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 14px; color: #333; }
+        .refund-option input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--olive); }
+        .refund-other-input {
+            border: none; border-bottom: 1px solid #888;
+            background: transparent; font-family: "Georgia", serif;
+            font-size: 14px; width: 140px; outline: none; color: #333;
+        }
+        .btn-refund-confirm {
+            display: block; margin: 25px auto 0;
+            padding: 12px 50px; background: var(--olive);
+            color: white; border: none; border-radius: 4px;
+            font-family: "Georgia", serif; font-size: 14px; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-refund-confirm:hover { background: var(--deep-green); }
+
+        /* Admin Reservation Detail Modal */
+        .res-detail-modal {
+            background: white; border-radius: 10px;
+            width: 340px; overflow: hidden;
+        }
+        .res-detail-header {
+            background: var(--olive); color: white;
+            padding: 20px; text-align: center; font-size: 18px;
+        }
+        .res-detail-body { padding: 25px; }
+        .res-detail-select {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 20px; font-size: 13px; color: #555;
+        }
+        .res-detail-select select {
+            padding: 6px 10px; border: 1px solid #ccc;
+            border-radius: 4px; font-family: "Georgia", serif;
+            font-size: 13px;
+        }
+        .res-slot-row {
+            display: flex; gap: 10px; margin-bottom: 10px;
+            background: #c8a0a0; padding: 12px 14px; border-radius: 4px;
+            font-size: 13px; color: #333;
+        }
+        .res-slot-time { font-weight: bold; min-width: 140px; }
+        .res-slot-name { color: #555; }
+
+        /* ═══════════════════════════════
+           PAYMENTS
+        ═══════════════════════════════ */
+        .payments-table-wrap { overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════════════════ -->
+<aside class="sidebar">
+    <img src="Golfcourse_assets/colored logo.png" class="sidebar-logo" alt="ILISY">
+    <div class="sidebar-title">ILISY CLUB</div>
+    <div class="sidebar-divider"></div>
+
+    <div class="nav-item active" onclick="showPage('dashboard')">Dashboard</div>
+    <div class="nav-item" onclick="showPage('reservations')">Reservations</div>
+    <div class="nav-item" onclick="showPage('accounts')">Registered Accounts</div>
+    <div class="nav-item" onclick="showPage('payments')">Payments</div>
+    <div class="nav-item" onclick="showPage('messages')">Messages</div>
+
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-divider"></div>
+    <div class="nav-item customer-svc" onclick="showPage('customerservice')">Customer Service</div>
+    <div class="sidebar-divider"></div>
+    <div class="nav-item logout" onclick="window.location.href='index.html'">Log out</div>
+</aside>
+
+
+<!-- ═══════════════════════════════════════════════
+     MAIN CONTENT
+═══════════════════════════════════════════════ -->
+<div class="main">
+
+    <!-- ─── DASHBOARD ─────────────────────────── -->
+    <div class="page active" id="page-dashboard">
+        <div class="topbar">
+            <h1>Dashboard</h1>
+            <div class="admin-info">
+                <div class="admin-avatar">👤</div>
+                <div class="admin-text">admin <span>admin account name</span></div>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">Members</div></div>
+                <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">Reservations</div></div>
+                <div class="stat-card highlighted"><div class="stat-num">0</div><div class="stat-label">Income</div></div>
+            </div>
+            <div class="dashboard-grid">
+                <div class="chart-card">
+                    <h3>April 2026 Financial Report</h3>
+                    <div class="chart-bars">
+                        <div class="bar-group"><div class="bar red" style="height:120px"></div><div class="bar green" style="height:55px"></div></div>
+                        <div class="bar-group"><div class="bar red" style="height:95px"></div><div class="bar green" style="height:30px"></div></div>
+                        <div class="bar-group"><div class="bar red" style="height:70px"></div><div class="bar green" style="height:80px"></div></div>
+                        <div class="bar-group"><div class="bar red" style="height:50px"></div><div class="bar green" style="height:45px"></div></div>
+                    </div>
+                </div>
+                <div class="side-cards">
+                    <div class="mini-card">
+                        <h4>Reservation Application</h4>
+                        <button class="see-more-btn" onclick="showPage('reservations')">See more</button>
+                    </div>
+                    <div class="mini-card">
+                        <h4>Refund Application</h4>
+                        <button class="see-more-btn" onclick="showPage('payments')">See more</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── RESERVATIONS ──────────────────────── -->
+    <div class="page" id="page-reservations">
+        <div class="topbar">
+            <h1>Reservations</h1>
+            <div class="admin-info">
+                <div class="admin-avatar">👤</div>
+                <div class="admin-text">admin <span>admin account name</span></div>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="res-calendar">
+                <div class="res-cal-header">February 2026</div>
+                <div class="res-cal-grid" id="adminCal"></div>
+                <div class="legend-row">
+                    <div class="leg"><div class="leg-box" style="background:var(--booked)"></div>Fullybooked</div>
+                    <div class="leg"><div class="leg-box" style="background:var(--gold)"></div>Partially booked</div>
+                    <div class="leg"><div class="leg-box" style="background:#d8cfd8"></div>Available</div>
+                </div>
+            </div>
+
+            <div class="table-section">
+                <h3>Reservation Application</h3>
+                <table class="data-table">
+                    <thead><tr><th>Name</th><th>Date</th><th>Time</th><th></th></tr></thead>
+                    <tbody id="reservationAppTbody">
+                        <tr>
+                            <td>Stephanie Sofia V. Sy</td>
+                            <td>February 1, 2026</td>
+                            <td>10:00 AM – 12:00 PM</td>
+                            <td>
+                                <button class="action-btn btn-approve" onclick="approveReservation(this)">Approve</button>
+                                <button class="btn-remove" onclick="removeRow(this)">Remove</button>
+                            </td>
+                        </tr>
+                        <tr><td></td><td></td><td></td><td></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-section">
+                <h3>Upcoming Reservations This Month</h3>
+                <table class="data-table">
+                    <thead><tr><th>Name</th><th>Date</th><th>Time</th><th></th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>Stephanie Sofia V. Sy</td>
+                            <td>February 12, 2026</td>
+                            <td>10:00 AM – 12:00 PM</td>
+                            <td>
+                                <button class="btn-edit">Edit</button>
+                                <button class="btn-remove" onclick="removeRow(this)">Remove</button>
+                            </td>
+                        </tr>
+                        <tr><td></td><td></td><td></td><td></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── REGISTERED ACCOUNTS ───────────────── -->
+    <div class="page" id="page-accounts">
+        <div class="topbar">
+            <h1>Registered Accounts</h1>
+            <div style="display:flex;align-items:center;gap:20px;">
+                <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search" oninput="filterTable('accountsTbody', this.value)"></div>
+                <div class="admin-info">
+                    <div class="admin-avatar">👤</div>
+                    <div class="admin-text">admin <span>admin account name</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="page-body">
+            <table class="data-table">
+                <thead><tr><th>First Name</th><th>Last Name</th><th>Contacts</th><th>Membership</th><th>Membership Expiration</th><th></th></tr></thead>
+                <tbody id="accountsTbody">
+                    <tr>
+                        <td>Stephanie Sofia</td><td>Sy</td><td>13251279767</td>
+                        <td><span class="badge badge-active">Active</span></td>
+                        <td>June 7, 2029</td>
+                        <td>
+                            <button class="btn-edit">edit</button>
+                            <button class="btn-remove" onclick="showRemoveModal()">remove</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td><td></td><td></td>
+                        <td><span class="badge badge-none">None</span></td>
+                        <td><span class="badge badge-none">None</span></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ─── PAYMENTS ──────────────────────────── -->
+    <div class="page" id="page-payments">
+        <div class="topbar">
+            <h1>Payments</h1>
+            <div style="display:flex;align-items:center;gap:20px;">
+                <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search" oninput="filterTable('paymentsTbody', this.value)"></div>
+                <div class="admin-info">
+                    <div class="admin-avatar">👤</div>
+                    <div class="admin-text">admin <span>admin account name</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="payments-table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>First Name</th><th>Last Name</th><th>Payment Method</th><th>Account Number</th><th>Payment Amount</th><th>Payment Processed</th><th>Transaction Type</th><th></th></tr></thead>
+                    <tbody id="paymentsTbody">
+                        <tr>
+                            <td>Stephanie Sofia</td><td>Sy</td><td>GCASH</td>
+                            <td>6125445984</td><td>500000</td><td>June 7, 2029</td>
+                            <td><span class="badge badge-active">Reservation</span></td>
+                            <td><button class="btn-refund" onclick="showRefundModal('Stephanie Sofia')">Refund</button></td>
+                        </tr>
+                        <tr>
+                            <td></td><td></td><td></td><td></td><td></td><td></td>
+                            <td><span class="badge badge-none">Membership</span></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── MESSAGES ──────────────────────────── -->
+    <div class="page" id="page-messages">
+        <div class="topbar">
+            <h1>Messages</h1>
+            <div style="display:flex;align-items:center;gap:20px;">
+                <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search"></div>
+                <div class="admin-info">
+                    <div class="admin-avatar">👤</div>
+                    <div class="admin-text">admin <span>admin account name</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="page-body" style="padding-bottom:0; display:flex; flex-direction:column; flex:1;">
+            <div class="msg-layout" style="flex:1;">
+                <div class="msg-sidebar">
+                    <div class="msg-contact active" onclick="selectContact(this, 'Stephanie Sofia Sy')">
+                        <div class="contact-avatar">👤</div>
+                        <div>
+                            <div class="msg-contact-name">Stephanie Sofia Sy</div>
+                            <div style="font-size:11px;color:#ccc;">Llody</div>
+                        </div>
+                        <div class="msg-contact-dot online" style="margin-left:auto;"></div>
+                    </div>
+                    <div class="msg-contact" onclick="selectContact(this, 'Wil')">
+                        <div class="contact-avatar">👤</div>
+                        <div>
+                            <div class="msg-contact-name">Wil</div>
+                            <div style="font-size:11px;color:#ccc;">Staff</div>
+                        </div>
+                        <div class="msg-contact-dot" style="margin-left:auto;"></div>
+                    </div>
+                </div>
+                <div class="msg-window">
+                    <div class="msg-window-header" id="msgWindowHeader">Stephanie Sofia Sy</div>
+                    <div class="msg-body" id="msgBody">
+                        <div class="msg-row-wrap">
+                            <div class="chat-avatar">👤</div>
+                            <div class="chat-bubble bubble-received">I want a refund</div>
+                        </div>
+                        <div class="msg-row-wrap">
+                            <div class="chat-avatar">👤</div>
+                            <div class="chat-bubble bubble-received">Your staff Lloyd is a kalbo panot</div>
+                        </div>
+                    </div>
+                    <div class="msg-footer">
+                        <span class="msg-footer-icon">📎</span>
+                        <span class="msg-footer-icon">📷</span>
+                        <input type="text" class="msg-input" id="adminMsgInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter') adminSendMsg()">
+                        <button class="send-btn" onclick="adminSendMsg()">➤</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── CUSTOMER SERVICE ───────────────────── -->
+    <div class="page" id="page-customerservice">
+        <div class="topbar">
+            <h1>Customer Service Records</h1>
+            <div style="display:flex;align-items:center;gap:20px;">
+                <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search" oninput="filterTable('csTbody', this.value)"></div>
+                <div class="admin-info">
+                    <div class="admin-avatar">👤</div>
+                    <div class="admin-text">admin <span>admin account name</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="page-body">
+            <table class="data-table">
+                <thead><tr><th>First Name</th><th>Last Name</th><th>Concerns</th><th>conversation</th><th>concern resolution</th><th></th></tr></thead>
+                <tbody id="csTbody">
+                    <tr>
+                        <td>Stephanie Sofia</td><td>Sy</td>
+                        <td>service disatisfied</td>
+                        <td><button class="btn-view">view</button></td>
+                        <td><button class="btn-transcript">transcript</button></td>
+                        <td>
+                            <button class="btn-add">add</button>
+                            <button class="btn-remove" onclick="removeRow(this)">remove</button>
+                        </td>
+                    </tr>
+                    <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div><!-- end .main -->
+
+
+<!-- ═══════════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════════ -->
+
+<!-- Remove User Modal -->
+<div class="modal-overlay" id="removeModal">
+    <div class="modal-card">
+        <img src="Golfcourse_assets/colored logo.png" alt="Logo">
+        <hr>
+        <p>Are you sure you want to remove the user?</p>
+        <div class="modal-btns">
+            <button class="btn-confirm-modal" onclick="confirmRemove()">Confirm</button>
+            <button class="btn-cancel-modal" onclick="closeModal('removeModal')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Refund Confirm Modal -->
+<div class="modal-overlay" id="refundConfirmModal">
+    <div class="modal-card">
+        <img src="Golfcourse_assets/colored logo.png" alt="Logo">
+        <hr>
+        <p id="refundConfirmText">Make a refund for user, Stephanie Sofia V. Sy?<br>Refund will be made through [MOP], [account number]</p>
+        <div class="modal-btns">
+            <button class="btn-confirm-modal" onclick="openRefundReasons()">Confirm</button>
+            <button class="btn-cancel-modal" onclick="closeModal('refundConfirmModal')">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Refund Reasons Modal -->
+<div class="modal-overlay" id="refundReasonsModal">
+    <div class="refund-modal">
+        <div class="refund-header">
+            <h3 id="refundReasonTitle">Make a refund for, Stephanie Sofia</h3>
+            <div class="refund-admin">
+                <div class="refund-admin-av"></div>
+                <div class="refund-admin-txt">admin<br><span style="color:#aaa;">admin account name</span></div>
+            </div>
+        </div>
+        <div class="refund-body">
+            <h4>Reason for Refund</h4>
+            <div class="refund-option"><input type="checkbox"><label>Unavailability</label></div>
+            <div class="refund-option"><input type="checkbox"><label>Poor Service</label></div>
+            <div class="refund-option"><input type="checkbox"><label>Email not recieved</label></div>
+            <div class="refund-option"><input type="checkbox"><label>Membership Cancellation</label></div>
+            <div class="refund-option"><input type="checkbox"><label>Reservation Cancellation</label></div>
+            <div class="refund-option"><input type="checkbox"><label>Other: <input type="text" class="refund-other-input" placeholder="___________"></label></div>
+            <button class="btn-refund-confirm" onclick="closeModal('refundReasonsModal')">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Reservation Detail Modal -->
+<div class="modal-overlay" id="resDetailModal">
+    <div class="res-detail-modal">
+        <div class="res-detail-header" id="resDetailDate">February 1, 2026</div>
+        <div class="res-detail-body">
+            <div class="res-detail-select">
+                <span>Reservation Details</span>
+                <select>
+                    <option>Available</option>
+                    <option>Booked</option>
+                    <option>Partial</option>
+                </select>
+            </div>
+            <div class="res-slot-row">
+                <span class="res-slot-time">10:00 AM – 12:00 PM</span>
+                <span class="res-slot-name">Stephanie Sofia V. Sy</span>
+            </div>
+            <div class="res-slot-row" style="background:#e0d0d0;">
+                <span class="res-slot-time">12:30 – 2:30 PM</span>
+                <span class="res-slot-name"></span>
+            </div>
+            <div style="text-align:right; margin-top:16px;">
+                <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // ── NAVIGATION ──────────────────────────────
+    function showPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('page-' + id).classList.add('active');
+
+        const map = { dashboard:0, reservations:1, accounts:2, payments:3, messages:4, customerservice:6 };
+        const items = document.querySelectorAll('.nav-item');
+        if (map[id] !== undefined) items[map[id]].classList.add('active');
+    }
+
+    // ── CALENDAR ────────────────────────────────
+    (function buildAdminCal() {
+        const grid = document.getElementById('adminCal');
+        const bookedDays = [8, 22];
+        const partialDays = [5, 10, 17];
+        ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d => {
+            grid.innerHTML += `<div style="font-size:10px;color:#888;text-align:center;font-weight:bold;">${d}</div>`;
+        });
+        // Feb 2026 starts on Sunday
+        for (let i = 0; i < 0; i++) grid.innerHTML += `<div class="res-day empty"></div>`;
+        for (let d = 1; d <= 28; d++) {
+            let cls = bookedDays.includes(d) ? 'booked' : partialDays.includes(d) ? 'partial' : '';
+            grid.innerHTML += `<div class="res-day ${cls}" onclick="openResDetail(${d})">${d}</div>`;
+        }
+    })();
+
+    function openResDetail(day) {
+        document.getElementById('resDetailDate').textContent = `February ${day}, 2026`;
+        document.getElementById('resDetailModal').classList.add('show');
+    }
+
+    // ── MODALS ──────────────────────────────────
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('show');
+    }
+    // Close on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(o => {
+        o.addEventListener('click', e => { if (e.target === o) o.classList.remove('show'); });
+    });
+
+    function showRemoveModal() {
+        document.getElementById('removeModal').classList.add('show');
+    }
+    function confirmRemove() {
+        closeModal('removeModal');
+    }
+
+    let currentRefundName = '';
+    function showRefundModal(name) {
+        currentRefundName = name;
+        document.getElementById('refundConfirmText').innerHTML =
+            `Make a refund for user, <strong>${name} V. Sy</strong>?<br>Refund will be made through [MOP], [account number]`;
+        document.getElementById('refundConfirmModal').classList.add('show');
+    }
+    function openRefundReasons() {
+        closeModal('refundConfirmModal');
+        document.getElementById('refundReasonTitle').textContent = `Make a refund for, ${currentRefundName}`;
+        document.getElementById('refundReasonsModal').classList.add('show');
+    }
+
+    // ── TABLE HELPERS ────────────────────────────
+    function removeRow(btn) {
+        const row = btn.closest('tr');
+        if (confirm('Remove this record?')) row.remove();
+    }
+    function approveReservation(btn) {
+        const row = btn.closest('tr');
+        btn.textContent = '✔ Approved';
+        btn.style.background = '#4a7a4a';
+        btn.disabled = true;
+    }
+    function filterTable(tbodyId, query) {
+        const rows = document.querySelectorAll(`#${tbodyId} tr`);
+        rows.forEach(r => {
+            r.style.display = r.textContent.toLowerCase().includes(query.toLowerCase()) ? '' : 'none';
+        });
+    }
+
+    // ── MESSAGES ─────────────────────────────────
+    function selectContact(el, name) {
+        document.querySelectorAll('.msg-contact').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('msgWindowHeader').textContent = name;
+        document.getElementById('msgBody').innerHTML = '';
+    }
+    function adminSendMsg() {
+        const input = document.getElementById('adminMsgInput');
+        const text = input.value.trim();
+        if (!text) return;
+        const body = document.getElementById('msgBody');
+        body.innerHTML += `
+            <div class="msg-row-wrap sent">
+                <div class="chat-bubble bubble-sent">${text}</div>
+                <div class="chat-avatar">👤</div>
+            </div>`;
+        input.value = '';
+        body.scrollTop = body.scrollHeight;
+    }
+</script>
+</body>
+</html>
