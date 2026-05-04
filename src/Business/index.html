@@ -125,7 +125,8 @@
             font-weight: bold; cursor: pointer; font-family: "Georgia", serif;
             font-size: 14px; transition: all 0.3s ease;
         }
-        .login-box button:hover { background: var(--gold-light); transform: translateY(-2px); }
+        .login-box button:hover:not(:disabled) { background: var(--gold-light); transform: translateY(-2px); }
+        .login-box button:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .divider {
             margin: 22px 0; display: flex; align-items: center; color: #c5a96b;
@@ -176,7 +177,7 @@
             position: relative; z-index: 2;
             background: rgba(13,43,15,0.92);
             padding: 45px 40px; border-radius: 10px;
-            width: 100%; max-width: 460px;
+            width: 100%; max-width: 500px;
             border-top: 4px solid var(--gold);
             text-align: center;
             box-shadow: 0 20px 50px rgba(0,0,0,0.4);
@@ -193,6 +194,43 @@
             transition: background 0.2s;
         }
         .input-group input:focus { background: #e0e0e0; }
+        .input-group input.error { border: 2px solid #9c403d; background: #ffe0e0; }
+
+        .captcha-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 5px;
+        }
+        .captcha-code {
+            background: #2a5a2a;
+            color: var(--gold);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            text-align: center;
+            flex: 1;
+        }
+        .refresh-captcha {
+            background: var(--gold);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+        .refresh-captcha:hover { transform: rotate(15deg); }
+
+        .error-msg {
+            color: #ff9999;
+            font-size: 11px;
+            margin-top: 5px;
+            display: block;
+        }
 
         .reg-divider {
             margin: 18px 0; display: flex; align-items: center; color: #c5a96b;
@@ -206,7 +244,8 @@
             cursor: pointer; font-family: "Georgia", serif; font-size: 14px;
             transition: all 0.3s;
         }
-        .btn-reg:hover { background: var(--gold-light); transform: translateY(-2px); }
+        .btn-reg:hover:not(:disabled) { background: var(--gold-light); transform: translateY(-2px); }
+        .btn-reg:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .btn-google-reg {
             width: 100%; padding: 12px;
@@ -261,6 +300,27 @@
             transition: background 0.2s; display: block; margin-left: auto;
         }
         .modal-close:hover { background: var(--gold-light); }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--deep-green);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            border-left: 4px solid var(--gold);
+            z-index: 10001;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .toast.error { border-left-color: #9c403d; }
+        .toast.success { border-left-color: #4caf50; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -305,7 +365,6 @@
             <h1>LOGIN</h1>
             <p class="sub">Please enter your personal details below.</p>
             
-            <!-- Add error message display -->
             <div id="loginError" style="background: #9c403d; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 13px;"></div>
             
             <form onsubmit="handleLogin(event)">
@@ -314,7 +373,6 @@
                 <label>Password</label>
                 <input type="password" id="loginPass" required placeholder="••••••••">
                 
-                <!-- Add loading state -->
                 <button type="submit" id="loginBtn">
                     <span id="loginBtnText">Login</span>
                     <span id="loginLoader" style="display: none;">⏳ Processing...</span>
@@ -338,40 +396,53 @@
     <div class="reg-card">
         <h2>REGISTER</h2>
         <p class="sub">Please enter your personal details below.</p>
+        
+        <div id="regError" style="background: #9c403d; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 13px;"></div>
+        
         <form onsubmit="handleRegister(event)">
             <div class="input-group">
-                <label>Full Name</label>
-                <input type="text" placeholder="Enter your full name" required>
+                <label>Full Name *</label>
+                <input type="text" id="regFullName" placeholder="Enter your full name" required>
             </div>
             <div class="input-group">
-                <label>Email Address</label>
-                <input type="email" placeholder="email@example.com" required>
+                <label>Email Address *</label>
+                <input type="email" id="regEmail" placeholder="email@example.com" required>
             </div>
             <div class="input-group">
-                <label>Phone Number</label>
-                <input type="tel" placeholder="+63 000 000 0000" required>
+                <label>Phone Number *</label>
+                <input type="tel" id="regPhone" placeholder="+63 000 000 0000" required>
             </div>
             <div class="input-group">
-                <label>Username</label>
-                <input type="text" placeholder="Choose a username" required>
+                <label>Username *</label>
+                <input type="text" id="regUsername" placeholder="Choose a username" required>
+                <span class="error-msg" id="usernameError"></span>
             </div>
             <div class="input-group">
-                <label>Password</label>
-                <input type="password" placeholder="••••••••" required>
+                <label>Password *</label>
+                <input type="password" id="regPassword" placeholder="Minimum 6 characters" required>
+                <span class="error-msg" id="passwordError"></span>
             </div>
             <div class="input-group">
-                <label>Password Verification</label>
-                <input type="password" placeholder="••••••••" required>
+                <label>Confirm Password *</label>
+                <input type="password" id="regConfirmPassword" placeholder="••••••••" required>
+                <span class="error-msg" id="confirmError"></span>
             </div>
             <div class="input-group">
-                <label>CAPTCHA</label>
-                <input type="text" placeholder="Enter CAPTCHA">
+                <label>CAPTCHA *</label>
+                <div class="captcha-container">
+                    <div class="captcha-code" id="captchaCode">ABCD12</div>
+                    <button type="button" class="refresh-captcha" onclick="refreshCaptcha()">⟳</button>
+                </div>
+                <input type="text" id="captchaInput" placeholder="Enter the code above" style="margin-top: 8px;" required>
             </div>
             <div class="terms-row">
                 <input type="checkbox" id="terms" required>
                 <label for="terms">By clicking the checkbox, you <a onclick="document.getElementById('termsModal').style.display='flex'">Accept the Terms &amp; Conditions</a></label>
             </div>
-            <button type="submit" class="btn-reg">Sign Up</button>
+            <button type="submit" class="btn-reg" id="registerBtn">
+                <span id="registerBtnText">Sign Up</span>
+                <span id="registerLoader" style="display: none;">⏳ Processing...</span>
+            </button>
         </form>
         <div class="reg-divider"><span>or</span></div>
         <button class="btn-google-reg" onclick="alert('Google sign up coming soon!')">&#x1F310; Sign up with Google</button>
@@ -398,18 +469,161 @@
     // API Configuration
     const API_URL = 'https://ilisy-golf-and-country-club-enrollment.onrender.com/api';
     
+    // Rate limiting variables
+    let loginAttempts = 0;
+    let lastLoginAttempt = 0;
+    const MAX_LOGIN_ATTEMPTS = 5;
+    const LOCKOUT_TIME = 15 * 60 * 1000;
+    
+    // Current CAPTCHA value
+    let currentCaptcha = '';
+    
+    // Generate random CAPTCHA
+    function generateCaptcha() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        currentCaptcha = result;
+        const captchaElement = document.getElementById('captchaCode');
+        if (captchaElement) {
+            captchaElement.textContent = result;
+        }
+        return result;
+    }
+    
+    function refreshCaptcha() {
+        generateCaptcha();
+        document.getElementById('captchaInput').value = '';
+    }
+    
+    // Show toast notification
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    // Validate password strength
+    function validatePassword(password) {
+        if (password.length < 6) {
+            return 'Password must be at least 6 characters';
+        }
+        return null;
+    }
+    
+    // Real-time validation
+    document.addEventListener('DOMContentLoaded', () => {
+        generateCaptcha();
+        
+        const passwordInput = document.getElementById('regPassword');
+        const confirmInput = document.getElementById('regConfirmPassword');
+        const usernameInput = document.getElementById('regUsername');
+        
+        if (passwordInput) {
+            passwordInput.addEventListener('input', () => {
+                const error = validatePassword(passwordInput.value);
+                document.getElementById('passwordError').textContent = error || '';
+            });
+        }
+        
+        if (confirmInput && passwordInput) {
+            confirmInput.addEventListener('input', () => {
+                if (confirmInput.value !== passwordInput.value) {
+                    document.getElementById('confirmError').textContent = 'Passwords do not match';
+                } else {
+                    document.getElementById('confirmError').textContent = '';
+                }
+            });
+        }
+        
+        if (usernameInput) {
+            usernameInput.addEventListener('input', () => {
+                if (usernameInput.value.length < 3) {
+                    document.getElementById('usernameError').textContent = 'Username must be at least 3 characters';
+                } else {
+                    document.getElementById('usernameError').textContent = '';
+                }
+            });
+        }
+    });
+    
     function goTo(id) {
         document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
     }
-
+    
     window.addEventListener('scroll', () => {
-        document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 50);
+        const nav = document.getElementById('mainNav');
+        if (nav) nav.classList.toggle('scrolled', window.scrollY > 50);
     });
-
+    
+    // Check existing session
+    function checkExistingSession() {
+        const userId = localStorage.getItem('userId');
+        const loginTime = localStorage.getItem('loginTime');
+        const isAdmin = localStorage.getItem('isAdmin');
+        
+        if (userId && loginTime) {
+            const hoursSinceLogin = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
+            if (hoursSinceLogin < 24) {
+                if (isAdmin === 'true') {
+                    window.location.href = 'src/Business/admin/admin_portal.html';
+                } else {
+                    window.location.href = 'src/user/user_portal.html';
+                }
+            } else {
+                localStorage.clear();
+            }
+        }
+    }
+    
+    function showLoginError(message) {
+        const errorDiv = document.getElementById('loginError');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => {
+            if (errorDiv) errorDiv.style.display = 'none';
+        }, 5000);
+    }
+    
+    function showRegisterError(message) {
+        const errorDiv = document.getElementById('regError');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => {
+            if (errorDiv) errorDiv.style.display = 'none';
+        }, 5000);
+    }
+    
     async function handleLogin(e) {
         e.preventDefault();
-        const username = document.getElementById('loginEmail').value;
+        
+        // Rate limiting check
+        const now = Date.now();
+        if (loginAttempts >= MAX_LOGIN_ATTEMPTS && (now - lastLoginAttempt) < LOCKOUT_TIME) {
+            const remainingMinutes = Math.ceil((LOCKOUT_TIME - (now - lastLoginAttempt)) / 60000);
+            showLoginError(`Too many login attempts. Please try again in ${remainingMinutes} minutes.`);
+            return;
+        }
+        
+        const username = document.getElementById('loginEmail').value.trim();
         const password = document.getElementById('loginPass').value;
+        
+        if (!username || !password) {
+            showLoginError('Please enter both username/email and password');
+            return;
+        }
+        
+        const loginBtn = document.getElementById('loginBtn');
+        const btnText = document.getElementById('loginBtnText');
+        const btnLoader = document.getElementById('loginLoader');
+        
+        loginBtn.disabled = true;
+        btnText.style.display = 'none';
+        btnLoader.style.display = 'inline';
         
         try {
             const response = await fetch(`${API_URL}/auth/login`, {
@@ -421,53 +635,125 @@
             const data = await response.json();
             
             if (response.ok) {
+                loginAttempts = 0;
                 localStorage.setItem('userId', data.id);
                 localStorage.setItem('userName', data.username);
+                localStorage.setItem('userEmail', data.email);
                 localStorage.setItem('isAdmin', data.isAdmin);
                 localStorage.setItem('membershipStatus', data.membershipStatus);
+                localStorage.setItem('loginTime', Date.now());
                 
-                if (data.isAdmin) {
-                    window.location.href = 'src/Business/admin/admin_portal.html';
-                } else {
-                    window.location.href = 'src/user/user_portal.html';
+                if (data.token) {
+                    localStorage.setItem('authToken', data.token);
                 }
+                
+                showToast('Login successful! Redirecting...', 'success');
+                
+                setTimeout(() => {
+                    if (data.isAdmin === true || data.isAdmin === 'true') {
+                        window.location.href = 'src/Business/admin/admin_portal.html';
+                    } else {
+                        window.location.href = 'src/user/user_portal.html';
+                    }
+                }, 1000);
             } else {
-                alert(data.message || 'Login failed');
+                loginAttempts++;
+                lastLoginAttempt = Date.now();
+                
+                let errorMessage = data.message || 'Login failed';
+                if (response.status === 401) {
+                    errorMessage = 'Invalid username/email or password';
+                } else if (response.status === 404) {
+                    errorMessage = 'Account not found. Please register first.';
+                }
+                showLoginError(errorMessage);
+                document.getElementById('loginPass').value = '';
             }
         } catch (error) {
             console.error('Login error:', error);
-            alert('Connection error. Please try again.');
+            showLoginError('Connection error. Please check your internet connection.');
+        } finally {
+            loginBtn.disabled = false;
+            btnText.style.display = 'inline';
+            btnLoader.style.display = 'none';
         }
     }
-
+    
+    function handleGoogleLogin() {
+        showToast('Google login coming soon! Please use regular login for now.', 'error');
+    }
+    
     async function handleRegister(e) {
         e.preventDefault();
-        const form = e.target;
-        const fullName = form.querySelector('input[placeholder="Enter your full name"]').value;
+        
+        const fullName = document.getElementById('regFullName').value.trim();
         const nameParts = fullName.split(' ');
-        
-        const password = form.querySelectorAll('input[type="password"]')[0].value;
-        const confirmPassword = form.querySelectorAll('input[type="password"]')[1].value;
-        
-        if (password !== confirmPassword) {
-            alert('Passwords do not match!');
-            return;
-        }
-        
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        const email = document.getElementById('regEmail').value.trim();
+        const phone = document.getElementById('regPhone').value.trim();
+        const username = document.getElementById('regUsername').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const confirmPassword = document.getElementById('regConfirmPassword').value;
+        const captchaInput = document.getElementById('captchaInput').value.trim();
         const termsCheckbox = document.getElementById('terms');
-        if (!termsCheckbox.checked) {
-            alert('Please accept the Terms & Conditions');
+        
+        // Validate CAPTCHA
+        if (captchaInput !== currentCaptcha) {
+            showRegisterError('Invalid CAPTCHA code. Please try again.');
+            refreshCaptcha();
             return;
         }
+        
+        // Validate password
+        const passwordError = validatePassword(password);
+        if (passwordError) {
+            showRegisterError(passwordError);
+            return;
+        }
+        
+        // Validate password match
+        if (password !== confirmPassword) {
+            showRegisterError('Passwords do not match!');
+            return;
+        }
+        
+        // Validate terms
+        if (!termsCheckbox.checked) {
+            showRegisterError('Please accept the Terms & Conditions');
+            return;
+        }
+        
+        // Validate phone number (Philippines format)
+        const phoneRegex = /^(09|\+63|0)[0-9]{9,10}$/;
+        if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+            showRegisterError('Please enter a valid phone number (e.g., 09123456789 or +639123456789)');
+            return;
+        }
+        
+        // Validate email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showRegisterError('Please enter a valid email address');
+            return;
+        }
+        
+        const registerBtn = document.getElementById('registerBtn');
+        const btnText = document.getElementById('registerBtnText');
+        const btnLoader = document.getElementById('registerLoader');
+        
+        registerBtn.disabled = true;
+        btnText.style.display = 'none';
+        btnLoader.style.display = 'inline';
         
         const formData = {
-            firstName: nameParts[0] || '',
-            lastName: nameParts.slice(1).join(' ') || '',
-            email: form.querySelector('input[type="email"]').value,
-            phone: form.querySelector('input[type="tel"]').value,
-            username: form.querySelector('input[placeholder="Choose a username"]').value,
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            phone: phone,
+            username: username,
             password: password,
-            captcha: form.querySelector('input[placeholder="Enter CAPTCHA"]').value || 'test123'
+            captcha: captchaInput
         };
         
         try {
@@ -480,17 +766,41 @@
             const data = await response.json();
             
             if (response.ok) {
-                alert('Account created successfully! Please log in.');
-                goTo('login');
-                form.reset();
+                showToast('Account created successfully! Please log in.', 'success');
+                document.getElementById('regFullName').value = '';
+                document.getElementById('regEmail').value = '';
+                document.getElementById('regPhone').value = '';
+                document.getElementById('regUsername').value = '';
+                document.getElementById('regPassword').value = '';
+                document.getElementById('regConfirmPassword').value = '';
+                document.getElementById('captchaInput').value = '';
+                document.getElementById('terms').checked = false;
+                generateCaptcha();
+                
+                setTimeout(() => {
+                    goTo('login');
+                }, 2000);
             } else {
-                alert(data.message || data.errors?.[0]?.msg || 'Registration failed');
+                let errorMsg = data.message || 'Registration failed';
+                if (data.errors && data.errors.length > 0) {
+                    errorMsg = data.errors[0].msg;
+                }
+                showRegisterError(errorMsg);
+                refreshCaptcha();
             }
         } catch (error) {
             console.error('Registration error:', error);
-            alert('Connection error. Please try again.');
+            showRegisterError('Connection error. Please try again.');
+            refreshCaptcha();
+        } finally {
+            registerBtn.disabled = false;
+            btnText.style.display = 'inline';
+            btnLoader.style.display = 'none';
         }
     }
+    
+    // Run session check on page load
+    checkExistingSession();
 </script>
 </body>
 </html>
