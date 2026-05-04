@@ -3,11 +3,26 @@ services:
     name: ilisy-golf-api
     runtime: node
     repo: https://github.com/McLloydIlagan/ILISY_Golf_And_Country_Club_Enrollment_System
+    rootDir: API                
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
       - key: MONGODB_URI
         value: mongodb+srv://ilisydatabase:team1234@cluster0.kyvkx9h.mongodb.net/golfclub?retryWrites=true&w=majority
       - key: JWT_SECRET
         generateValue: true
+      - key: PORT
+        value: 3000
     plan: free
+
+  
+  - type: static
+    name: ilisy-golf-frontend
+    runtime: static
+    rootDir: src/Business           
+    buildCommand: echo "Static site ready"
+    staticPublishPath: ./
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /admin/admin_portal.html
