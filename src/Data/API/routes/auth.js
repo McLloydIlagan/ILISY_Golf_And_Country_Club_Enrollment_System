@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const { body, validationResult } = require('express-validator');
+const jwt = require('jsonwebtoken')
 
 // 1.0 Register Account - Complete Level 2 & 3 DFD implementation
 router.post('/register', [

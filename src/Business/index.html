@@ -18,9 +18,6 @@
 
         section { scroll-margin-top: var(--navbar-h); }
 
-        /* ═══════════════════════════════════════
-           FIXED NAVBAR
-        ═══════════════════════════════════════ */
         .navbar {
             position: fixed; top: 0; left: 0; right: 0;
             height: var(--navbar-h);
@@ -65,9 +62,6 @@
         }
         .sign-in-btn::after { display: none !important; }
 
-        /* ═══════════════════════════════════════
-           SECTION 1: HOME HERO
-        ═══════════════════════════════════════ */
         #home {
             height: 100vh;
             background: url('Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
@@ -103,9 +97,6 @@
         }
         .btn-outline:hover { background: var(--gold); color: black; transform: translateY(-3px); }
 
-        /* ═══════════════════════════════════════
-           SECTION 2: LOGIN
-        ═══════════════════════════════════════ */
         #login {
             height: 100vh;
             display: flex;
@@ -171,9 +162,6 @@
         }
         .login-right nav a:hover { color: var(--gold); }
 
-        /* ═══════════════════════════════════════
-           SECTION 3: REGISTER
-        ═══════════════════════════════════════ */
         #register {
             min-height: 100vh;
             background: url('Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
@@ -241,9 +229,6 @@
         .footer-link a { color: var(--gold); text-decoration: none; cursor: pointer; }
         .footer-link a:hover { text-decoration: underline; }
 
-        /* ═══════════════════════════════════════
-           ABOUT / CONTACTS PLACEHOLDER SECTIONS
-        ═══════════════════════════════════════ */
         #about, #contacts {
             min-height: 60vh;
             background: var(--deep-green);
@@ -256,9 +241,6 @@
         #about p, #contacts p { font-size: 16px; color: #ccc; max-width: 560px; line-height: 1.8; }
         #contacts .contact-info { margin-top: 28px; font-size: 15px; color: #d4c17c; line-height: 2.2; }
 
-        /* ═══════════════════════════════════════
-           TERMS MODAL
-        ═══════════════════════════════════════ */
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.75);
             display: none; justify-content: center; align-items: center;
@@ -283,9 +265,6 @@
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════
-     FIXED NAVBAR
-═══════════════════════════════════════ -->
 <nav class="navbar" id="mainNav">
     <div class="logo" onclick="goTo('home')">
         <img src="Golfcourse_assets/colored logo.png" alt="ILISY Logo">
@@ -299,7 +278,6 @@
     </div>
 </nav>
 
-<!-- TERMS MODAL -->
 <div class="modal-overlay" id="termsModal">
     <div class="modal-box">
         <h3>Terms &amp; Conditions</h3>
@@ -308,10 +286,6 @@
     </div>
 </div>
 
-
-<!-- ═══════════════════════════════════════
-     SECTION 1: HOME
-═══════════════════════════════════════ -->
 <section id="home">
     <div class="hero-content">
         <h1>Private<br>Golf Club</h1>
@@ -324,25 +298,30 @@
     </div>
 </section>
 
-
-<!-- ═══════════════════════════════════════
-     SECTION 2: LOGIN
-═══════════════════════════════════════ -->
 <section id="login">
     <div class="login-left">
         <div class="login-box">
             <img src="Golfcourse_assets/colored logo.png" class="logo-img" alt="Logo">
             <h1>LOGIN</h1>
             <p class="sub">Please enter your personal details below.</p>
+            
+            <!-- Add error message display -->
+            <div id="loginError" style="background: #9c403d; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 13px;"></div>
+            
             <form onsubmit="handleLogin(event)">
-                <label>Email Address</label>
-                <input type="email" id="loginEmail" required placeholder="email@example.com">
+                <label>Email / Username</label>
+                <input type="text" id="loginEmail" required placeholder="email@example.com or username">
                 <label>Password</label>
                 <input type="password" id="loginPass" required placeholder="••••••••">
-                <button type="submit">Login</button>
+                
+                <!-- Add loading state -->
+                <button type="submit" id="loginBtn">
+                    <span id="loginBtnText">Login</span>
+                    <span id="loginLoader" style="display: none;">⏳ Processing...</span>
+                </button>
             </form>
             <div class="divider"><span>or</span></div>
-            <button class="google-btn">&#x1F310; Login with Google</button>
+            <button class="google-btn" onclick="handleGoogleLogin()">&#x1F310; Login with Google</button>
             <p class="signup-link">Don't have an account? <a onclick="goTo('register')">Click here</a></p>
         </div>
     </div>
@@ -355,10 +334,6 @@
     </div>
 </section>
 
-
-<!-- ═══════════════════════════════════════
-     SECTION 3: REGISTER
-═══════════════════════════════════════ -->
 <section id="register">
     <div class="reg-card">
         <h2>REGISTER</h2>
@@ -374,7 +349,7 @@
             </div>
             <div class="input-group">
                 <label>Phone Number</label>
-                <input type="tel" placeholder="+63 000 000 0000">
+                <input type="tel" placeholder="+63 000 000 0000" required>
             </div>
             <div class="input-group">
                 <label>Username</label>
@@ -399,24 +374,16 @@
             <button type="submit" class="btn-reg">Sign Up</button>
         </form>
         <div class="reg-divider"><span>or</span></div>
-        <button class="btn-google-reg">&#x1F310; Sign up with Google</button>
+        <button class="btn-google-reg" onclick="alert('Google sign up coming soon!')">&#x1F310; Sign up with Google</button>
         <div class="footer-link">Already have an account? <a onclick="goTo('login')">Click here</a></div>
     </div>
 </section>
 
-
-<!-- ═══════════════════════════════════════
-     SECTION 4: ABOUT US
-═══════════════════════════════════════ -->
 <section id="about">
     <h2>About Us</h2>
     <p>ILISY Golf and Country Club is a premier private golf destination offering world-class facilities, meticulously maintained greens, and an atmosphere of refined leisure. Founded with a passion for the sport, we welcome members who share our commitment to excellence.</p>
 </section>
 
-
-<!-- ═══════════════════════════════════════
-     SECTION 5: CONTACTS
-═══════════════════════════════════════ -->
 <section id="contacts">
     <h2>Contact Us</h2>
     <p>We'd love to hear from you. Reach out to our team for inquiries about membership, reservations, or any other matters.</p>
@@ -427,31 +394,102 @@
     </div>
 </section>
 
-
 <script>
-    // ── SCROLL ──────────────────────────────────
+    // API Configuration
+    const API_URL = 'https://ilisy-golf-and-country-club-enrollment.onrender.com/api';
+    
     function goTo(id) {
         document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Navbar background on scroll
     window.addEventListener('scroll', () => {
         document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 50);
     });
 
-    // ── LOGIN ───────────────────────────────────
-    function handleLogin(e) {
+    async function handleLogin(e) {
         e.preventDefault();
-        // Redirect to user portal after login
-        window.location.href = 'user_portal.html';
+        const username = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPass').value;
+        
+        try {
+            const response = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                localStorage.setItem('userId', data.id);
+                localStorage.setItem('userName', data.username);
+                localStorage.setItem('isAdmin', data.isAdmin);
+                localStorage.setItem('membershipStatus', data.membershipStatus);
+                
+                if (data.isAdmin) {
+                    window.location.href = 'src/Business/admin/admin_portal.html';
+                } else {
+                    window.location.href = 'src/user/user_portal.html';
+                }
+            } else {
+                alert(data.message || 'Login failed');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('Connection error. Please try again.');
+        }
     }
 
-    // ── REGISTER ────────────────────────────────
-    function handleRegister(e) {
+    async function handleRegister(e) {
         e.preventDefault();
-        // After register, go to login
-        alert('Account created successfully! Please log in.');
-        goTo('login');
+        const form = e.target;
+        const fullName = form.querySelector('input[placeholder="Enter your full name"]').value;
+        const nameParts = fullName.split(' ');
+        
+        const password = form.querySelectorAll('input[type="password"]')[0].value;
+        const confirmPassword = form.querySelectorAll('input[type="password"]')[1].value;
+        
+        if (password !== confirmPassword) {
+            alert('Passwords do not match!');
+            return;
+        }
+        
+        const termsCheckbox = document.getElementById('terms');
+        if (!termsCheckbox.checked) {
+            alert('Please accept the Terms & Conditions');
+            return;
+        }
+        
+        const formData = {
+            firstName: nameParts[0] || '',
+            lastName: nameParts.slice(1).join(' ') || '',
+            email: form.querySelector('input[type="email"]').value,
+            phone: form.querySelector('input[type="tel"]').value,
+            username: form.querySelector('input[placeholder="Choose a username"]').value,
+            password: password,
+            captcha: form.querySelector('input[placeholder="Enter CAPTCHA"]').value || 'test123'
+        };
+        
+        try {
+            const response = await fetch(`${API_URL}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert('Account created successfully! Please log in.');
+                goTo('login');
+                form.reset();
+            } else {
+                alert(data.message || data.errors?.[0]?.msg || 'Registration failed');
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            alert('Connection error. Please try again.');
+        }
     }
 </script>
 </body>

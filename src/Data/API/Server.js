@@ -2,8 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-
+const jwt = require('jsonwebtoken');
 const app = express();
+
+if (!process.env.JWT_SECRET) {
+    console.warn('⚠️ JWT_SECRET not set, using default. Please set this in production!');
+    process.env.JWT_SECRET = 'ilisy-golf-secret-key-2026';
+}
 
 // Middleware
 app.use(cors());
