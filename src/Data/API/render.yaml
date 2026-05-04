@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ilisy-golf-api
+    runtime: node
+    repo: https://github.com/McLloydIlagan/ILISY_Golf_And_Country_Club_Enrollment_System
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://ilisydatabase:team1234@cluster0.kyvkx9h.mongodb.net/golfclub?retryWrites=true&w=majority
+      - key: JWT_SECRET
+        generateValue: true
+    plan: free
