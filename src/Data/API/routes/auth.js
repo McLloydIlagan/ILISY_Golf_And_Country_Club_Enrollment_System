@@ -5,6 +5,60 @@ const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken')
 
 // 1.0 Register Account - Complete Level 2 & 3 DFD implementation
+
+router.post('/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        // Validate input
+        if (!username || !password) {
+            return res.status(400).json({ message: 'Username and password are required' });
+        }
+        
+        // Find user by username or email
+        const user = await User.findOne({ 
+            $or: [{ username: username }, { email: username }] 
+        });
+        
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        
+        // Check password
+        const isValidPassword = await user.comparePassword(password);
+        if (!isValidPassword) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        
+        // Generate JWT token
+        const token = jwt.sign(
+            { 
+                userId: user._id, 
+                username: user.username, 
+                isAdmin: user.isAdmin 
+            },
+            process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+            { expiresIn: '24h' }
+        );
+        
+        // Return user data (excluding password)
+        res.json({
+            id: user._id,
+            username: user.username,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            isAdmin: user.isAdmin,
+            membershipStatus: user.membershipStatus,
+            token: token // Send token for authenticated API calls
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+
 router.post('/register', [
     body('firstName').notEmpty().trim(),
     body('lastName').notEmpty().trim(),

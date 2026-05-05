@@ -570,9 +570,11 @@
             const hoursSinceLogin = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
             if (hoursSinceLogin < 24) {
                 if (isAdmin === 'true') {
-                    window.location.href = 'src/Business/admin/admin_portal.html';
+                    // CHANGE THIS:
+                    window.location.href = '/src/Business/admin/admin_portal.html';
                 } else {
-                    window.location.href = 'src/user/user_portal.html';
+                    // CHANGE THIS:
+                    window.location.href = '/src/Business/user/user_portal.html';
                 }
             } else {
                 localStorage.clear();
@@ -650,12 +652,16 @@
                 showToast('Login successful! Redirecting...', 'success');
                 
                 setTimeout(() => {
-                    if (data.isAdmin === true || data.isAdmin === 'true') {
-                        window.location.href = 'src/Business/admin/admin_portal.html';
-                    } else {
-                        window.location.href = 'src/user/user_portal.html';
-                    }
-                }, 1000);
+                        if (data.isAdmin === true || data.isAdmin === 'true') {
+                            // CHANGE THIS:
+                            window.location.href = '/src/Business/admin/admin_portal.html';
+                            // FROM: 'src/Business/admin/admin_portal.html'
+                        } else {
+                            // CHANGE THIS:
+                            window.location.href = '/src/Business/user/user_portal.html';
+                            // FROM: 'src/user/user_portal.html'
+                        }
+                    }, 1000);
             } else {
                 loginAttempts++;
                 lastLoginAttempt = Date.now();

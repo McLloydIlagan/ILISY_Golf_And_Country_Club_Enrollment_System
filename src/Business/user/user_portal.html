@@ -341,7 +341,7 @@
         <a onclick="scrollToSection('membership')" id="nav-membership">Membership</a>
         <a onclick="scrollToSection('messages')" id="nav-messages">Messages</a>
         <a onclick="scrollToSection('reservation')" id="nav-reservation">Reservation</a>
-        <a href="../../index.html" class="logout-btn" onclick="localStorage.clear()">Logout</a>
+        <a href="../index.html" class="logout-btn" onclick="localStorage.clear()">Logout</a>
     </div>
 </nav>
 
@@ -562,7 +562,7 @@
     const userName = localStorage.getItem('userName');
 
     if (!userId && !window.location.href.includes('login')) {
-        // window.location.href = '../../index.html';
+        
     }
 
     let selectedDate = null;
