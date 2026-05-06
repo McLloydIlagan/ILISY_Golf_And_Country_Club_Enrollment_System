@@ -119,14 +119,14 @@
             background: #d9d9d9; margin-bottom: 10px; font-family: "Georgia", serif;
             outline: none; font-size: 14px;
         }
-        .login-box button {
+        .login-box button:not(.pw-toggle) {
             width: 100%; margin-top: 20px; padding: 12px;
             background: #c5a96b; border: none; color: #000;
             font-weight: bold; cursor: pointer; font-family: "Georgia", serif;
             font-size: 14px; transition: all 0.3s ease;
         }
-        .login-box button:hover:not(:disabled) { background: var(--gold-light); transform: translateY(-2px); }
-        .login-box button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .login-box button:not(.pw-toggle):hover:not(:disabled) { background: var(--gold-light); transform: translateY(-2px); }
+        .login-box button:not(.pw-toggle):disabled { opacity: 0.6; cursor: not-allowed; }
 
         .divider {
             margin: 22px 0; display: flex; align-items: center; color: #c5a96b;
@@ -195,6 +195,17 @@
         }
         .input-group input:focus { background: #e0e0e0; }
         .input-group input.error { border: 2px solid #9c403d; background: #ffe0e0; }
+
+        .pw-wrap { position: relative; display: block; }
+        .pw-wrap input { padding-right: 40px; width: 100%; }
+        .login-box .pw-wrap input { margin-bottom: 10px; }
+        .pw-toggle {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer;
+            font-size: 16px; padding: 0; line-height: 1; color: #666;
+            width: auto; margin: 0;
+        }
+        .login-box .pw-toggle { top: calc(50% - 5px); }
 
         .captcha-container {
             display: flex;
@@ -371,7 +382,10 @@
                 <label>Email / Username</label>
                 <input type="text" id="loginEmail" required placeholder="email@example.com or username">
                 <label>Password</label>
-                <input type="password" id="loginPass" required placeholder="••••••••">
+                <div class="pw-wrap">
+                    <input type="password" id="loginPass" required placeholder="••••••••">
+                    <button type="button" class="pw-toggle" onmousedown="event.preventDefault()" onclick="togglePw('loginPass', this)">👁</button>
+                </div>
                 
                 <button type="submit" id="loginBtn">
                     <span id="loginBtnText">Login</span>
@@ -419,12 +433,18 @@
             </div>
             <div class="input-group">
                 <label>Password *</label>
-                <input type="password" id="regPassword" placeholder="Minimum 6 characters" required>
+                <div class="pw-wrap">
+                    <input type="password" id="regPassword" placeholder="Minimum 6 characters" required>
+                    <button type="button" class="pw-toggle" onmousedown="event.preventDefault()" onclick="togglePw('regPassword', this)">👁</button>
+                </div>
                 <span class="error-msg" id="passwordError"></span>
             </div>
             <div class="input-group">
                 <label>Confirm Password *</label>
-                <input type="password" id="regConfirmPassword" placeholder="••••••••" required>
+                <div class="pw-wrap">
+                    <input type="password" id="regConfirmPassword" placeholder="••••••••" required>
+                    <button type="button" class="pw-toggle" onmousedown="event.preventDefault()" onclick="togglePw('regConfirmPassword', this)">👁</button>
+                </div>
                 <span class="error-msg" id="confirmError"></span>
             </div>
             <div class="input-group">
@@ -493,6 +513,13 @@
         return result;
     }
     
+    function togglePw(inputId, btn) {
+        const input = document.getElementById(inputId);
+        input.type = input.type === 'password' ? 'text' : 'password';
+        btn.textContent = input.type === 'password' ? '👁' : '⊘';
+        input.focus();
+    }
+
     function refreshCaptcha() {
         generateCaptcha();
         document.getElementById('captchaInput').value = '';
