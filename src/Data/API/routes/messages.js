@@ -4,7 +4,6 @@ const Message = require('../models/Message');
 const { authMiddleware } = require('../middleware/auth');
 
 // 4.0 Submit Concerns - Send inquiry > store message data > D4: Messages
-// FIXED: Now checks for existing conversation first
 router.post('/submit', authMiddleware, async (req, res) => {
     try {
         const { userId, userName, message, concernType } = req.body;
@@ -18,10 +17,15 @@ router.post('/submit', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Invalid concern type' });
         }
 
+        // Verify the user from token matches the userId
+        if (req.user.userId !== userId) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
         // Check if there's an existing OPEN conversation for this user
         let existingConversation = await Message.findOne({
             userId: userId,
-            status: { $in: ['pending', 'acknowledged'] } // Only open conversations
+            status: { $in: ['pending', 'acknowledged'] }
         }).sort({ createdAt: -1 });
 
         if (existingConversation) {
@@ -31,11 +35,11 @@ router.post('/submit', authMiddleware, async (req, res) => {
                 message: message,
                 timestamp: new Date()
             });
-            existingConversation.message = message; // Update latest message
-            existingConversation.status = 'pending'; // Reset to pending for new message
+            existingConversation.message = message;
+            existingConversation.status = 'pending';
             await existingConversation.save();
 
-            res.json({
+            return res.json({
                 message: 'Concern submitted successfully',
                 concernId: existingConversation._id,
                 acknowledgement: 'We have received your concern and will respond shortly'
@@ -43,64 +47,107 @@ router.post('/submit', authMiddleware, async (req, res) => {
         } else {
             // Create new conversation
             const concern = new Message({
-                userId, userName, message, concernType,
+                userId,
+                userName,
+                message,
+                concernType,
                 conversation: [{ sender: 'user', message, timestamp: new Date() }],
                 status: 'pending'
             });
 
             await concern.save();
 
-            res.json({
+            return res.json({
                 message: 'Concern submitted successfully',
                 concernId: concern._id,
                 acknowledgement: 'We have received your concern and will respond shortly'
             });
         }
     } catch (error) {
+        console.error('Submit error:', error);
         res.status(500).json({ message: error.message });
     }
 });
 
-// Add this new endpoint to get ALL messages (not just latest)
-router.get('/user/:userId/all', authMiddleware, async (req, res) => {
-    try {
-        const conversations = await Message.find({ userId: req.params.userId }).sort({ createdAt: -1 });
-        res.json(conversations);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// 4.0 Get user's concerns - Receive response / Receive resolution
-router.get('/user/:userId', authMiddleware, async (req, res) => {
-    try {
-        // Get only the most recent active conversation
-        const concerns = await Message.find({ 
-            userId: req.params.userId,
-            status: { $in: ['pending', 'acknowledged', 'resolved'] }
-        }).sort({ createdAt: -1 });
-        res.json(concerns);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// 4.0 Follow up inquiry > store message data > D4: Messages
+// 4.0 Follow up inquiry - ADD TO EXISTING CONVERSATION
 router.post('/followup/:messageId', authMiddleware, async (req, res) => {
     try {
+        const { messageId } = req.params;
         const { message } = req.body;
-        if (!message) return res.status(400).json({ message: 'Follow-up message is required' });
+        
+        if (!message) {
+            return res.status(400).json({ message: 'Follow-up message is required' });
+        }
 
-        const concern = await Message.findById(req.params.messageId);
-        if (!concern) return res.status(404).json({ message: 'Concern not found' });
+        // Validate messageId format
+        if (!messageId || messageId.length !== 24) {
+            return res.status(400).json({ message: 'Invalid conversation ID' });
+        }
 
-        concern.conversation.push({ sender: 'user', message, timestamp: new Date() });
-        concern.message = message; // Update latest message
+        const concern = await Message.findById(messageId);
+        if (!concern) {
+            return res.status(404).json({ message: 'Conversation not found' });
+        }
+
+        // Verify the user owns this conversation
+        if (concern.userId.toString() !== req.user.userId) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        concern.conversation.push({ 
+            sender: 'user', 
+            message: message, 
+            timestamp: new Date() 
+        });
+        concern.message = message;
         concern.status = 'pending';
         await concern.save();
 
-        res.json({ message: 'Follow-up submitted', concernId: concern._id });
+        res.json({ 
+            message: 'Follow-up submitted', 
+            concernId: concern._id 
+        });
     } catch (error) {
+        console.error('Followup error:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// 4.0 Get user's conversations
+router.get('/user/:userId', authMiddleware, async (req, res) => {
+    try {
+        // Verify the user is requesting their own conversations
+        if (req.user.userId !== req.params.userId) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        const conversations = await Message.find({ 
+            userId: req.params.userId
+        }).sort({ updatedAt: -1 });
+        
+        res.json(conversations);
+    } catch (error) {
+        console.error('Get user messages error:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Get single conversation by ID
+router.get('/conversation/:messageId', authMiddleware, async (req, res) => {
+    try {
+        const conversation = await Message.findById(req.params.messageId);
+        if (!conversation) {
+            return res.status(404).json({ message: 'Conversation not found' });
+        }
+        
+        // Verify ownership
+        if (conversation.userId.toString() !== req.user.userId) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+        
+        res.json(conversation);
+    } catch (error) {
+        console.error('Get conversation error:', error);
         res.status(500).json({ message: error.message });
     }
 });

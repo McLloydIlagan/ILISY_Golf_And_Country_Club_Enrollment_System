@@ -168,9 +168,12 @@ router.post('/payments/:paymentId/refund', async (req, res) => {
 
 router.get('/messages', async (req, res) => {
     try {
-        const messages = await Message.find().sort({ createdAt: -1 });
+        const messages = await Message.find()
+            .sort({ createdAt: -1 })
+            .populate('userId', 'firstName lastName email username');
         res.json(messages);
     } catch (error) {
+        console.error('Error loading messages:', error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -185,7 +188,11 @@ router.post('/messages/:messageId/respond', async (req, res) => {
         if (!message) return res.status(404).json({ message: 'Message not found' });
 
         // Append to existing conversation
-        message.conversation.push({ sender: 'admin', message: response, timestamp: new Date() });
+        message.conversation.push({ 
+            sender: 'admin', 
+            message: response, 
+            timestamp: new Date() 
+        });
         message.response = response;
         message.resolution = resolution || null;
         message.status = resolution ? 'resolved' : 'acknowledged';
@@ -206,6 +213,7 @@ router.post('/messages/:messageId/respond', async (req, res) => {
 
         res.json({ message: 'Response sent and concern recorded successfully' });
     } catch (error) {
+        console.error('Respond error:', error);
         res.status(500).json({ message: error.message });
     }
 });
