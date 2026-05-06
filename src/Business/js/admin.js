@@ -1183,6 +1183,346 @@ function updatePendingApplicationsTable(applications) {
     `).join('');
 }
 
+// ──────────────────────────────────────────────────────────────────
+// Reservation Type Management Functions
+// ──────────────────────────────────────────────────────────────────
+
+let currentEditTypeId = null;
+
+async function loadReservationTypes() {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/reservation-types/admin/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        if (response.ok) {
+            const types = await response.json();
+            renderReservationCards(types);
+        }
+    } catch (error) {
+        console.error('Error loading reservation types:', error);
+        showToast('Error loading reservation types', 'error');
+    }
+}
+
+function renderReservationCards(types) {
+    const container = document.getElementById('reservationCards');
+    if (!container) return;
+    
+    if (types.length === 0) {
+        container.innerHTML = '<div class="empty-state">No reservation types yet. Click "Add New" to create one.</div>';
+        return;
+    }
+    
+    container.innerHTML = types.map(type => `
+        <div class="reservation-card">
+            <div class="card-header">
+                <span class="icon">${type.icon || '🏌️'}</span>
+                <div class="card-header-info">
+                    <strong>${escapeHtml(type.name)}</strong>
+                    <small>${type.category}</small>
+                </div>
+                <div class="status-toggle ${type.isActive ? 'active' : ''}" 
+                     onclick="toggleReservationStatus('${type._id}', ${!type.isActive})"></div>
+            </div>
+            <div class="card-body">
+                <p><strong>💰 Base Price:</strong> ₱${type.basePrice.toLocaleString()}</p>
+                <p><strong>📝 Description:</strong> ${escapeHtml(type.description || 'No description')}</p>
+                
+                <div class="time-slots-list">
+                    <h4>⏰ Time Slots & Capacity</h4>
+                    ${type.timeSlots && type.timeSlots.length > 0 ? type.timeSlots.map((slot, index) => `
+                        <div class="time-slot-item" data-slot-index="${index}">
+                            <input type="text" value="${escapeHtml(slot.time)}" 
+                                   onchange="updateTimeSlotField('${type._id}', ${index}, 'time', this.value)">
+                            <input type="number" value="${slot.capacity}" 
+                                   onchange="updateTimeSlotField('${type._id}', ${index}, 'capacity', parseInt(this.value))">
+                            <div class="status-toggle ${slot.isAvailable ? 'active' : ''}" 
+                                 onclick="toggleTimeSlotAvailability('${type._id}', ${index})"></div>
+                            <button class="btn-delete-slot" onclick="deleteTimeSlot('${type._id}', ${index})">🗑️</button>
+                        </div>
+                    `).join('') : '<p style="font-size:12px; color:#999;">No time slots added yet</p>'}
+                    <button class="btn-add-slot" onclick="openAddTimeSlotModal('${type._id}')">+ Add Time Slot</button>
+                </div>
+                
+                <div class="card-actions">
+                    <button class="btn-edit" onclick="openEditTypeModal('${type._id}')">✏️ Edit Type</button>
+                    <button class="btn-remove" onclick="deleteReservationType('${type._id}')">🗑️ Delete Type</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function updateTimeSlotField(typeId, slotIndex, field, value) {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const updateData = {};
+        updateData[field] = field === 'capacity' ? parseInt(value) : value;
+        
+        const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}/time-slots/${slotIndex}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updateData)
+        });
+        
+        if (response.ok) {
+            showToast('Time slot updated', 'success');
+        } else {
+            showToast('Update failed', 'error');
+            loadReservationTypes(); // Reload to revert
+        }
+    } catch (error) {
+        console.error('Error updating time slot:', error);
+        showToast('Error updating time slot', 'error');
+    }
+}
+
+async function toggleTimeSlotAvailability(typeId, slotIndex) {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}/time-slots/${slotIndex}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ isAvailable: false })
+        });
+        
+        if (response.ok) {
+            loadReservationTypes();
+        }
+    } catch (error) {
+        console.error('Error toggling time slot:', error);
+    }
+}
+
+async function deleteTimeSlot(typeId, slotIndex) {
+    if (!confirm('Are you sure you want to delete this time slot?')) return;
+    
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}/time-slots/${slotIndex}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            showToast('Time slot deleted', 'success');
+            loadReservationTypes();
+        }
+    } catch (error) {
+        console.error('Error deleting time slot:', error);
+        showToast('Error deleting time slot', 'error');
+    }
+}
+
+async function toggleReservationStatus(typeId, newStatus) {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}/toggle`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            showToast(`Reservation type ${newStatus ? 'activated' : 'deactivated'}`, 'success');
+            loadReservationTypes();
+        }
+    } catch (error) {
+        console.error('Error toggling status:', error);
+    }
+}
+
+function openAddReservationModal() {
+    currentEditTypeId = null;
+    document.getElementById('modalTitle').textContent = 'Add Reservation Type';
+    document.getElementById('reservationForm').reset();
+    document.getElementById('typeId').value = '';
+    document.getElementById('typeTimeSlots').value = '';
+    document.getElementById('reservationModal').classList.add('show');
+}
+
+async function openEditTypeModal(typeId) {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/reservation-types/admin/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const types = await response.json();
+            const type = types.find(t => t._id === typeId);
+            
+            if (type) {
+                currentEditTypeId = typeId;
+                document.getElementById('modalTitle').textContent = 'Edit Reservation Type';
+                document.getElementById('typeName').value = type.name;
+                document.getElementById('typeCategory').value = type.category;
+                document.getElementById('typeIcon').value = type.icon || '🏌️';
+                document.getElementById('typeDescription').value = type.description || '';
+                document.getElementById('typeBasePrice').value = type.basePrice;
+                document.getElementById('typeId').value = typeId;
+                document.getElementById('typeTimeSlots').value = '';
+                document.getElementById('reservationModal').classList.add('show');
+            }
+        }
+    } catch (error) {
+        console.error('Error loading type for edit:', error);
+    }
+}
+
+function closeReservationModal() {
+    document.getElementById('reservationModal').classList.remove('show');
+    currentEditTypeId = null;
+}
+
+function openAddTimeSlotModal(typeId) {
+    document.getElementById('slotTypeId').value = typeId;
+    document.getElementById('slotTime').value = '';
+    document.getElementById('slotCapacity').value = '10';
+    document.getElementById('timeSlotModal').classList.add('show');
+}
+
+function closeTimeSlotModal() {
+    document.getElementById('timeSlotModal').classList.remove('show');
+}
+
+async function saveReservationType(event) {
+    event.preventDefault();
+    
+    const token = getAuthToken();
+    if (!token) return;
+    
+    const typeId = document.getElementById('typeId').value;
+    const timeSlotsValue = document.getElementById('typeTimeSlots').value;
+    const defaultCapacity = parseInt(document.getElementById('typeCapacity').value) || 10;
+    
+    let timeSlots = [];
+    if (timeSlotsValue) {
+        timeSlots = timeSlotsValue.split(',').map(t => t.trim()).filter(t => t).map(time => ({
+            time: time,
+            capacity: defaultCapacity,
+            booked: 0,
+            isAvailable: true
+        }));
+    }
+    
+    const data = {
+        name: document.getElementById('typeName').value,
+        category: document.getElementById('typeCategory').value,
+        icon: document.getElementById('typeIcon').value || '🏌️',
+        description: document.getElementById('typeDescription').value,
+        basePrice: parseInt(document.getElementById('typeBasePrice').value),
+        timeSlots: timeSlots
+    };
+    
+    const url = typeId ? 
+        `${API_URL}/reservation-types/admin/${typeId}` : 
+        `${API_URL}/reservation-types/admin/create`;
+    
+    const method = typeId ? 'PUT' : 'POST';
+    
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            showToast(typeId ? 'Reservation type updated' : 'Reservation type created', 'success');
+            closeReservationModal();
+            loadReservationTypes();
+        } else {
+            const error = await response.json();
+            showToast(error.message || 'Operation failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving reservation type:', error);
+        showToast('Error saving reservation type', 'error');
+    }
+}
+
+async function addTimeSlot(event) {
+    event.preventDefault();
+    
+    const token = getAuthToken();
+    if (!token) return;
+    
+    const typeId = document.getElementById('slotTypeId').value;
+    const data = {
+        time: document.getElementById('slotTime').value,
+        capacity: parseInt(document.getElementById('slotCapacity').value)
+    };
+    
+    try {
+        const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}/time-slots`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            showToast('Time slot added', 'success');
+            closeTimeSlotModal();
+            loadReservationTypes();
+        }
+    } catch (error) {
+        console.error('Error adding time slot:', error);
+        showToast('Error adding time slot', 'error');
+    }
+}
+
+async function deleteReservationType(typeId) {
+    if (!confirm('Are you sure you want to delete this reservation type? This action cannot be undone.')) return;
+    
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            showToast('Reservation type deleted', 'success');
+            loadReservationTypes();
+        }
+    } catch (error) {
+        console.error('Error deleting reservation type:', error);
+        showToast('Error deleting reservation type', 'error');
+    }
+}
 
 // Make functions global
 window.showPage = showPage;

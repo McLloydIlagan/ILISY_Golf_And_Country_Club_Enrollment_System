@@ -84,7 +84,7 @@
                 <div>Membership Fee</div>
                 <div>Total Amount: <strong>₱1,000,000</strong></div>
             </div>
-            <button class="btn-olive" onclick="processMembershipPayment()">Submit Application</button>
+            <button class="btn-olive" onclick="submitMembership()">Submit Application</button>
         </div>
     </div>
 </section>
@@ -109,7 +109,7 @@
 </section>
 
 <section id="reservation">
-    <h1>Reservation Form</h1>
+    <h1>Make a Reservation</h1>
     <div class="reservation-card">
         <p class="sub-title">Personal Details</p>
         <div class="form-grid-4">
@@ -124,33 +124,29 @@
             <div class="form-group" style="grid-column:span 2"><label>Email Address</label><input type="email" id="resEmail"></div>
         </div>
 
-        <p class="sub-title">Make A Reservation</p>
-        <div class="dual-cal">
-            <div class="cal-col">
-                <div class="cal-header">
-                    <button class="nav-btn" onclick="changeMonth(-1)">&#10094;</button>
-                    <h3 id="cal1Title"></h3>
-                    <button class="nav-btn" onclick="changeMonth(1)">&#10095;</button>
-                </div>
-                <div class="cal-grid" id="cal1"></div>
-            </div>
-            <div class="cal-col">
-                <div class="cal-header">
-                    <span></span>
-                    <h3 id="cal2Title"></h3>
-                    <span></span>
-                </div>
-                <div class="cal-grid" id="cal2"></div>
-            </div>
+        <p class="sub-title">Select Reservation Type</p>
+        <div class="reservation-type-selector">
+            <select id="reservationTypeSelect" onchange="onReservationTypeChange()">
+                <option value="">-- Select Reservation Type --</option>
+            </select>
         </div>
 
-        <div class="legend">
-            <div class="legend-item"><div class="leg-box" style="background:var(--booked)"></div>Fullybooked</div>
-            <div class="legend-item"><div class="leg-box" style="background:var(--gold)"></div>Partially booked</div>
-            <div class="legend-item"><div class="leg-box" style="background:#d4cdd4"></div>Available</div>
+        <div id="dynamicOptionsContainer" style="margin-top: 20px;"></div>
+
+        <div id="dateTimeSelection" style="display: none; margin-top: 20px;">
+            <p class="sub-title">Select Date & Time</p>
+            <button type="button" class="btn-olive" style="width:100%; margin-bottom:15px;" onclick="openDynamicCalendarPopup()">
+                📅 Choose Date & Time
+            </button>
+            <div id="selectedDateTimeDisplay" style="font-size:13px; color:#666; text-align:center; padding:10px; background:var(--sage); border-radius:5px;"></div>
         </div>
 
-        <button class="btn-olive" onclick="submitReservation()">Apply for Reservation</button>
+        <div id="priceDisplay" class="price-display" style="display: none; margin-top: 15px;">
+            <div class="member-rate">Total: ₱<span id="totalPrice">0</span></div>
+            <div class="guest-rate">Member discount available</div>
+        </div>
+
+        <button class="btn-olive" id="submitReservationBtn" style="display: none;" onclick="submitDynamicReservation()">Submit Reservation</button>
     </div>
 
     <div id="reservationPayment" style="display:none; margin-top:30px;">
@@ -174,33 +170,37 @@
                 <div class="detail-row">
                     <div id="selectedDateDisplay">Day of Reservation: <strong>Not selected</strong></div>
                     <div id="selectedTimeDisplay">Time of Reservation: <strong>Not selected</strong></div>
-                    <div>Total Amount: <strong>₱500</strong></div>
+                    <div>Total Amount: <strong>₱<span id="finalAmount">0</span></strong></div>
                 </div>
-                <button type="button" class="btn-olive" style="margin-top:25px;" onclick="submitReservation()">Submit Reservation</button>
+                <button type="button" class="btn-olive" style="margin-top:25px;" onclick="submitDynamicReservationPayment()">Submit Reservation</button>
             </div>
-            <div class="slot-card">
-                <div class="slot-head" id="slotDate">Select Date & Time</div>
-                <div class="slot-body">
-                    <p style="font-size:12px; color:#666; margin-bottom:14px;">Selected Date: <span id="selectedDateText">None</span></p>
-                    <p style="font-size:12px; color:#666; margin-bottom:14px;">Available Slots</p>
-                    <div class="slot-opt">
-                        <input type="checkbox" id="slot1" value="10:00 AM - 12:00 PM">
-                        <label for="slot1">10:00 AM – 12:00 PM</label>
-                    </div>
-                    <div class="slot-opt">
-                        <input type="checkbox" id="slot2" value="12:30 PM - 2:30 PM">
-                        <label for="slot2">12:30 – 2:30 PM</label>
-                    </div>
-                    <div class="slot-opt">
-                        <input type="checkbox" id="slot3" value="3:00 PM - 5:00 PM">
-                        <label for="slot3">3:00 – 5:00 PM</label>
-                    </div>
-                    <button type="button" class="btn-olive" style="margin-top:10px; padding:10px; width:100%;" onclick="selectTimeSlot()">Confirm Slot</button>
-                </div>
-            </div>
+        </div>
     </div>
 </div>
 </section>
+
+<!-- Dynamic Calendar Popup -->
+<div class="modal-overlay" id="dynamicCalendarModal">
+    <div class="calendar-popup">
+        <div class="calendar-popup-header">
+            <h3 id="calendarModalTitle">Select Date & Time</h3>
+            <button class="close-modal-btn" onclick="closeDynamicCalendarPopup()">&times;</button>
+        </div>
+        <div class="calendar-popup-body">
+            <div class="calendar-month-nav">
+                <button onclick="changeCalendarMonth(-1)">◀ Prev</button>
+                <span id="calendarMonthYear"></span>
+                <button onclick="changeCalendarMonth(1)">Next ▶</button>
+            </div>
+            <div class="calendar-grid" id="dynamicCalendarGrid"></div>
+            <div id="dynamicTimeSlotsContainer" style="margin-top: 20px;">
+                <label>Available Time Slots</label>
+                <div class="time-slots" id="dynamicTimeSlotsList"></div>
+            </div>
+            <button class="btn-olive" onclick="confirmDynamicDateTime()" style="margin-top: 15px;">Confirm Selection</button>
+        </div>
+    </div>
+</div>
 
 <div class="modal-overlay" id="timeModal">
     <div class="modal-box">

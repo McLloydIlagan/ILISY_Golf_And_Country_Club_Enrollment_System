@@ -735,7 +735,400 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Make functions global
+// ──────────────────────────────────────────────────────────────────
+// Dynamic Reservation System (Fetches from Admin API)
+// ──────────────────────────────────────────────────────────────────
+
+let availableReservationTypes = [];
+let selectedReservationTypeData = null;
+let dynamicSelectedDate = null;
+let dynamicSelectedTime = null;
+let dynamicCurrentMonth = new Date();
+let dynamicTotalPrice = 0;
+let dynamicReservationDetails = {};
+
+async function loadReservationTypes() {
+    try {
+        const response = await fetch(`${API_URL}/reservation-types/active`);
+        if (response.ok) {
+            availableReservationTypes = await response.json();
+            populateReservationTypeSelect();
+        }
+    } catch (error) {
+        console.error('Error loading reservation types:', error);
+    }
+}
+
+function populateReservationTypeSelect() {
+    const select = document.getElementById('reservationTypeSelect');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">-- Select Reservation Type --</option>';
+    
+    availableReservationTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type._id;
+        option.textContent = `${type.icon || '📌'} ${type.name}`;
+        select.appendChild(option);
+    });
+}
+
+function onReservationTypeChange() {
+    const typeId = document.getElementById('reservationTypeSelect').value;
+    if (!typeId) return;
+    
+    selectedReservationTypeData = availableReservationTypes.find(t => t._id === typeId);
+    if (!selectedReservationTypeData) return;
+    
+    renderDynamicOptions();
+    document.getElementById('dateTimeSelection').style.display = 'block';
+    document.getElementById('submitReservationBtn').style.display = 'none';
+    document.getElementById('priceDisplay').style.display = 'none';
+    
+    dynamicSelectedDate = null;
+    dynamicSelectedTime = null;
+    document.getElementById('selectedDateTimeDisplay').innerHTML = '';
+}
+
+function renderDynamicOptions() {
+    const container = document.getElementById('dynamicOptionsContainer');
+    if (!container) return;
+    
+    if (!selectedReservationTypeData.options || selectedReservationTypeData.options.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '<p class="sub-title">Select Options</p>';
+    
+    selectedReservationTypeData.options.forEach(option => {
+        html += `
+            <div class="option-group">
+                <label>${option.optionName}</label>
+                <select id="opt_${option.optionName.replace(/\s/g, '_')}" onchange="calculateDynamicPrice()">
+        `;
+        option.optionValues.forEach(val => {
+            html += `<option value="${val.value}" data-price="${val.price}" data-capacity="${val.capacity || 0}">
+                ${val.value} - ₱${val.price.toLocaleString()}
+            </option>`;
+        });
+        html += `</select></div>`;
+    });
+    
+    container.innerHTML = html;
+    calculateDynamicPrice();
+}
+
+function calculateDynamicPrice() {
+    if (!selectedReservationTypeData) return;
+    
+    let total = selectedReservationTypeData.basePrice || 0;
+    
+    if (selectedReservationTypeData.options) {
+        selectedReservationTypeData.options.forEach(option => {
+            const select = document.getElementById(`opt_${option.optionName.replace(/\s/g, '_')}`);
+            if (select && select.selectedOptions[0]) {
+                const price = parseInt(select.selectedOptions[0].dataset.price) || 0;
+                total += price;
+            }
+        });
+    }
+    
+    dynamicTotalPrice = total;
+    document.getElementById('totalPrice').textContent = total.toLocaleString();
+    document.getElementById('priceDisplay').style.display = 'block';
+    document.getElementById('submitReservationBtn').style.display = 'block';
+    return total;
+}
+
+function openDynamicCalendarPopup() {
+    if (!selectedReservationTypeData) {
+        showToast('Please select a reservation type first', 'error');
+        return;
+    }
+    
+    dynamicCurrentMonth = new Date();
+    renderDynamicCalendar();
+    document.getElementById('dynamicCalendarModal').classList.add('show');
+}
+
+function closeDynamicCalendarPopup() {
+    document.getElementById('dynamicCalendarModal').classList.remove('show');
+}
+
+function renderDynamicCalendar() {
+    const year = dynamicCurrentMonth.getFullYear();
+    const month = dynamicCurrentMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    document.getElementById('calendarMonthYear').textContent = 
+        new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(dynamicCurrentMonth);
+    
+    const grid = document.getElementById('dynamicCalendarGrid');
+    grid.innerHTML = '';
+    
+    ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].forEach(day => {
+        grid.innerHTML += `<div class="calendar-weekday">${day}</div>`;
+    });
+    
+    for (let i = 0; i < firstDay; i++) {
+        grid.innerHTML += `<div class="calendar-day disabled"></div>`;
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let d = 1; d <= daysInMonth; d++) {
+        const cellDate = new Date(year, month, d);
+        const isPast = cellDate < today;
+        const isSelected = dynamicSelectedDate === `${year}-${month + 1}-${d}`;
+        
+        let statusClass = 'available';
+        if (isPast) statusClass = 'disabled';
+        
+        grid.innerHTML += `
+            <div class="calendar-day ${statusClass} ${isSelected ? 'selected' : ''}" 
+                 onclick="${!isPast ? `selectDynamicDate(${year}, ${month + 1}, ${d})` : ''}">
+                ${d}
+            </div>
+        `;
+    }
+    
+    if (dynamicSelectedDate) {
+        renderDynamicTimeSlots();
+    }
+}
+
+function selectDynamicDate(year, month, day) {
+    dynamicSelectedDate = `${year}-${month}-${day}`;
+    renderDynamicCalendar();
+}
+
+function renderDynamicTimeSlots() {
+    const container = document.getElementById('dynamicTimeSlotsList');
+    if (!container) return;
+    
+    const timeSlots = selectedReservationTypeData?.timeSlots || [];
+    
+    if (timeSlots.length === 0) {
+        container.innerHTML = '<p style="color:#999; text-align:center;">No time slots available for this reservation type</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    timeSlots.forEach(slot => {
+        const isFull = slot.booked >= slot.capacity;
+        container.innerHTML += `
+            <div class="time-slot ${dynamicSelectedTime === slot.time ? 'selected' : ''} ${isFull ? 'full' : ''}"
+                 onclick="${!isFull ? `selectDynamicTimeSlot('${slot.time}')` : ''}">
+                ${slot.time} ${isFull ? '(Full)' : `(${slot.capacity - slot.booked} slots left)`}
+            </div>
+        `;
+    });
+}
+
+function selectDynamicTimeSlot(time) {
+    dynamicSelectedTime = time;
+    renderDynamicTimeSlots();
+}
+
+function confirmDynamicDateTime() {
+    if (!dynamicSelectedDate) {
+        showToast('Please select a date', 'error');
+        return;
+    }
+    if (!dynamicSelectedTime) {
+        showToast('Please select a time slot', 'error');
+        return;
+    }
+    
+    const displayDiv = document.getElementById('selectedDateTimeDisplay');
+    displayDiv.innerHTML = `Selected: ${dynamicSelectedDate} at ${dynamicSelectedTime}`;
+    
+    document.getElementById('selectedDateDisplay').innerHTML = `Day of Reservation: <strong>${dynamicSelectedDate}</strong>`;
+    document.getElementById('selectedTimeDisplay').innerHTML = `Time of Reservation: <strong>${dynamicSelectedTime}</strong>`;
+    document.getElementById('finalAmount').textContent = dynamicTotalPrice;
+    
+    closeDynamicCalendarPopup();
+    showToast('Date and time confirmed!', 'success');
+}
+
+function changeCalendarMonth(delta) {
+    dynamicCurrentMonth.setMonth(dynamicCurrentMonth.getMonth() + delta);
+    renderDynamicCalendar();
+}
+
+async function submitDynamicReservation() {
+    if (!checkSession()) return;
+    
+    if (!selectedReservationTypeData) {
+        showToast('Please select a reservation type', 'error');
+        return;
+    }
+    
+    if (!dynamicSelectedDate || !dynamicSelectedTime) {
+        showToast('Please select a date and time first', 'error');
+        return;
+    }
+    
+    const firstName = document.getElementById('resFirstName').value.trim();
+    const lastName = document.getElementById('resLastName').value.trim();
+    const email = document.getElementById('resEmail').value.trim();
+    const phone = document.getElementById('resPhone').value.trim();
+    
+    if (!firstName || !lastName || !email || !phone) {
+        showToast('Please fill in all personal details', 'error');
+        return;
+    }
+    
+    // Show payment form
+    const paymentSection = document.getElementById('reservationPayment');
+    paymentSection.style.display = 'block';
+    paymentSection.scrollIntoView({ behavior: 'smooth' });
+    
+    document.getElementById('selectedDateDisplay').innerHTML = `Day of Reservation: <strong>${dynamicSelectedDate}</strong>`;
+    document.getElementById('selectedTimeDisplay').innerHTML = `Time of Reservation: <strong>${dynamicSelectedTime}</strong>`;
+    document.getElementById('finalAmount').textContent = dynamicTotalPrice;
+}
+
+async function submitDynamicReservationPayment() {
+    if (!checkSession()) return;
+    
+    const token = getAuthToken();
+    
+    const firstName = document.getElementById('resFirstName').value.trim();
+    const lastName = document.getElementById('resLastName').value.trim();
+    const email = document.getElementById('resEmail').value.trim();
+    const phone = document.getElementById('resPhone').value.trim();
+    const paymentMethod = document.querySelector('#reservationPayment .method-btn.active')?.textContent || 'GCash';
+    const accountNumber = document.getElementById('resPaymentAccount').value.trim();
+    const referenceNumber = document.getElementById('resReferenceNumber').value.trim();
+    
+    if (!accountNumber) {
+        showToast('Please enter your account number', 'error');
+        return;
+    }
+    
+    if (!referenceNumber) {
+        showToast('Please enter the reference/transaction ID', 'error');
+        return;
+    }
+    
+    const data = {
+        userId: localStorage.getItem('userId'),
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        phone: phone,
+        date: dynamicSelectedDate,
+        timeSlot: dynamicSelectedTime,
+        reservationType: selectedReservationTypeData?.name,
+        paymentMethod: paymentMethod,
+        accountNumber: accountNumber,
+        referenceNumber: referenceNumber,
+        amount: dynamicTotalPrice
+    };
+    
+    const overlay = document.getElementById('processingOverlay');
+    overlay.style.display = 'flex';
+    document.getElementById('processingMsg').textContent = 'Submitting your reservation...';
+    
+    try {
+        const response = await fetch(`${API_URL}/reservations/apply`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.status === 401) {
+            overlay.style.display = 'none';
+            localStorage.clear();
+            showToast('Session expired. Please login again.', 'error');
+            setTimeout(() => window.location.href = '../index.html', 2000);
+            return;
+        }
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            overlay.style.display = 'none';
+            showToast('Reservation submitted! Admin will verify your payment.', 'success');
+            document.getElementById('successMsg').innerHTML = `Your reservation has been submitted.<br><br>Admin will verify your payment and confirm your reservation.<br><br>Reservation ID: ${result.applicationId}<br><br>Amount: ₱${dynamicTotalPrice.toLocaleString()}`;
+            document.getElementById('successPopup').style.display = 'flex';
+            
+            // Reset form
+            document.getElementById('reservationPayment').style.display = 'none';
+            document.getElementById('resPaymentAccount').value = '';
+            document.getElementById('resReferenceNumber').value = '';
+            document.getElementById('reservationTypeSelect').value = '';
+            document.getElementById('dynamicOptionsContainer').innerHTML = '';
+            document.getElementById('dateTimeSelection').style.display = 'none';
+            document.getElementById('priceDisplay').style.display = 'none';
+            document.getElementById('submitReservationBtn').style.display = 'none';
+            dynamicSelectedDate = null;
+            dynamicSelectedTime = null;
+            selectedReservationTypeData = null;
+        } else {
+            overlay.style.display = 'none';
+            showToast(result.message || 'Reservation failed', 'error');
+        }
+    } catch (error) {
+        overlay.style.display = 'none';
+        console.error('Error:', error);
+        showToast('Connection error: ' + error.message, 'error');
+    }
+}
+
+// Add loadReservationTypes to DOMContentLoaded
+// Update your existing DOMContentLoaded event listener
+const originalDomContentLoaded = document.addEventListener('DOMContentLoaded', () => {
+    if (!checkSession()) return;
+    
+    renderCalendars();
+    loadConversationHistory();
+    startPollingForResponses();
+    loadReservationTypes(); // ADD THIS LINE
+    
+    const userName = localStorage.getItem('userName') || 'Member';
+    const navSpan = document.querySelector('.admin-text span');
+    if (navSpan && navSpan.textContent === 'admin account name') {
+        navSpan.textContent = userName;
+    }
+    
+    document.querySelectorAll('.modal-overlay').forEach(o => {
+        o.addEventListener('click', e => {
+            if (e.target === o) o.classList.remove('show');
+        });
+    });
+    
+    const msgInput = document.getElementById('msgInput');
+    if (msgInput) {
+        msgInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    }
+    
+    window.addEventListener('beforeunload', () => {
+        if (pollingInterval) clearInterval(pollingInterval);
+    });
+});
+
+
+window.submitDynamicReservation = submitDynamicReservation;
+window.submitDynamicReservationPayment = submitDynamicReservationPayment;
+window.onReservationTypeChange = onReservationTypeChange;
+window.calculateDynamicPrice = calculateDynamicPrice;
+window.openDynamicCalendarPopup = openDynamicCalendarPopup;
+window.closeDynamicCalendarPopup = closeDynamicCalendarPopup;
+window.selectDynamicDate = selectDynamicDate;
+window.selectDynamicTimeSlot = selectDynamicTimeSlot;
+window.confirmDynamicDateTime = confirmDynamicDateTime;
+window.changeCalendarMonth = changeCalendarMonth;
+
 window.scrollToSection = scrollToSection;
 window.sendMessage = sendMessage;
 window.sendQuickReply = sendQuickReply;
