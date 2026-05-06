@@ -84,6 +84,7 @@ function showPage(id) {
     else if (id === 'messages') loadMessages();
     else if (id === 'reservations') loadReservations();
     else if (id === 'customerservice') loadCustomerServiceRecords();
+    else if (id === 'manage_reservations') loadReservationTypes();
 }
 
 // ──────────────────────────────────────────────────────────────────

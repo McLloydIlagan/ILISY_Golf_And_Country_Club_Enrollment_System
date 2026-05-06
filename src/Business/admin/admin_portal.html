@@ -240,7 +240,25 @@
             </table>
         </div>
     </div>
-
+    <!-- ─── MANAGE RESERVATIONS ───────────────────── -->
+    <div class="page" id="page-manage_reservations">
+        <div class="topbar">
+            <h1>Manage Reservation Types</h1>
+            <div style="display:flex;align-items:center;gap:20px;">
+                <button class="refresh-btn" onclick="loadReservationTypes()">🔄 Refresh</button>
+                <button class="add-type-btn" onclick="openAddReservationModal()">+ Add New Type</button>
+                <div class="admin-info">
+                    <div class="admin-avatar">👤</div>
+                    <div class="admin-text">admin <span>Admin</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="reservation-cards" id="reservationCards">
+                <div class="empty-state">Loading reservation types...</div>
+            </div>
+        </div>
+    </div>
 </div><!-- end .main -->
 
 
@@ -335,6 +353,97 @@
         </div>
         <div class="validate-modal-body" id="validateModalBody">
             <div class="loading-spinner">Loading application details...</div>
+        </div>
+    </div>
+</div>
+<div class="reservation-modal" id="reservationModal">
+    <div class="reservation-modal-content">
+        <div class="reservation-modal-header">
+            <h2 id="modalTitle">Add Reservation Type</h2>
+            <button class="close-modal-btn" onclick="closeReservationModal()">&times;</button>
+        </div>
+        <div class="reservation-modal-body">
+            <form id="reservationForm" onsubmit="saveReservationType(event)">
+                <input type="hidden" id="typeId">
+                
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="typeName" required placeholder="e.g., Tee Time, Driving Range">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Category *</label>
+                        <select id="typeCategory" required>
+                            <option value="golf">Golf</option>
+                            <option value="amenities">Amenities</option>
+                            <option value="events">Events</option>
+                            <option value="accommodation">Accommodation</option>
+                            <option value="premium">Premium</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Icon (emoji)</label>
+                        <input type="text" id="typeIcon" placeholder="🏌️">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="typeDescription" rows="2" placeholder="Describe this reservation type..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Base Price (₱) *</label>
+                    <input type="number" id="typeBasePrice" required placeholder="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Time Slots (comma separated)</label>
+                    <input type="text" id="typeTimeSlots" placeholder="6:00 AM, 7:00 AM, 8:00 AM">
+                    <small>Example: 6:00 AM, 7:00 AM, 8:00 AM</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Default Capacity per Slot</label>
+                    <input type="number" id="typeCapacity" value="10">
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="submit" class="btn-save">Save</button>
+                    <button type="button" class="btn-cancel" onclick="closeReservationModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Time Slot Modal -->
+<div class="reservation-modal" id="timeSlotModal">
+    <div class="reservation-modal-content">
+        <div class="reservation-modal-header">
+            <h2>Add Time Slot</h2>
+            <button class="close-modal-btn" onclick="closeTimeSlotModal()">&times;</button>
+        </div>
+        <div class="reservation-modal-body">
+            <form id="timeSlotForm" onsubmit="addTimeSlot(event)">
+                <input type="hidden" id="slotTypeId">
+                
+                <div class="form-group">
+                    <label>Time *</label>
+                    <input type="text" id="slotTime" required placeholder="9:00 AM">
+                </div>
+                
+                <div class="form-group">
+                    <label>Capacity *</label>
+                    <input type="number" id="slotCapacity" required value="10">
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="submit" class="btn-save">Add Slot</button>
+                    <button type="button" class="btn-cancel" onclick="closeTimeSlotModal()">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

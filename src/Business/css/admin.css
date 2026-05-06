@@ -1078,3 +1078,19 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
         flex-wrap: wrap;
     }
 }
+
+.add-type-btn {
+    background: var(--olive);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: "Georgia", serif;
+    font-size: 12px;
+    transition: background 0.2s;
+}
+
+.add-type-btn:hover {
+    background: var(--deep-green);
+}

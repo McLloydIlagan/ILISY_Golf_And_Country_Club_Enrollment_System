@@ -11,6 +11,25 @@ let lastMessageCount = 0;
 let lastMessageTimestamp = null;
 
 // ──────────────────────────────────────────────────────────────────
+// Member Rate Detection
+// ──────────────────────────────────────────────────────────────────
+
+function isUserMember() {
+    const membershipStatus = localStorage.getItem('membershipStatus');
+    return membershipStatus === 'active';
+}
+
+function getUserRateMultiplier() {
+    // Member gets 20% discount (0.8), Non-member pays full price (1.0)
+    return isUserMember() ? 0.8 : 1.0;
+}
+
+function getRateLabel() {
+    return isUserMember() ? 'Member Rate (20% off)' : 'Guest Rate';
+}
+
+
+// ──────────────────────────────────────────────────────────────────
 // Helper Functions
 // ──────────────────────────────────────────────────────────────────
 
@@ -494,12 +513,6 @@ async function submitMembership() {
         return;
     }
     
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        alert('Please enter a valid email address');
-        return;
-    }
-    
     const data = {
         userId: localStorage.getItem('userId'),
         firstName: firstName,
@@ -550,6 +563,15 @@ async function submitMembership() {
             document.getElementById('membershipPayment').style.display = 'none';
             document.getElementById('paymentAccount').value = '';
             document.getElementById('referenceNumber').value = '';
+            
+            // Reset personal details form (optional)
+            document.getElementById('memFirstName').value = '';
+            document.getElementById('memLastName').value = '';
+            document.getElementById('memEmail').value = '';
+            document.getElementById('memPhone').value = '';
+            document.getElementById('memGender').value = '';
+            document.getElementById('memAge').value = '';
+            document.getElementById('memAddress').value = '';
         } else {
             overlay.style.display = 'none';
             alert(result.message || 'Application failed');
@@ -562,6 +584,30 @@ async function submitMembership() {
 }
 
 function proceedToMembershipPayment() {
+    // Validate personal details first
+    const firstName = document.getElementById('memFirstName').value.trim();
+    const lastName = document.getElementById('memLastName').value.trim();
+    const email = document.getElementById('memEmail').value.trim();
+    const phone = document.getElementById('memPhone').value.trim();
+    
+    if (!firstName || !lastName || !email || !phone) {
+        alert('Please fill in all personal details first');
+        return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        alert('Please enter a valid email address');
+        return;
+    }
+    
+    const phoneRegex = /^[0-9+\-\s]{7,15}$/;
+    if (!phoneRegex.test(phone)) {
+        alert('Please enter a valid phone number');
+        return;
+    }
+    
+    // Hide the popup and show payment form
     document.getElementById('membershipPopup').style.display = 'none';
     document.getElementById('membershipPayment').style.display = 'block';
     document.getElementById('membershipPayment').scrollIntoView({ behavior: 'smooth' });
@@ -710,12 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCalendars();
     loadConversationHistory();
     startPollingForResponses();
-    
-    const userName = localStorage.getItem('userName') || 'Member';
-    const navSpan = document.querySelector('.admin-text span');
-    if (navSpan && navSpan.textContent === 'admin account name') {
-        navSpan.textContent = userName;
-    }
+    loadReservationTypes();
     
     document.querySelectorAll('.modal-overlay').forEach(o => {
         o.addEventListener('click', e => {
@@ -794,26 +835,36 @@ function renderDynamicOptions() {
     const container = document.getElementById('dynamicOptionsContainer');
     if (!container) return;
     
-    if (!selectedReservationTypeData.options || selectedReservationTypeData.options.length === 0) {
-        container.innerHTML = '';
-        return;
-    }
-    
     let html = '<p class="sub-title">Select Options</p>';
     
-    selectedReservationTypeData.options.forEach(option => {
-        html += `
-            <div class="option-group">
-                <label>${option.optionName}</label>
-                <select id="opt_${option.optionName.replace(/\s/g, '_')}" onchange="calculateDynamicPrice()">
-        `;
-        option.optionValues.forEach(val => {
-            html += `<option value="${val.value}" data-price="${val.price}" data-capacity="${val.capacity || 0}">
-                ${val.value} - ₱${val.price.toLocaleString()}
-            </option>`;
+    // Add rate type display (auto-detected, not selectable)
+    html += `
+        <div class="option-group">
+            <label>Rate Type</label>
+            <div style="background: var(--sage); padding: 10px; border-radius: 6px;">
+                <strong>${getRateLabel()}</strong>
+                ${isUserMember() ? '<span style="color: #28a745; margin-left: 10px;">✓ 20% discount applied</span>' : '<span style="color: #856404; margin-left: 10px;">🔒 Member discount available with membership</span>'}
+            </div>
+        </div>
+    `;
+    
+    if (selectedReservationTypeData.options && selectedReservationTypeData.options.length > 0) {
+        selectedReservationTypeData.options.forEach(option => {
+            html += `
+                <div class="option-group">
+                    <label>${option.optionName}</label>
+                    <select id="opt_${option.optionName.replace(/\s/g, '_')}" onchange="calculateDynamicPrice()">
+            `;
+            option.optionValues.forEach(val => {
+                // Apply member discount to displayed price
+                const displayPrice = Math.round(val.price * getUserRateMultiplier());
+                html += `<option value="${val.value}" data-price="${val.price}" data-capacity="${val.capacity || 0}">
+                    ${val.value} - ₱${displayPrice.toLocaleString()} ${!isUserMember() && val.price > 0 ? '(regular ₱' + val.price.toLocaleString() + ')' : ''}
+                </option>`;
+            });
+            html += `</select></div>`;
         });
-        html += `</select></div>`;
-    });
+    }
     
     container.innerHTML = html;
     calculateDynamicPrice();
@@ -823,6 +874,9 @@ function calculateDynamicPrice() {
     if (!selectedReservationTypeData) return;
     
     let total = selectedReservationTypeData.basePrice || 0;
+    
+    // Apply member discount
+    const memberMultiplier = getUserRateMultiplier();
     
     if (selectedReservationTypeData.options) {
         selectedReservationTypeData.options.forEach(option => {
@@ -834,11 +888,27 @@ function calculateDynamicPrice() {
         });
     }
     
-    dynamicTotalPrice = total;
-    document.getElementById('totalPrice').textContent = total.toLocaleString();
+    // Apply member discount to total
+    const discountedTotal = Math.round(total * memberMultiplier);
+    dynamicTotalPrice = discountedTotal;
+    
+    document.getElementById('totalPrice').textContent = discountedTotal.toLocaleString();
     document.getElementById('priceDisplay').style.display = 'block';
     document.getElementById('submitReservationBtn').style.display = 'block';
-    return total;
+    
+    // Update rate display
+    const rateDisplay = document.querySelector('.price-display .guest-rate');
+    if (rateDisplay) {
+        if (isUserMember()) {
+            rateDisplay.innerHTML = `✨ Member Discount Applied! Original: ₱${total.toLocaleString()} → You pay: ₱${discountedTotal.toLocaleString()}`;
+            rateDisplay.style.color = '#28a745';
+        } else {
+            rateDisplay.innerHTML = `💎 Become a member to get 20% discount on all reservations!`;
+            rateDisplay.style.color = '#856404';
+        }
+    }
+    
+    return discountedTotal;
 }
 
 function openDynamicCalendarPopup() {
@@ -895,6 +965,7 @@ function renderDynamicCalendar() {
         `;
     }
     
+    
     if (dynamicSelectedDate) {
         renderDynamicTimeSlots();
     }
@@ -903,6 +974,7 @@ function renderDynamicCalendar() {
 function selectDynamicDate(year, month, day) {
     dynamicSelectedDate = `${year}-${month}-${day}`;
     renderDynamicCalendar();
+    renderDynamicTimeSlots();
 }
 
 function renderDynamicTimeSlots() {
@@ -1027,7 +1099,10 @@ async function submitDynamicReservationPayment() {
         paymentMethod: paymentMethod,
         accountNumber: accountNumber,
         referenceNumber: referenceNumber,
-        amount: dynamicTotalPrice
+        amount: dynamicTotalPrice,
+        originalAmount: calculateOriginalPrice(), // Store original price for reference
+        isMember: isUserMember(), // Send membership status
+        memberDiscount: isUserMember() ? 0.2 : 0
     };
     
     const overlay = document.getElementById('processingOverlay');
@@ -1056,8 +1131,9 @@ async function submitDynamicReservationPayment() {
         
         if (response.ok) {
             overlay.style.display = 'none';
-            showToast('Reservation submitted! Admin will verify your payment.', 'success');
-            document.getElementById('successMsg').innerHTML = `Your reservation has been submitted.<br><br>Admin will verify your payment and confirm your reservation.<br><br>Reservation ID: ${result.applicationId}<br><br>Amount: ₱${dynamicTotalPrice.toLocaleString()}`;
+            const memberText = isUserMember() ? ' (Member discount applied!)' : '';
+            showToast(`Reservation submitted!${memberText} Admin will verify your payment.`, 'success');
+            document.getElementById('successMsg').innerHTML = `Your reservation has been submitted.<br><br>Admin will verify your payment and confirm your reservation.<br><br>Reservation ID: ${result.applicationId}<br><br>Amount: ₱${dynamicTotalPrice.toLocaleString()}${memberText}`;
             document.getElementById('successPopup').style.display = 'flex';
             
             // Reset form
@@ -1083,39 +1159,24 @@ async function submitDynamicReservationPayment() {
     }
 }
 
-// Add loadReservationTypes to DOMContentLoaded
-// Update your existing DOMContentLoaded event listener
-const originalDomContentLoaded = document.addEventListener('DOMContentLoaded', () => {
-    if (!checkSession()) return;
+function calculateOriginalPrice() {
+    if (!selectedReservationTypeData) return 0;
     
-    renderCalendars();
-    loadConversationHistory();
-    startPollingForResponses();
-    loadReservationTypes(); // ADD THIS LINE
+    let total = selectedReservationTypeData.basePrice || 0;
     
-    const userName = localStorage.getItem('userName') || 'Member';
-    const navSpan = document.querySelector('.admin-text span');
-    if (navSpan && navSpan.textContent === 'admin account name') {
-        navSpan.textContent = userName;
-    }
-    
-    document.querySelectorAll('.modal-overlay').forEach(o => {
-        o.addEventListener('click', e => {
-            if (e.target === o) o.classList.remove('show');
-        });
-    });
-    
-    const msgInput = document.getElementById('msgInput');
-    if (msgInput) {
-        msgInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
+    if (selectedReservationTypeData.options) {
+        selectedReservationTypeData.options.forEach(option => {
+            const select = document.getElementById(`opt_${option.optionName.replace(/\s/g, '_')}`);
+            if (select && select.selectedOptions[0]) {
+                const price = parseInt(select.selectedOptions[0].dataset.price) || 0;
+                total += price;
+            }
         });
     }
     
-    window.addEventListener('beforeunload', () => {
-        if (pollingInterval) clearInterval(pollingInterval);
-    });
-});
+    return total;
+}
+
 
 
 window.submitDynamicReservation = submitDynamicReservation;
