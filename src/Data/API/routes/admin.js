@@ -166,6 +166,7 @@ router.post('/payments/:paymentId/refund', async (req, res) => {
 
 // ─── 4.0 Acknowledge Client Concerns ─────────────────────────────────────────
 
+// GET all messages - FIXED to get from messages collection
 router.get('/messages', async (req, res) => {
     try {
         const messages = await Message.find()
@@ -178,7 +179,7 @@ router.get('/messages', async (req, res) => {
     }
 });
 
-// Level 2: 4.0 - Respond > Record concern > D7 | End conversation > D7
+// Respond to message - FIXED to update messages and optionally archive to records
 router.post('/messages/:messageId/respond', async (req, res) => {
     try {
         const { response, resolution, feedback } = req.body;
@@ -199,17 +200,29 @@ router.post('/messages/:messageId/respond', async (req, res) => {
         message.resolvedAt = resolution ? new Date() : null;
         await message.save();
 
-        // Record concern > store record > D7: Records
-        const record = new Record({
-            messageId: message._id,
-            userId: message.userId,
-            concernType: message.concernType,
-            issue: message.message,
-            feedback: feedback || response,
-            resolution: resolution || null,
-            conversation: message.conversation
-        });
-        await record.save();
+        // Update or create record in records collection for archiving
+        let record = await Record.findOne({ messageId: message._id });
+        
+        if (record) {
+            // Update existing record
+            record.conversation = message.conversation;
+            record.feedback = feedback || response;
+            record.resolution = resolution || null;
+            record.recordedAt = new Date();
+            await record.save();
+        } else {
+            // Create new record only if it doesn't exist
+            record = new Record({
+                messageId: message._id,
+                userId: message.userId,
+                concernType: message.concernType,
+                issue: message.message,
+                feedback: feedback || response,
+                resolution: resolution || null,
+                conversation: message.conversation
+            });
+            await record.save();
+        }
 
         res.json({ message: 'Response sent and concern recorded successfully' });
     } catch (error) {

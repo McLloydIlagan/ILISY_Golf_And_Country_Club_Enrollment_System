@@ -22,7 +22,14 @@ const messageSchema = new mongoose.Schema({
     }],
     resolution: { type: String },
     createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
     resolvedAt: { type: Date }
+});
+
+// Update the updatedAt field on save
+messageSchema.pre('save', function(next) {
+    this.updatedAt = new Date();
+    next();
 });
 
 module.exports = mongoose.model('Message', messageSchema);
