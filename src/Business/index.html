@@ -570,10 +570,10 @@
             const hoursSinceLogin = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
             if (hoursSinceLogin < 24) {
                 if (isAdmin === 'true') {
-                    // CHANGE THIS:
+                    
                     window.location.href = '/src/Business/admin/admin_portal.html';
                 } else {
-                    // CHANGE THIS:
+                    
                     window.location.href = '/src/Business/user/user_portal.html';
                 }
             } else {
