@@ -400,14 +400,14 @@ function confirmTimeSlot() {
     
     if (selectedTimeSlot) {
         document.getElementById('timeModal').style.display = 'none';
-        // Update display
+        // Update the display on the reservation payment section
         const selectedDateDisplay = document.getElementById('selectedDateDisplay');
         const selectedTimeDisplay = document.getElementById('selectedTimeDisplay');
-        const selectedDateText = document.getElementById('selectedDateText');
+        const slotDateHeader = document.getElementById('slotDate');
         
         if (selectedDateDisplay) selectedDateDisplay.innerHTML = `Day of Reservation: <strong>${selectedDate}</strong>`;
         if (selectedTimeDisplay) selectedTimeDisplay.innerHTML = `Time of Reservation: <strong>${selectedTimeSlot}</strong>`;
-        if (selectedDateText) selectedDateText.textContent = selectedDate;
+        if (slotDateHeader) slotDateHeader.textContent = `${selectedDate}`;
         
         showToast(`Selected: ${selectedTimeSlot} on ${selectedDate}`, 'success');
     } else {
@@ -416,7 +416,49 @@ function confirmTimeSlot() {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Membership Functions - FIXED (Single submission with payment)
+// Show Payment Form Functions
+// ──────────────────────────────────────────────────────────────────
+
+function showReservationPaymentForm() {
+    // Validate date and time are selected
+    if (!selectedDate || !selectedTimeSlot) {
+        alert('Please select a date and time slot first');
+        return false;
+    }
+    
+    // Validate personal details
+    const firstName = document.getElementById('resFirstName').value.trim();
+    const lastName = document.getElementById('resLastName').value.trim();
+    const email = document.getElementById('resEmail').value.trim();
+    const phone = document.getElementById('resPhone').value.trim();
+    
+    if (!firstName || !lastName || !email || !phone) {
+        alert('Please fill in all personal details first');
+        return false;
+    }
+    
+    // Show the payment form
+    const paymentSection = document.getElementById('reservationPayment');
+    if (paymentSection) {
+        paymentSection.style.display = 'block';
+        paymentSection.scrollIntoView({ behavior: 'smooth' });
+        
+        // Update displayed date and time
+        const selectedDateDisplay = document.getElementById('selectedDateDisplay');
+        const selectedTimeDisplay = document.getElementById('selectedTimeDisplay');
+        const slotDateHeader = document.getElementById('slotDate');
+        
+        if (selectedDateDisplay) selectedDateDisplay.innerHTML = `Day of Reservation: <strong>${selectedDate}</strong>`;
+        if (selectedTimeDisplay) selectedTimeDisplay.innerHTML = `Time of Reservation: <strong>${selectedTimeSlot}</strong>`;
+        if (slotDateHeader) slotDateHeader.textContent = `${selectedDate}`;
+        
+        return true;
+    }
+    return false;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Membership Functions
 // ──────────────────────────────────────────────────────────────────
 
 async function submitMembership() {
@@ -432,18 +474,16 @@ async function submitMembership() {
     const age = parseInt(document.getElementById('memAge').value) || 0;
     const address = document.getElementById('memAddress').value.trim();
     
-    // Get payment details from the payment section
+    // Get payment details
     const paymentMethod = document.querySelector('#membershipPayment .method-btn.active')?.textContent || 'GCash';
     const accountNumber = document.getElementById('paymentAccount').value.trim();
     const referenceNumber = document.getElementById('referenceNumber').value.trim();
     
-    // Validate personal info
     if (!firstName || !lastName || !email || !phone) { 
         alert('Please fill all required fields (First Name, Last Name, Email, Phone)'); 
         return; 
     }
     
-    // Validate payment info
     if (!accountNumber) {
         alert('Please enter your account number');
         return;
@@ -457,12 +497,6 @@ async function submitMembership() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         alert('Please enter a valid email address');
-        return;
-    }
-    
-    const phoneRegex = /^[0-9+\-\s]{7,15}$/;
-    if (!phoneRegex.test(phone)) {
-        alert('Please enter a valid phone number');
         return;
     }
     
@@ -534,7 +568,7 @@ function proceedToMembershipPayment() {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Reservation Functions - FIXED (Single submission with payment)
+// Reservation Functions
 // ──────────────────────────────────────────────────────────────────
 
 async function submitReservation() {
@@ -542,39 +576,22 @@ async function submitReservation() {
     
     const token = getAuthToken();
     
-    // Check if date and time are selected
-    if (!selectedDate || !selectedTimeSlot) { 
-        alert('Please select a date and time slot from the calendar'); 
-        return; 
+    // First, show the payment form to collect payment details
+    const paymentFormShown = showReservationPaymentForm();
+    if (!paymentFormShown) {
+        return; // Payment form will show, user needs to fill it
     }
     
+    // Now get payment details from the form
     const firstName = document.getElementById('resFirstName').value.trim();
     const lastName = document.getElementById('resLastName').value.trim();
     const email = document.getElementById('resEmail').value.trim();
     const phone = document.getElementById('resPhone').value.trim();
-    
-    if (!firstName || !lastName || !email || !phone) {
-        alert('Please fill all personal details');
-        return;
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        alert('Please enter a valid email address');
-        return;
-    }
-    
-    const phoneRegex = /^[0-9+\-\s]{7,15}$/;
-    if (!phoneRegex.test(phone)) {
-        alert('Please enter a valid phone number');
-        return;
-    }
-    
-    // Get payment details
     const paymentMethod = document.querySelector('#reservationPayment .method-btn.active')?.textContent || 'GCash';
     const accountNumber = document.getElementById('resPaymentAccount').value.trim();
     const referenceNumber = document.getElementById('resReferenceNumber').value.trim();
     
+    // Validate payment details
     if (!accountNumber) {
         alert('Please enter your account number');
         return;

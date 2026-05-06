@@ -835,6 +835,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMessages();
     loadReservations();
     loadCustomerServiceRecords();
+    loadPendingApplications();
     
     startAdminMessagePolling();
     
@@ -855,6 +856,333 @@ document.addEventListener('DOMContentLoaded', () => {
         stopAdminMessagePolling();
     });
 });
+
+let currentValidateApplication = null;
+
+async function openValidateModal(applicationId) {
+    console.log('Opening validate modal for:', applicationId);
+    
+    const modal = document.getElementById('validatePaymentModal');
+    const modalBody = document.getElementById('validateModalBody');
+    
+    // Show loading
+    modalBody.innerHTML = '<div class="loading-spinner">Loading application details...</div>';
+    modal.classList.add('show');
+    
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/admin/application/${applicationId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        if (response.ok) {
+            const app = await response.json();
+            currentValidateApplication = app;
+            renderValidateModalContent(app);
+        } else {
+            modalBody.innerHTML = '<div style="text-align:center; padding:40px; color:#dc3545;">❌ Failed to load application details</div>';
+        }
+    } catch (error) {
+        console.error('Error loading application:', error);
+        modalBody.innerHTML = '<div style="text-align:center; padding:40px; color:#dc3545;">❌ Connection error</div>';
+    }
+}
+
+function renderValidateModalContent(app) {
+    const modalBody = document.getElementById('validateModalBody');
+    const isMembership = app.type === 'membership';
+    
+    modalBody.innerHTML = `
+        <div class="app-detail-section">
+            <h4>📋 Application Information</h4>
+            <div class="detail-row">
+                <span class="detail-label">Type:</span>
+                <span class="detail-value">
+                    <span class="status-badge status-pending">
+                        ${isMembership ? '🏌️ Membership' : '📅 Reservation'}
+                    </span>
+                </span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value"><span class="status-badge status-pending">Pending Verification</span></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Submitted:</span>
+                <span class="detail-value">${new Date(app.createdAt).toLocaleString()}</span>
+            </div>
+        </div>
+        
+        <div class="app-detail-section">
+            <h4>👤 Personal Details</h4>
+            <div class="detail-row">
+                <span class="detail-label">Name:</span>
+                <span class="detail-value">${escapeHtml(app.firstName)} ${escapeHtml(app.lastName)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Email:</span>
+                <span class="detail-value">${escapeHtml(app.email)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Phone:</span>
+                <span class="detail-value">${escapeHtml(app.phone)}</span>
+            </div>
+            ${app.details?.gender ? `
+            <div class="detail-row">
+                <span class="detail-label">Gender:</span>
+                <span class="detail-value">${escapeHtml(app.details.gender)}</span>
+            </div>
+            ` : ''}
+            ${app.details?.age ? `
+            <div class="detail-row">
+                <span class="detail-label">Age:</span>
+                <span class="detail-value">${app.details.age}</span>
+            </div>
+            ` : ''}
+        </div>
+        
+        <div class="payment-info-box">
+            <h4>💰 Payment Details</h4>
+            <div class="detail-row">
+                <span class="detail-label">Payment Method:</span>
+                <span class="detail-value"><strong>${escapeHtml(app.paymentMethod || 'N/A')}</strong></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Account Number:</span>
+                <span class="detail-value">${escapeHtml(app.accountNumber || 'N/A')}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Reference Number:</span>
+                <span class="detail-value highlight">
+                    <div class="ref-number">${escapeHtml(app.referenceNumber || 'N/A')}</div>
+                </span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Amount:</span>
+                <span class="detail-value"><strong>₱${(app.amount || 0).toLocaleString()}</strong></span>
+            </div>
+        </div>
+        
+        ${isMembership ? '' : `
+        <div class="app-detail-section">
+            <h4>⏰ Reservation Details</h4>
+            <div class="detail-row">
+                <span class="detail-label">Date:</span>
+                <span class="detail-value">${app.details?.date ? new Date(app.details.date).toLocaleDateString() : 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Time Slot:</span>
+                <span class="detail-value">${escapeHtml(app.details?.timeSlot || 'N/A')}</span>
+            </div>
+        </div>
+        `}
+        
+        <div class="admin-notes">
+            <label>📝 Admin Notes (Optional)</label>
+            <textarea id="adminNotesTextarea" placeholder="Add any notes about this verification..."></textarea>
+        </div>
+        
+        <div class="modal-action-buttons">
+            <button class="btn-verify" onclick="confirmVerifyPayment()">
+                ✓ Verify & Approve
+            </button>
+            <button class="btn-reject-modal" onclick="confirmRejectPayment()">
+                ✗ Reject Application
+            </button>
+        </div>
+    `;
+}
+
+function closeValidateModal() {
+    document.getElementById('validatePaymentModal').classList.remove('show');
+    currentValidateApplication = null;
+}
+
+async function confirmVerifyPayment() {
+    if (!currentValidateApplication) return;
+    
+    const token = getAuthToken();
+    const notes = document.getElementById('adminNotesTextarea')?.value || '';
+    
+    // Show loading on buttons
+    const verifyBtn = document.querySelector('.btn-verify');
+    const originalText = verifyBtn.innerHTML;
+    verifyBtn.innerHTML = '⏳ Processing...';
+    verifyBtn.disabled = true;
+    
+    try {
+        const response = await fetch(`${API_URL}/admin/applications/${currentValidateApplication._id}/verify-payment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ adminNotes: notes })
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast(`✅ ${currentValidateApplication.type === 'membership' ? 'Membership' : 'Reservation'} verified and approved!`, 'success');
+            closeValidateModal();
+            // Refresh the page data
+            loadPendingApplications();
+            loadDashboardStats();
+            if (typeof loadReservations === 'function') loadReservations();
+            if (typeof loadUsers === 'function') loadUsers();
+        } else {
+            showToast(result.message || 'Verification failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error verifying:', error);
+        showToast('Error processing verification', 'error');
+    } finally {
+        verifyBtn.innerHTML = originalText;
+        verifyBtn.disabled = false;
+    }
+}
+
+async function confirmRejectPayment() {
+    if (!currentValidateApplication) return;
+    
+    const token = getAuthToken();
+    const reason = prompt('Please enter the reason for rejection:');
+    
+    if (!reason) {
+        showToast('Rejection reason is required', 'error');
+        return;
+    }
+    
+    const rejectBtn = document.querySelector('.btn-reject-modal');
+    const originalText = rejectBtn.innerHTML;
+    rejectBtn.innerHTML = '⏳ Processing...';
+    rejectBtn.disabled = true;
+    
+    try {
+        const response = await fetch(`${API_URL}/admin/applications/${currentValidateApplication._id}/reject`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ rejectionReason: reason })
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast(`❌ Application rejected`, 'success');
+            closeValidateModal();
+            loadPendingApplications();
+        } else {
+            showToast(result.message || 'Rejection failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error rejecting:', error);
+        showToast('Error processing rejection', 'error');
+    } finally {
+        rejectBtn.innerHTML = originalText;
+        rejectBtn.disabled = false;
+    }
+}
+
+// Add this to load pending applications for the admin dashboard
+async function loadPendingApplications() {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/admin/pending-applications`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        if (response.ok) {
+            const applications = await response.json();
+            updatePendingApplicationsTable(applications);
+        }
+    } catch (error) {
+        console.error('Error loading pending applications:', error);
+    }
+}
+
+function updatePendingApplicationsTable(applications) {
+    // Find or create a table for pending applications
+    let tableContainer = document.getElementById('pendingAppsContainer');
+    
+    if (!tableContainer) {
+        // Create a new section in the dashboard or payments page
+        const dashboardPage = document.getElementById('page-dashboard');
+        if (dashboardPage) {
+            const newSection = document.createElement('div');
+            newSection.className = 'table-section';
+            newSection.id = 'pendingAppsContainer';
+            newSection.innerHTML = `
+                <h3>⏳ Pending Payment Verifications</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Name</th>
+                            <th>Payment Method</th>
+                            <th>Reference #</th>
+                            <th>Amount</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingAppsTableBody"></tbody>
+                </table>
+            `;
+            dashboardPage.querySelector('.page-body').insertBefore(newSection, dashboardPage.querySelector('.dashboard-grid'));
+            tableContainer = newSection;
+        }
+    }
+    
+    const tbody = document.getElementById('pendingAppsTableBody');
+    if (!tbody) return;
+    
+    if (applications.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No pending applications</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = applications.map(app => `
+        <tr>
+            <td><span class="badge-pending">${app.type === 'membership' ? '📋 Membership' : '📅 Reservation'}</span></td>
+            <td>${escapeHtml(app.firstName)} ${escapeHtml(app.lastName)}</td>
+            <td>${escapeHtml(app.paymentMethod)}</td>
+            <td><strong>${escapeHtml(app.referenceNumber)}</strong></td>
+            <td>₱${(app.amount || 0).toLocaleString()}</td>
+            <td>
+                <button class="btn-verify" onclick="openValidateModal('${app._id}')">
+                    🔍 Validate Payment
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
 
 // Make functions global
 window.showPage = showPage;

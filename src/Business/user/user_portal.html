@@ -158,13 +158,13 @@
         <div class="payment-layout">
             <div class="payment-card">
                 <h2>Payment Form</h2>
-                <p class="pay-msg">Please complete your payment to confirm your reservation</p>
+                <p class="pay-msg">Please complete your payment details below</p>
                 <div class="method-row">
-                    <button class="method-btn active" onclick="pickMethod(this)">GCash</button>
-                    <button class="method-btn" onclick="pickMethod(this)">Maya</button>
-                    <button class="method-btn" onclick="pickMethod(this)">BPI</button>
-                    <button class="method-btn" onclick="pickMethod(this)">BDO</button>
-                    <button class="method-btn" onclick="pickMethod(this)">Cash</button>
+                    <button type="button" class="method-btn active" onclick="pickMethod(this)">GCash</button>
+                    <button type="button" class="method-btn" onclick="pickMethod(this)">Maya</button>
+                    <button type="button" class="method-btn" onclick="pickMethod(this)">BPI</button>
+                    <button type="button" class="method-btn" onclick="pickMethod(this)">BDO</button>
+                    <button type="button" class="method-btn" onclick="pickMethod(this)">Cash</button>
                 </div>
                 <p class="pay-label">Account Number</p>
                 <input type="text" class="pay-input" id="resPaymentAccount" placeholder="Enter your account number">
@@ -176,21 +176,30 @@
                     <div id="selectedTimeDisplay">Time of Reservation: <strong>Not selected</strong></div>
                     <div>Total Amount: <strong>₱500</strong></div>
                 </div>
-                <button class="btn-olive" style="margin-top:25px;" onclick="processReservationPayment()">Submit Reservation</button>
+                <button type="button" class="btn-olive" style="margin-top:25px;" onclick="submitReservation()">Submit Reservation</button>
             </div>
             <div class="slot-card">
                 <div class="slot-head" id="slotDate">Select Date & Time</div>
                 <div class="slot-body">
                     <p style="font-size:12px; color:#666; margin-bottom:14px;">Selected Date: <span id="selectedDateText">None</span></p>
                     <p style="font-size:12px; color:#666; margin-bottom:14px;">Available Slots</p>
-                    <div class="slot-opt"><input type="checkbox" id="slot1" value="10:00 AM - 12:00 PM"><label for="slot1">10:00 AM – 12:00 PM</label></div>
-                    <div class="slot-opt"><input type="checkbox" id="slot2" value="12:30 PM - 2:30 PM"><label for="slot2">12:30 – 2:30 PM</label></div>
-                    <div class="slot-opt"><input type="checkbox" id="slot3" value="3:00 PM - 5:00 PM"><label for="slot3">3:00 – 5:00 PM</label></div>
-                    <button class="btn-olive" style="margin-top:10px; padding:10px; width:100%;" onclick="selectTimeSlot()">Confirm Slot</button>
+                    <div class="slot-opt">
+                        <input type="checkbox" id="slot1" value="10:00 AM - 12:00 PM">
+                        <label for="slot1">10:00 AM – 12:00 PM</label>
+                    </div>
+                    <div class="slot-opt">
+                        <input type="checkbox" id="slot2" value="12:30 PM - 2:30 PM">
+                        <label for="slot2">12:30 – 2:30 PM</label>
+                    </div>
+                    <div class="slot-opt">
+                        <input type="checkbox" id="slot3" value="3:00 PM - 5:00 PM">
+                        <label for="slot3">3:00 – 5:00 PM</label>
+                    </div>
+                    <button type="button" class="btn-olive" style="margin-top:10px; padding:10px; width:100%;" onclick="selectTimeSlot()">Confirm Slot</button>
                 </div>
             </div>
-        </div>
     </div>
+</div>
 </section>
 
 <div class="modal-overlay" id="timeModal">

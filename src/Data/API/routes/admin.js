@@ -261,13 +261,13 @@ router.get('/pending-applications', async (req, res) => {
 // Get application by ID with full details
 router.get('/application/:appId', async (req, res) => {
     try {
-        const application = await Application.findById(req.params.appId)
-            .populate('userId', 'firstName lastName email username');
+        const application = await Application.findById(req.params.appId);
         if (!application) {
             return res.status(404).json({ message: 'Application not found' });
         }
         res.json(application);
     } catch (error) {
+        console.error('Error getting application:', error);
         res.status(500).json({ message: error.message });
     }
 });

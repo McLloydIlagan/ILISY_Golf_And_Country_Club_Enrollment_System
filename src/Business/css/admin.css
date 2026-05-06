@@ -492,3 +492,244 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
         transform: translateY(0);
     }
 }
+.validate-modal {
+    background: white;
+    border-radius: 12px;
+    width: 550px;
+    max-width: 90%;
+    max-height: 85vh;
+    overflow: hidden;
+    animation: modalFadeIn 0.3s ease;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.validate-modal-header {
+    background: var(--deep-green);
+    color: white;
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--gold);
+}
+
+.validate-modal-header h3 {
+    font-size: 18px;
+    font-weight: normal;
+    margin: 0;
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    color: var(--gold);
+    font-size: 28px;
+    cursor: pointer;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.close-modal-btn:hover {
+    color: white;
+    transform: scale(1.1);
+}
+
+.validate-modal-body {
+    padding: 25px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Application Detail Sections */
+.app-detail-section {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.app-detail-section h4 {
+    color: var(--olive);
+    font-size: 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-row {
+    display: flex;
+    margin-bottom: 10px;
+    font-size: 13px;
+}
+
+.detail-label {
+    width: 130px;
+    font-weight: bold;
+    color: #555;
+}
+
+.detail-value {
+    flex: 1;
+    color: #333;
+}
+
+.detail-value.highlight {
+    background: #fff3cd;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    color: #856404;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.status-pending {
+    background: #ffc107;
+    color: #333;
+}
+
+/* Payment Info Box */
+.payment-info-box {
+    background: var(--sage);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.payment-info-box h4 {
+    color: var(--deep-green);
+    margin-bottom: 12px;
+}
+
+.ref-number {
+    font-family: monospace;
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--deep-green);
+    background: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+/* Action Buttons */
+.modal-action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.btn-verify {
+    flex: 1;
+    background: var(--olive);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: "Georgia", serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-verify:hover {
+    background: var(--deep-green);
+    transform: translateY(-2px);
+}
+
+.btn-reject-modal {
+    flex: 1;
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: "Georgia", serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-reject-modal:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
+/* Notes Textarea */
+.admin-notes {
+    margin-top: 15px;
+}
+
+.admin-notes label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #555;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.admin-notes textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: "Georgia", serif;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+}
+
+.loading-spinner::before {
+    content: "⏳";
+    display: inline-block;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.badge-pending {
+    background: #ffc107;
+    color: #333;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    display: inline-block;
+}
