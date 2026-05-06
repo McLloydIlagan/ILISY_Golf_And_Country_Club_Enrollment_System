@@ -11,7 +11,7 @@ router.get('/availability/:date', async (req, res) => {
         const date = new Date(req.params.date);
         const bookedSlots = await Reservation.find({
             date: { $gte: date, $lt: new Date(date.getTime() + 24 * 60 * 60 * 1000) },
-            status: { $in: ['approved', 'confirmed'] }
+            status: { $in: ['confirmed'] }
         });
 
         const slots = ['10:00 AM - 12:00 PM', '12:30 PM - 2:30 PM', '3:00 PM - 5:00 PM'];
@@ -28,10 +28,17 @@ router.get('/availability/:date', async (req, res) => {
 // 3.0 Make a Reservation - Level 3: 3.3.1 Validate Reservation Application
 router.post('/apply', authMiddleware, async (req, res) => {
     try {
-        const { userId, firstName, lastName, email, phone, date, timeSlot } = req.body;
+        const { 
+            userId, firstName, lastName, email, phone, date, timeSlot,
+            paymentMethod, accountNumber, referenceNumber, amount
+        } = req.body;
 
         if (!userId || !firstName || !lastName || !email || !phone || !date || !timeSlot) {
             return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        if (!paymentMethod || !accountNumber || !referenceNumber || !amount) {
+            return res.status(400).json({ message: 'Payment details are required' });
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,29 +51,35 @@ router.post('/apply', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Invalid phone number format' });
         }
 
-        // Level 3: 3.3.1 - Check reservation availability > D2: Reservations
+        // Check if time slot is still available
         const conflict = await Reservation.findOne({
             date, timeSlot,
-            status: { $in: ['approved', 'confirmed'] }
+            status: 'confirmed'
         });
         if (conflict) {
             return res.status(400).json({ message: 'Time slot not available' });
         }
 
-        // Level 2: 3.0 - Store reservation application > D5: Reservation applications
+        // Create application with payment details (PENDING admin validation)
         const application = new Application({
             userId, firstName, lastName, email, phone,
             type: 'reservation',
             details: { date, timeSlot },
-            status: 'pending'
+            paymentMethod,
+            accountNumber,
+            referenceNumber,
+            amount,
+            status: 'pending',
+            paymentStatus: 'pending'
         });
 
         await application.save();
 
         res.json({
-            message: 'Reservation application submitted. Confirmation email will be sent.',
+            message: 'Reservation application submitted. Admin will verify your payment.',
             applicationId: application._id,
-            amount: 500
+            amount: 500,
+            status: 'pending_verification'
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -134,6 +147,18 @@ router.post('/payment/:applicationId', authMiddleware, async (req, res) => {
             paymentId: payment._id,
             reservationId: reservation._id
         });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.get('/my-applications', authMiddleware, async (req, res) => {
+    try {
+        const applications = await Application.find({ 
+            userId: req.user.userId,
+            type: 'reservation'
+        }).sort({ createdAt: -1 });
+        res.json(applications);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

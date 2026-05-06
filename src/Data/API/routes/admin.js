@@ -246,4 +246,127 @@ router.get('/dashboard', async (req, res) => {
     }
 });
 
+router.get('/pending-applications', async (req, res) => {
+    try {
+        const applications = await Application.find({ 
+            status: 'pending',
+            paymentStatus: 'pending'
+        }).sort({ createdAt: 1 });
+        res.json(applications);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Get application by ID with full details
+router.get('/application/:appId', async (req, res) => {
+    try {
+        const application = await Application.findById(req.params.appId)
+            .populate('userId', 'firstName lastName email username');
+        if (!application) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+        res.json(application);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Verify payment and approve application
+router.post('/applications/:appId/verify-payment', async (req, res) => {
+    try {
+        const { appId } = req.params;
+        const { adminNotes } = req.body;
+        
+        const application = await Application.findById(appId);
+        if (!application) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+
+        // Update application status
+        application.paymentStatus = 'verified';
+        application.status = 'approved';
+        application.adminNotes = adminNotes || 'Payment verified';
+        application.verifiedBy = req.user.userId;
+        application.verifiedAt = new Date();
+        await application.save();
+
+        // Create payment record
+        const payment = new Payment({
+            userId: application.userId,
+            firstName: application.firstName,
+            lastName: application.lastName,
+            paymentMethod: application.paymentMethod,
+            accountNumber: application.accountNumber,
+            amount: application.amount,
+            transactionType: application.type,
+            paymentStatus: 'completed',
+            transactionId: application.referenceNumber,
+            processedAt: new Date()
+        });
+        await payment.save();
+
+        // Handle membership vs reservation differently
+        if (application.type === 'membership') {
+            // Activate membership
+            await User.findByIdAndUpdate(application.userId, {
+                membershipStatus: 'active',
+                membershipExpiration: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+                membershipType: 'annual'
+            });
+        } else if (application.type === 'reservation') {
+            // Create confirmed reservation
+            const reservation = new Reservation({
+                userId: application.userId,
+                firstName: application.firstName,
+                lastName: application.lastName,
+                email: application.email,
+                phone: application.phone,
+                date: application.details.date,
+                timeSlot: application.details.timeSlot,
+                status: 'confirmed',
+                paymentId: payment._id,
+                amount: application.amount
+            });
+            await reservation.save();
+        }
+
+        res.json({ 
+            message: `Payment verified and ${application.type} approved successfully`,
+            applicationId: application._id,
+            paymentId: payment._id
+        });
+    } catch (error) {
+        console.error('Verification error:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Reject application with reason
+router.post('/applications/:appId/reject', async (req, res) => {
+    try {
+        const { appId } = req.params;
+        const { rejectionReason } = req.body;
+        
+        const application = await Application.findById(appId);
+        if (!application) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+
+        application.status = 'rejected';
+        application.paymentStatus = 'rejected';
+        application.adminNotes = rejectionReason || 'Payment verification failed';
+        application.verifiedBy = req.user.userId;
+        application.verifiedAt = new Date();
+        await application.save();
+
+        res.json({ 
+            message: 'Application rejected',
+            applicationId: application._id
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;

@@ -8,10 +8,17 @@ const { authMiddleware } = require('../middleware/auth');
 // 2.0 Membership Application - Level 3: 2.2.1 Validate Application Details
 router.post('/apply', authMiddleware, async (req, res) => {
     try {
-        const { userId, firstName, lastName, email, phone, gender, age, address } = req.body;
+        const { 
+            userId, firstName, lastName, email, phone, gender, age, address,
+            paymentMethod, accountNumber, referenceNumber, amount
+        } = req.body;
 
         if (!firstName || !lastName || !email || !phone || !userId) {
             return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        if (!paymentMethod || !accountNumber || !referenceNumber || !amount) {
+            return res.status(400).json({ message: 'Payment details are required' });
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -24,7 +31,7 @@ router.post('/apply', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Invalid phone number format' });
         }
 
-        // Level 3: 2.2.1 - Check membership status > D1: Registered Accounts
+        // Check if user already has active membership
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -33,20 +40,38 @@ router.post('/apply', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'User already has an active membership' });
         }
 
+        // Create application with payment details (PENDING admin validation)
         const application = new Application({
             userId, firstName, lastName, email, phone,
             type: 'membership',
             details: { gender, age, address },
-            status: 'pending'
+            paymentMethod,
+            accountNumber,
+            referenceNumber,
+            amount,
+            status: 'pending',
+            paymentStatus: 'pending'
         });
 
         await application.save();
 
         res.json({
-            message: 'Membership application submitted',
+            message: 'Membership application submitted. Admin will verify your payment.',
             applicationId: application._id,
-            amount: 1000000
+            status: 'pending_verification'
         });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.get('/my-applications', authMiddleware, async (req, res) => {
+    try {
+        const applications = await Application.find({ 
+            userId: req.user.userId,
+            type: 'membership'
+        }).sort({ createdAt: -1 });
+        res.json(applications);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

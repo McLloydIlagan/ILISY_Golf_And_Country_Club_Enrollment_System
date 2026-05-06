@@ -5,6 +5,7 @@ let selectedTimeSlot = null;
 let currentConversationId = null;
 let pollingInterval = null;
 let currentMembershipApplicationId = null;
+let currentReservationApplicationId = null;
 let baseDate = new Date();
 let lastMessageCount = 0;
 let lastMessageTimestamp = null;
@@ -99,7 +100,6 @@ function addMsg(text, type, isHistory = false) {
     
     chatBody.appendChild(row);
     
-    // Only auto-scroll if it's a new message (not history)
     if (!isHistory) {
         chatBody.scrollTop = chatBody.scrollHeight;
     }
@@ -119,12 +119,9 @@ async function sendMessage() {
     try {
         let response;
         const existingConversationId = localStorage.getItem('currentConversationId');
-        
-        // Validate if the stored ID looks like a valid MongoDB ObjectId (24 chars)
         const isValidObjectId = existingConversationId && /^[0-9a-fA-F]{24}$/.test(existingConversationId);
         
         if (isValidObjectId) {
-            console.log('Using existing conversation:', existingConversationId);
             response = await fetch(`${API_URL}/messages/followup/${existingConversationId}`, {
                 method: 'POST',
                 headers: {
@@ -134,7 +131,6 @@ async function sendMessage() {
                 body: JSON.stringify({ message: text })
             });
         } else {
-            console.log('Creating new conversation');
             response = await fetch(`${API_URL}/messages/submit`, {
                 method: 'POST',
                 headers: {
@@ -162,7 +158,6 @@ async function sendMessage() {
         if (result.concernId) {
             currentConversationId = result.concernId;
             localStorage.setItem('currentConversationId', currentConversationId);
-            console.log('Conversation ID saved:', currentConversationId);
         }
         
         startPollingForResponses();
@@ -172,7 +167,6 @@ async function sendMessage() {
         showToast('Error sending message. Please try again.', 'error');
     }
 }
-
 
 async function sendQuickReply(text) {
     if (!checkSession()) return;
@@ -186,12 +180,9 @@ async function sendQuickReply(text) {
     try {
         let response;
         const existingConversationId = localStorage.getItem('currentConversationId');
-        
-        // Validate if the stored ID looks like a valid MongoDB ObjectId (24 chars)
         const isValidObjectId = existingConversationId && /^[0-9a-fA-F]{24}$/.test(existingConversationId);
         
         if (isValidObjectId) {
-            console.log('Using existing conversation for quick reply:', existingConversationId);
             response = await fetch(`${API_URL}/messages/followup/${existingConversationId}`, {
                 method: 'POST',
                 headers: {
@@ -201,7 +192,6 @@ async function sendQuickReply(text) {
                 body: JSON.stringify({ message: text })
             });
         } else {
-            console.log('Creating new conversation for quick reply');
             response = await fetch(`${API_URL}/messages/submit`, {
                 method: 'POST',
                 headers: {
@@ -229,7 +219,6 @@ async function sendQuickReply(text) {
         if (result.concernId) {
             currentConversationId = result.concernId;
             localStorage.setItem('currentConversationId', currentConversationId);
-            console.log('Conversation ID saved:', currentConversationId);
         }
         
         startPollingForResponses();
@@ -242,7 +231,6 @@ async function sendQuickReply(text) {
 
 function startPollingForResponses() {
     if (pollingInterval) clearInterval(pollingInterval);
-    // Poll every 3 seconds for faster response time
     pollingInterval = setInterval(checkForNewMessages, 3000);
 }
 
@@ -265,34 +253,25 @@ async function checkForNewMessages() {
             if (conversations.length > 0) {
                 const latest = conversations[0];
                 
-                // Update conversation ID if needed
                 if (!currentConversationId && latest._id) {
                     currentConversationId = latest._id;
                     localStorage.setItem('currentConversationId', currentConversationId);
                 }
                 
-                // Check for new messages
                 if (currentConversationId === latest._id) {
                     const conversation = latest.conversation || [];
-                    const currentMessageCount = conversation.length;
                     
-                    // Get the last message
                     if (conversation.length > 0) {
                         const lastMessage = conversation[conversation.length - 1];
                         const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message}`;
                         
-                        // Check if this is a new message from admin
                         if (lastMessage.sender === 'admin') {
                             const lastShown = localStorage.getItem(`last_shown_${latest._id}`);
                             
                             if (lastShown !== lastMessageId) {
-                                // New message detected - show toast and add message
-                                showToast(`New message from admin: "${lastMessage.message.substring(0, 50)}${lastMessage.message.length > 50 ? '...' : ''}"`, 'info');
+                                showToast(`New message from admin`, 'info');
                                 addMsg(lastMessage.message, 'received');
                                 localStorage.setItem(`last_shown_${latest._id}`, lastMessageId);
-                                
-                                // Play notification sound (optional - uncomment if you have a sound file)
-                                // playNotificationSound();
                             }
                         }
                     }
@@ -328,7 +307,6 @@ async function loadConversationHistory() {
                 const chatBody = document.getElementById('chatBody');
                 chatBody.innerHTML = '';
                 
-                // Load all conversation history
                 if (latest.conversation && latest.conversation.length > 0) {
                     latest.conversation.forEach(conv => {
                         const row = document.createElement('div');
@@ -347,7 +325,6 @@ async function loadConversationHistory() {
                         chatBody.appendChild(row);
                     });
                     
-                    // Mark last message as shown
                     const lastMessage = latest.conversation[latest.conversation.length - 1];
                     if (lastMessage) {
                         const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message}`;
@@ -355,7 +332,6 @@ async function loadConversationHistory() {
                     }
                 }
                 
-                // Add quick replies
                 const quickRepliesDiv = document.createElement('div');
                 quickRepliesDiv.className = 'quick-replies';
                 quickRepliesDiv.id = 'quickReplies';
@@ -371,12 +347,6 @@ async function loadConversationHistory() {
     } catch (error) {
         console.error('Error loading conversation history:', error);
     }
-}
-
-async function manualRefreshMessages() {
-    showToast('Refreshing messages...', 'info');
-    await loadConversationHistory();
-    showToast('Messages refreshed', 'success');
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -427,8 +397,18 @@ function confirmTimeSlot() {
     if (slot1.checked) selectedTimeSlot = slot1.value;
     else if (slot2.checked) selectedTimeSlot = slot2.value;
     else if (slot3.checked) selectedTimeSlot = slot3.value;
+    
     if (selectedTimeSlot) {
         document.getElementById('timeModal').style.display = 'none';
+        // Update display
+        const selectedDateDisplay = document.getElementById('selectedDateDisplay');
+        const selectedTimeDisplay = document.getElementById('selectedTimeDisplay');
+        const selectedDateText = document.getElementById('selectedDateText');
+        
+        if (selectedDateDisplay) selectedDateDisplay.innerHTML = `Day of Reservation: <strong>${selectedDate}</strong>`;
+        if (selectedTimeDisplay) selectedTimeDisplay.innerHTML = `Time of Reservation: <strong>${selectedTimeSlot}</strong>`;
+        if (selectedDateText) selectedDateText.textContent = selectedDate;
+        
         showToast(`Selected: ${selectedTimeSlot} on ${selectedDate}`, 'success');
     } else {
         alert('Please select a time slot');
@@ -436,7 +416,7 @@ function confirmTimeSlot() {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Membership Functions
+// Membership Functions - FIXED (Single submission with payment)
 // ──────────────────────────────────────────────────────────────────
 
 async function submitMembership() {
@@ -452,9 +432,26 @@ async function submitMembership() {
     const age = parseInt(document.getElementById('memAge').value) || 0;
     const address = document.getElementById('memAddress').value.trim();
     
+    // Get payment details from the payment section
+    const paymentMethod = document.querySelector('#membershipPayment .method-btn.active')?.textContent || 'GCash';
+    const accountNumber = document.getElementById('paymentAccount').value.trim();
+    const referenceNumber = document.getElementById('referenceNumber').value.trim();
+    
+    // Validate personal info
     if (!firstName || !lastName || !email || !phone) { 
         alert('Please fill all required fields (First Name, Last Name, Email, Phone)'); 
         return; 
+    }
+    
+    // Validate payment info
+    if (!accountNumber) {
+        alert('Please enter your account number');
+        return;
+    }
+    
+    if (!referenceNumber) {
+        alert('Please enter the reference/transaction ID from your payment');
+        return;
     }
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -477,13 +474,16 @@ async function submitMembership() {
         phone: phone,
         gender: gender,
         age: age,
-        address: address
+        address: address,
+        paymentMethod: paymentMethod,
+        accountNumber: accountNumber,
+        referenceNumber: referenceNumber,
+        amount: 1000000
     };
     
-    const applyBtn = event.target;
-    const originalText = applyBtn.textContent;
-    applyBtn.textContent = 'Submitting...';
-    applyBtn.disabled = true;
+    const overlay = document.getElementById('processingOverlay');
+    overlay.style.display = 'flex';
+    document.getElementById('processingMsg').textContent = 'Submitting your application...';
     
     try {
         const response = await fetch(`${API_URL}/membership/apply`, { 
@@ -495,28 +495,35 @@ async function submitMembership() {
             body: JSON.stringify(data) 
         });
         
+        const result = await response.json();
+        
         if (response.status === 401) {
+            overlay.style.display = 'none';
             localStorage.clear();
             showToast('Session expired. Please login again.', 'error');
             setTimeout(() => window.location.href = '../index.html', 2000);
             return;
         }
         
-        const result = await response.json();
-        
         if (response.ok) { 
             currentMembershipApplicationId = result.applicationId;
-            showToast('Membership application submitted successfully!', 'success');
-            document.getElementById('membershipPopup').style.display = 'flex'; 
+            overlay.style.display = 'none';
+            showToast('Application submitted! Admin will verify your payment.', 'success');
+            document.getElementById('successMsg').innerHTML = 'Your membership application has been submitted.<br><br>Admin will verify your payment and activate your membership within 24-48 hours.<br><br>Application ID: ' + result.applicationId;
+            document.getElementById('successPopup').style.display = 'flex';
+            
+            // Reset form
+            document.getElementById('membershipPayment').style.display = 'none';
+            document.getElementById('paymentAccount').value = '';
+            document.getElementById('referenceNumber').value = '';
         } else {
+            overlay.style.display = 'none';
             alert(result.message || 'Application failed');
         }
     } catch(e) { 
+        overlay.style.display = 'none';
         console.error('Error:', e);
         alert('Connection error: ' + e.message); 
-    } finally {
-        applyBtn.textContent = originalText;
-        applyBtn.disabled = false;
     }
 }
 
@@ -526,116 +533,75 @@ function proceedToMembershipPayment() {
     document.getElementById('membershipPayment').scrollIntoView({ behavior: 'smooth' });
 }
 
-async function processMembershipPayment() {
-    if (!checkSession()) return;
-    
-    if (!currentMembershipApplicationId) {
-        alert('Please submit your membership application first.');
-        return;
-    }
-    
-    const token = getAuthToken();
-    const method = document.querySelector('#membershipPayment .method-btn.active')?.textContent || 'GCash';
-    const account = document.getElementById('paymentAccount').value.trim();
-    
-    if (!account && method !== 'Cash') {
-        alert('Please enter account details');
-        return;
-    }
-    
-    const firstName = document.getElementById('memFirstName').value.trim();
-    const lastName = document.getElementById('memLastName').value.trim();
-    
-    if (!firstName || !lastName) {
-        alert('Please fill in your name in the membership form first');
-        return;
-    }
-    
-    const overlay = document.getElementById('processingOverlay');
-    overlay.style.display = 'flex';
-    
-    try {
-        const response = await fetch(`${API_URL}/membership/payment`, { 
-            method: 'POST', 
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }, 
-            body: JSON.stringify({ 
-                userId: localStorage.getItem('userId'),
-                applicationId: currentMembershipApplicationId,
-                firstName: firstName, 
-                lastName: lastName, 
-                paymentMethod: method, 
-                accountNumber: account, 
-                amount: 1000000
-            }) 
-        });
-        
-        if (response.status === 401) {
-            overlay.style.display = 'none';
-            localStorage.clear();
-            showToast('Session expired. Please login again.', 'error');
-            setTimeout(() => window.location.href = '../index.html', 2000);
-            return;
-        }
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(result.message || 'Payment failed');
-        }
-        
-        setTimeout(() => {
-            overlay.style.display = 'none';
-            document.getElementById('successMsg').innerHTML = 'Your membership payment has been processed!<br><br>A receipt has been sent to your registered email address.<br><br>Transaction ID: ' + (result.transactionId || 'N/A');
-            document.getElementById('successPopup').style.display = 'flex';
-            currentMembershipApplicationId = null;
-        }, 2000);
-    } catch(e) { 
-        overlay.style.display = 'none'; 
-        alert('Payment failed: ' + e.message);
-    }
-}
-
 // ──────────────────────────────────────────────────────────────────
-// Reservation Functions
+// Reservation Functions - FIXED (Single submission with payment)
 // ──────────────────────────────────────────────────────────────────
 
 async function submitReservation() {
     if (!checkSession()) return;
     
     const token = getAuthToken();
+    
+    // Check if date and time are selected
     if (!selectedDate || !selectedTimeSlot) { 
-        alert('Please select a date and time slot'); 
+        alert('Please select a date and time slot from the calendar'); 
         return; 
     }
     
-    const data = { 
-        userId: localStorage.getItem('userId'), 
-        firstName: document.getElementById('resFirstName').value.trim(), 
-        lastName: document.getElementById('resLastName').value.trim(), 
-        email: document.getElementById('resEmail').value.trim(), 
-        phone: document.getElementById('resPhone').value.trim(), 
-        date: selectedDate, 
-        timeSlot: selectedTimeSlot 
-    };
+    const firstName = document.getElementById('resFirstName').value.trim();
+    const lastName = document.getElementById('resLastName').value.trim();
+    const email = document.getElementById('resEmail').value.trim();
+    const phone = document.getElementById('resPhone').value.trim();
     
-    if (!data.firstName || !data.lastName || !data.email || !data.phone) {
+    if (!firstName || !lastName || !email || !phone) {
         alert('Please fill all personal details');
         return;
     }
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email)) {
+    if (!emailRegex.test(email)) {
         alert('Please enter a valid email address');
         return;
     }
     
-    const submitBtn = event.target;
-    const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Submitting...';
-    submitBtn.disabled = true;
+    const phoneRegex = /^[0-9+\-\s]{7,15}$/;
+    if (!phoneRegex.test(phone)) {
+        alert('Please enter a valid phone number');
+        return;
+    }
+    
+    // Get payment details
+    const paymentMethod = document.querySelector('#reservationPayment .method-btn.active')?.textContent || 'GCash';
+    const accountNumber = document.getElementById('resPaymentAccount').value.trim();
+    const referenceNumber = document.getElementById('resReferenceNumber').value.trim();
+    
+    if (!accountNumber) {
+        alert('Please enter your account number');
+        return;
+    }
+    
+    if (!referenceNumber) {
+        alert('Please enter the reference/transaction ID from your payment');
+        return;
+    }
+    
+    const data = { 
+        userId: localStorage.getItem('userId'), 
+        firstName: firstName, 
+        lastName: lastName, 
+        email: email, 
+        phone: phone, 
+        date: selectedDate, 
+        timeSlot: selectedTimeSlot,
+        paymentMethod: paymentMethod,
+        accountNumber: accountNumber,
+        referenceNumber: referenceNumber,
+        amount: 500
+    };
+    
+    const overlay = document.getElementById('processingOverlay');
+    overlay.style.display = 'flex';
+    document.getElementById('processingMsg').textContent = 'Submitting your reservation...';
     
     try {
         const response = await fetch(`${API_URL}/reservations/apply`, { 
@@ -648,6 +614,7 @@ async function submitReservation() {
         });
         
         if (response.status === 401) {
+            overlay.style.display = 'none';
             localStorage.clear();
             showToast('Session expired. Please login again.', 'error');
             setTimeout(() => window.location.href = '../index.html', 2000);
@@ -657,19 +624,24 @@ async function submitReservation() {
         const result = await response.json();
         
         if (response.ok) { 
-            localStorage.setItem('currentReservationApplicationId', result.applicationId);
-            document.getElementById('reservationPayment').style.display = 'block'; 
-            document.getElementById('reservationPayment').scrollIntoView({ behavior: 'smooth' });
-            showToast('Reservation application submitted! Please proceed to payment.', 'success');
+            currentReservationApplicationId = result.applicationId;
+            overlay.style.display = 'none';
+            showToast('Reservation submitted! Admin will verify your payment.', 'success');
+            document.getElementById('successMsg').innerHTML = 'Your reservation has been submitted.<br><br>Admin will verify your payment and confirm your reservation within 24-48 hours.<br><br>Reservation ID: ' + result.applicationId;
+            document.getElementById('successPopup').style.display = 'flex';
+            
+            // Reset form
+            document.getElementById('reservationPayment').style.display = 'none';
+            document.getElementById('resPaymentAccount').value = '';
+            document.getElementById('resReferenceNumber').value = '';
         } else {
+            overlay.style.display = 'none';
             alert(result.message || 'Reservation failed');
         }
     } catch(e) { 
+        overlay.style.display = 'none';
         console.error('Error:', e);
         alert('Connection error: ' + e.message); 
-    } finally {
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
     }
 }
 
@@ -680,81 +652,18 @@ function pickMethod(btn) {
 }
 
 function selectTimeSlot() { 
-    const slot1=document.getElementById('slot1'), slot2=document.getElementById('slot2'), slot3=document.getElementById('slot3'); 
-    if(slot1.checked) selectedTimeSlot=slot1.value; 
-    else if(slot2.checked) selectedTimeSlot=slot2.value; 
-    else if(slot3.checked) selectedTimeSlot=slot3.value; 
+    const slot1 = document.getElementById('slot1'); 
+    const slot2 = document.getElementById('slot2'); 
+    const slot3 = document.getElementById('slot3'); 
+    
+    if(slot1.checked) selectedTimeSlot = slot1.value; 
+    else if(slot2.checked) selectedTimeSlot = slot2.value; 
+    else if(slot3.checked) selectedTimeSlot = slot3.value; 
+    
     if(selectedTimeSlot) {
         showToast(`Selected: ${selectedTimeSlot}`, 'success');
     } else {
         alert('Please select a time slot');
-    }
-}
-
-async function processReservationPayment() {
-    if (!checkSession()) return;
-    
-    const token = getAuthToken();
-    const method = document.querySelector('#reservationPayment .method-btn.active')?.textContent || 'GCash';
-    const account = document.getElementById('resPaymentAccount').value.trim();
-    const applicationId = localStorage.getItem('currentReservationApplicationId');
-    
-    if (!account && method !== 'Cash') {
-        alert('Please enter account details');
-        return;
-    }
-    
-    if (!applicationId) {
-        alert('No reservation application found. Please submit your reservation first.');
-        return;
-    }
-    
-    const firstName = document.getElementById('resFirstName').value.trim();
-    const lastName = document.getElementById('resLastName').value.trim();
-    
-    const overlay = document.getElementById('processingOverlay');
-    overlay.style.display = 'flex';
-    
-    try {
-        const response = await fetch(`${API_URL}/reservations/payment/${applicationId}`, { 
-            method: 'POST', 
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }, 
-            body: JSON.stringify({ 
-                userId: localStorage.getItem('userId'),
-                firstName: firstName,
-                lastName: lastName,
-                paymentMethod: method, 
-                accountNumber: account, 
-                amount: 500
-            }) 
-        });
-        
-        if (response.status === 401) {
-            overlay.style.display = 'none';
-            localStorage.clear();
-            showToast('Session expired. Please login again.', 'error');
-            setTimeout(() => window.location.href = '../index.html', 2000);
-            return;
-        }
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(result.message || 'Payment failed');
-        }
-        
-        setTimeout(() => {
-            overlay.style.display = 'none';
-            document.getElementById('successMsg').innerHTML = 'Your reservation payment has been processed!<br><br>A confirmation email with your receipt has been sent to your registered email address.<br><br>Reservation ID: ' + (result.reservationId || 'N/A');
-            document.getElementById('successPopup').style.display = 'flex';
-            localStorage.removeItem('currentReservationApplicationId');
-        }, 2000);
-    } catch(e) { 
-        overlay.style.display = 'none'; 
-        alert('Payment failed: ' + e.message);
     }
 }
 
@@ -783,12 +692,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     renderCalendars();
     loadConversationHistory();
-    startPollingForResponses(); // Start auto-refresh
+    startPollingForResponses();
     
-    const adminName = localStorage.getItem('userName') || 'Member';
+    const userName = localStorage.getItem('userName') || 'Member';
     const navSpan = document.querySelector('.admin-text span');
     if (navSpan && navSpan.textContent === 'admin account name') {
-        navSpan.textContent = adminName;
+        navSpan.textContent = userName;
     }
     
     document.querySelectorAll('.modal-overlay').forEach(o => {
@@ -804,22 +713,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Clean up polling on page unload
     window.addEventListener('beforeunload', () => {
         if (pollingInterval) clearInterval(pollingInterval);
     });
 });
 
+// Make functions global
 window.scrollToSection = scrollToSection;
 window.sendMessage = sendMessage;
 window.sendQuickReply = sendQuickReply;
 window.submitMembership = submitMembership;
 window.proceedToMembershipPayment = proceedToMembershipPayment;
-window.processMembershipPayment = processMembershipPayment;
 window.submitReservation = submitReservation;
 window.pickMethod = pickMethod;
 window.selectTimeSlot = selectTimeSlot;
-window.processReservationPayment = processReservationPayment;
 window.changeMonth = changeMonth;
 window.confirmTimeSlot = confirmTimeSlot;
 window.handleLogout = handleLogout;

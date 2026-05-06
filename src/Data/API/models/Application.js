@@ -13,11 +13,28 @@ const applicationSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'approved', 'rejected', 'processing'],
+        enum: ['pending', 'approved', 'rejected', 'processing', 'completed'],
         default: 'pending'
     },
     details: { type: mongoose.Schema.Types.Mixed },
-    createdAt: { type: Date, default: Date.now }
+    
+    // NEW: Payment fields for admin validation
+    paymentMethod: { type: String, enum: ['GCash', 'Maya', 'BPI', 'BDO', 'Cash'] },
+    accountNumber: { type: String },
+    referenceNumber: { type: String },
+    receiptUrl: { type: String },
+    amount: { type: Number },
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'verified', 'rejected'],
+        default: 'pending'
+    },
+    adminNotes: { type: String },
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    verifiedAt: { type: Date },
+    
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('Application', applicationSchema);

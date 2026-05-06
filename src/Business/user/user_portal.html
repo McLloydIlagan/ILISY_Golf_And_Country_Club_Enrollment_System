@@ -75,14 +75,16 @@
                 <button class="method-btn" onclick="pickMethod(this)">BDO</button>
                 <button class="method-btn" onclick="pickMethod(this)">Cash</button>
             </div>
-            <p class="pay-label">Mode of Payment Account Details</p>
-            <input type="text" class="pay-input" id="paymentAccount" placeholder="Enter account number / details">
+            <p class="pay-label">Account Number</p>
+            <input type="text" class="pay-input" id="paymentAccount" placeholder="Enter your account number">
+            <p class="pay-label">Reference / Transaction ID</p>
+            <input type="text" class="pay-input" id="referenceNumber" placeholder="Enter reference number from payment">
             <hr class="divider">
             <div class="detail-row">
                 <div>Membership Fee</div>
                 <div>Total Amount: <strong>₱1,000,000</strong></div>
             </div>
-            <button class="btn-olive" onclick="processMembershipPayment()">Confirm Payment</button>
+            <button class="btn-olive" onclick="processMembershipPayment()">Submit Application</button>
         </div>
     </div>
 </section>
@@ -148,7 +150,7 @@
             <div class="legend-item"><div class="leg-box" style="background:#d4cdd4"></div>Available</div>
         </div>
 
-        <button class="btn-olive" onclick="submitReservation()">Submit</button>
+        <button class="btn-olive" onclick="submitReservation()">Apply for Reservation</button>
     </div>
 
     <div id="reservationPayment" style="display:none; margin-top:30px;">
@@ -156,7 +158,7 @@
         <div class="payment-layout">
             <div class="payment-card">
                 <h2>Payment Form</h2>
-                <p class="pay-msg">Your application has been approved! Please select your mode of payment</p>
+                <p class="pay-msg">Please complete your payment to confirm your reservation</p>
                 <div class="method-row">
                     <button class="method-btn active" onclick="pickMethod(this)">GCash</button>
                     <button class="method-btn" onclick="pickMethod(this)">Maya</button>
@@ -164,19 +166,22 @@
                     <button class="method-btn" onclick="pickMethod(this)">BDO</button>
                     <button class="method-btn" onclick="pickMethod(this)">Cash</button>
                 </div>
-                <p class="pay-label">Mode of Payment Account Details</p>
-                <input type="text" class="pay-input" id="resPaymentAccount" placeholder="Enter account number / details">
+                <p class="pay-label">Account Number</p>
+                <input type="text" class="pay-input" id="resPaymentAccount" placeholder="Enter your account number">
+                <p class="pay-label">Reference / Transaction ID</p>
+                <input type="text" class="pay-input" id="resReferenceNumber" placeholder="Enter reference number from payment">
                 <hr class="divider">
                 <div class="detail-row">
-                    <div>Day of Reservation: <strong id="selectedDate">February 2, 2026</strong></div>
-                    <div>Time of Reservation: <strong>10:00 – 12:00 PM</strong></div>
+                    <div id="selectedDateDisplay">Day of Reservation: <strong>Not selected</strong></div>
+                    <div id="selectedTimeDisplay">Time of Reservation: <strong>Not selected</strong></div>
                     <div>Total Amount: <strong>₱500</strong></div>
                 </div>
-                <button class="btn-olive" style="margin-top:25px;" onclick="processReservationPayment()">Confirm</button>
+                <button class="btn-olive" style="margin-top:25px;" onclick="processReservationPayment()">Submit Reservation</button>
             </div>
             <div class="slot-card">
-                <div class="slot-head" id="slotDate">February 1, 2026</div>
+                <div class="slot-head" id="slotDate">Select Date & Time</div>
                 <div class="slot-body">
+                    <p style="font-size:12px; color:#666; margin-bottom:14px;">Selected Date: <span id="selectedDateText">None</span></p>
                     <p style="font-size:12px; color:#666; margin-bottom:14px;">Available Slots</p>
                     <div class="slot-opt"><input type="checkbox" id="slot1" value="10:00 AM - 12:00 PM"><label for="slot1">10:00 AM – 12:00 PM</label></div>
                     <div class="slot-opt"><input type="checkbox" id="slot2" value="12:30 PM - 2:30 PM"><label for="slot2">12:30 – 2:30 PM</label></div>
@@ -205,8 +210,8 @@
     <div class="popup-card">
         <div style="font-size: 48px;">⛳</div>
         <hr>
-        <h3>Thank you for choosing ILISY Club.</h3>
-        <p>Your membership form is being processed. Kindly pay the membership fee to be part of ILISY CLUB Membership.</p>
+        <h3>Complete Your Application</h3>
+        <p>Please proceed to payment to submit your membership application. Admin will verify your payment.</p>
         <button class="popup-close" onclick="proceedToMembershipPayment()">Proceed to Payment</button>
     </div>
 </div>
@@ -215,7 +220,7 @@
     <div class="processing-card">
         <div style="font-size: 48px;">⛳</div>
         <hr>
-        <p id="processingMsg">Your Payment is being processed, please wait for a few moments.</p>
+        <p id="processingMsg">Submitting your application, please wait...</p>
     </div>
 </div>
 
@@ -223,8 +228,8 @@
     <div class="popup-card">
         <div style="font-size: 48px;">⛳</div>
         <hr>
-        <h3>Thank you for choosing ILISY Club.</h3>
-        <p id="successMsg">Kindly wait for an email confirmation before proceeding.</p>
+        <h3>Application Submitted!</h3>
+        <p id="successMsg">Your application has been submitted. Admin will verify your payment and notify you via email within 24-48 hours.</p>
         <button class="popup-close" onclick="document.getElementById('successPopup').style.display='none'">Close</button>
     </div>
 </div>
