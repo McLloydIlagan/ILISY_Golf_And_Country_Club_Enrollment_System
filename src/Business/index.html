@@ -169,32 +169,21 @@
             position: relative;
             display: flex; justify-content: center; align-items: center;
         }
-        #register::before {
-            content: ""; position: absolute; inset: 0;
-            background: rgba(0,0,0,0.6);
+        #register::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.65); }
+        .membership-ad-content { position: relative; z-index: 2; text-align: center; max-width: 860px; padding: 80px 60px; }
+        .membership-ad-eyebrow { font-size: 12px; letter-spacing: 4px; color: var(--gold); text-transform: uppercase; margin-bottom: 14px; }
+        .membership-ad-content h2 { font-size: 48px; line-height: 1.2; color: white; margin-bottom: 10px; }
+        .membership-ad-sub { font-size: 16px; color: #ccc; margin-bottom: 40px; }
+        .membership-perks {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+            margin-bottom: 40px; text-align: left;
         }
-        .reg-card {
-            position: relative; z-index: 2;
-            background: rgba(13,43,15,0.92);
-            padding: 45px 40px; border-radius: 10px;
-            width: 100%; max-width: 500px;
-            border-top: 4px solid var(--gold);
-            text-align: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        .perk-item {
+            display: flex; align-items: center; gap: 12px;
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(212,179,106,0.25);
+            padding: 16px; border-radius: 8px; font-size: 14px; color: #ddd;
         }
-        .reg-card h2 { color: var(--gold); font-size: 26px; letter-spacing: 2px; margin-bottom: 8px; }
-        .reg-card .sub { font-size: 14px; margin-bottom: 28px; color: #ccc; }
-
-        .input-group { text-align: left; margin-bottom: 14px; }
-        .input-group label { display: block; font-size: 12px; margin-bottom: 5px; color: var(--gold); }
-        .input-group input {
-            width: 100%; padding: 10px 12px; border: none;
-            background: #f0f0f0; border-radius: 3px;
-            font-family: "Georgia", serif; font-size: 14px; outline: none;
-            transition: background 0.2s;
-        }
-        .input-group input:focus { background: #e0e0e0; }
-        .input-group input.error { border: 2px solid #9c403d; background: #ffe0e0; }
+        .perk-icon { font-size: 22px; flex-shrink: 0; }
 
         .pw-wrap { position: relative; display: block; }
         .pw-wrap input { padding-right: 40px; width: 100%; }
@@ -243,12 +232,41 @@
             display: block;
         }
 
-        .reg-divider {
-            margin: 18px 0; display: flex; align-items: center; color: #c5a96b;
+        /* Register Modal */
+        .reg-modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            display: none; justify-content: center; align-items: center;
+            z-index: 10000; backdrop-filter: blur(3px);
+            overflow-y: auto; padding: 40px 20px;
         }
-        .reg-divider::before, .reg-divider::after { content: ''; flex: 1; border-bottom: 1px solid #c5a96b; }
-        .reg-divider span { margin: 0 10px; font-size: 13px; }
-
+        .reg-card {
+            position: relative;
+            background: rgba(13,43,15,0.97);
+            padding: 45px 40px; border-radius: 10px;
+            width: 100%; max-width: 500px;
+            border-top: 4px solid var(--gold);
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            margin: auto;
+        }
+        .reg-card h2 { color: var(--gold); font-size: 26px; letter-spacing: 2px; margin-bottom: 8px; }
+        .reg-card .sub { font-size: 14px; margin-bottom: 28px; color: #ccc; }
+        .reg-close-btn {
+            position: absolute; top: 14px; right: 18px;
+            background: none; border: none; color: #aaa;
+            font-size: 22px; cursor: pointer; line-height: 1;
+        }
+        .reg-close-btn:hover { color: white; }
+        .input-group { text-align: left; margin-bottom: 14px; }
+        .input-group label { display: block; font-size: 12px; margin-bottom: 5px; color: var(--gold); }
+        .input-group input {
+            width: 100%; padding: 10px 12px; border: none;
+            background: #f0f0f0; border-radius: 3px; color: #000;
+            font-family: "Georgia", serif; font-size: 14px; outline: none;
+            transition: background 0.2s;
+        }
+        .input-group input:focus { background: #e0e0e0; }
+        .reg-card .pw-wrap input { color: #000; }
         .btn-reg {
             width: 100%; padding: 12px; background: var(--gold);
             border: none; font-weight: bold; margin-top: 8px;
@@ -257,7 +275,6 @@
         }
         .btn-reg:hover:not(:disabled) { background: var(--gold-light); transform: translateY(-2px); }
         .btn-reg:disabled { opacity: 0.6; cursor: not-allowed; }
-
         .btn-google-reg {
             width: 100%; padding: 12px;
             background: transparent; border: 1px solid #c5a96b;
@@ -265,16 +282,19 @@
             font-size: 14px; transition: all 0.3s; margin-top: 8px;
         }
         .btn-google-reg:hover { background: rgba(197,169,107,0.1); }
-
+        .reg-divider {
+            margin: 18px 0; display: flex; align-items: center; color: #c5a96b;
+        }
+        .reg-divider::before, .reg-divider::after { content: ''; flex: 1; border-bottom: 1px solid #c5a96b; }
+        .reg-divider span { margin: 0 10px; font-size: 13px; }
         .terms-row {
             display: flex; align-items: flex-start; gap: 10px;
             margin: 14px 0 6px; text-align: left;
         }
         .terms-row input[type="checkbox"] { accent-color: var(--gold); margin-top: 2px; flex-shrink: 0; }
         .terms-row label { font-size: 12px; color: #ccc; }
-        .terms-row label a { color: var(--gold); text-decoration: none; }
+        .terms-row label a { color: var(--gold); text-decoration: none; cursor: pointer; }
         .terms-row label a:hover { text-decoration: underline; }
-
         .footer-link { margin-top: 18px; font-size: 13px; color: #ccc; }
         .footer-link a { color: var(--gold); text-decoration: none; cursor: pointer; }
         .footer-link a:hover { text-decoration: underline; }
@@ -294,7 +314,7 @@
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.75);
             display: none; justify-content: center; align-items: center;
-            z-index: 10000; backdrop-filter: blur(3px);
+            z-index: 10001; backdrop-filter: blur(3px);
         }
         .modal-box {
             background: var(--deep-green); color: white;
@@ -394,25 +414,20 @@
             </form>
             <div class="divider"><span>or</span></div>
             <button class="google-btn" onclick="handleGoogleLogin()">&#x1F310; Login with Google</button>
-            <p class="signup-link">Don't have an account? <a onclick="goTo('register')">Click here</a></p>
+            <p class="signup-link">Don't have an account? <a onclick="openRegisterModal()">Click here</a></p>
         </div>
     </div>
     <div class="login-right">
-        <nav>
-            <a onclick="goTo('home')">Home</a>
-            <a onclick="goTo('about')">About Us</a>
-            <a onclick="goTo('contacts')">Contacts</a>
-        </nav>
     </div>
 </section>
 
-<section id="register">
+<!-- Register Modal -->
+<div class="reg-modal-overlay" id="registerModal">
     <div class="reg-card">
+        <button class="reg-close-btn" onclick="closeRegisterModal()">&times;</button>
         <h2>REGISTER</h2>
         <p class="sub">Please enter your personal details below.</p>
-        
         <div id="regError" style="background: #9c403d; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 13px;"></div>
-        
         <form onsubmit="handleRegister(event)">
             <div class="input-group">
                 <label>Full Name *</label>
@@ -461,12 +476,30 @@
             </div>
             <button type="submit" class="btn-reg" id="registerBtn">
                 <span id="registerBtnText">Sign Up</span>
-                <span id="registerLoader" style="display: none;">⏳ Processing...</span>
+                <span id="registerLoader" style="display:none;">⏳ Processing...</span>
             </button>
         </form>
         <div class="reg-divider"><span>or</span></div>
         <button class="btn-google-reg" onclick="alert('Google sign up coming soon!')">&#x1F310; Sign up with Google</button>
-        <div class="footer-link">Already have an account? <a onclick="goTo('login')">Click here</a></div>
+        <div class="footer-link">Already have an account? <a onclick="closeRegisterModal()">Sign in</a></div>
+    </div>
+</div>
+
+<section id="register">
+    <div class="membership-ad-content">
+        <p class="membership-ad-eyebrow">Exclusive Membership</p>
+        <h2>Become a Member of<br>ILISY Golf &amp; Country Club</h2>
+        <div class="gold-line" style="width:300px; margin: 18px auto;"></div>
+        <p class="membership-ad-sub">Join an elite community of golf enthusiasts and enjoy world-class privileges.</p>
+        <div class="membership-perks">
+            <div class="perk-item"><span class="perk-icon">🌲</span><span>Well-maintained greens &amp; environment</span></div>
+            <div class="perk-item"><span class="perk-icon">🏌️</span><span>High-quality equipment &amp; facilities</span></div>
+            <div class="perk-item"><span class="perk-icon">📅</span><span>Priority reservation booking</span></div>
+            <div class="perk-item"><span class="perk-icon">💰</span><span>20% member discount on all reservations</span></div>
+            <div class="perk-item"><span class="perk-icon">🏠</span><span>Access to exclusive club amenities</span></div>
+            <div class="perk-item"><span class="perk-icon">😊</span><span>Dedicated accommodating staff</span></div>
+        </div>
+        <a class="btn btn-primary" onclick="goTo('login')">Sign In to Apply</a>
     </div>
 </section>
 
@@ -618,15 +651,6 @@
         }, 5000);
     }
     
-    function showRegisterError(message) {
-        const errorDiv = document.getElementById('regError');
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-        setTimeout(() => {
-            if (errorDiv) errorDiv.style.display = 'none';
-        }, 5000);
-    }
-    
     async function handleLogin(e) {
         e.preventDefault();
         
@@ -715,10 +739,27 @@
     function handleGoogleLogin() {
         showToast('Google login coming soon! Please use regular login for now.', 'error');
     }
-    
+
+    function openRegisterModal() {
+        document.getElementById('registerModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        generateCaptcha();
+    }
+
+    function closeRegisterModal() {
+        document.getElementById('registerModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function showRegisterError(message) {
+        const errorDiv = document.getElementById('regError');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => { if (errorDiv) errorDiv.style.display = 'none'; }, 5000);
+    }
+
     async function handleRegister(e) {
         e.preventDefault();
-        
         const fullName = document.getElementById('regFullName').value.trim();
         const nameParts = fullName.split(' ');
         const firstName = nameParts[0] || '';
@@ -730,108 +771,56 @@
         const confirmPassword = document.getElementById('regConfirmPassword').value;
         const captchaInput = document.getElementById('captchaInput').value.trim();
         const termsCheckbox = document.getElementById('terms');
-        
-        // Validate CAPTCHA
-        if (captchaInput !== currentCaptcha) {
-            showRegisterError('Invalid CAPTCHA code. Please try again.');
-            refreshCaptcha();
-            return;
-        }
-        
-        // Validate password
+
+        if (captchaInput !== currentCaptcha) { showRegisterError('Invalid CAPTCHA code. Please try again.'); refreshCaptcha(); return; }
         const passwordError = validatePassword(password);
-        if (passwordError) {
-            showRegisterError(passwordError);
-            return;
-        }
-        
-        // Validate password match
-        if (password !== confirmPassword) {
-            showRegisterError('Passwords do not match!');
-            return;
-        }
-        
-        // Validate terms
-        if (!termsCheckbox.checked) {
-            showRegisterError('Please accept the Terms & Conditions');
-            return;
-        }
-        
-        // Validate phone number (Philippines format)
+        if (passwordError) { showRegisterError(passwordError); return; }
+        if (password !== confirmPassword) { showRegisterError('Passwords do not match!'); return; }
+        if (!termsCheckbox.checked) { showRegisterError('Please accept the Terms & Conditions'); return; }
         const phoneRegex = /^(09|\+63|0)[0-9]{9,10}$/;
-        if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
-            showRegisterError('Please enter a valid phone number (e.g., 09123456789 or +639123456789)');
-            return;
-        }
-        
-        // Validate email
+        if (!phoneRegex.test(phone.replace(/\s/g, ''))) { showRegisterError('Please enter a valid phone number (e.g., 09123456789)'); return; }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            showRegisterError('Please enter a valid email address');
-            return;
-        }
-        
+        if (!emailRegex.test(email)) { showRegisterError('Please enter a valid email address'); return; }
+
         const registerBtn = document.getElementById('registerBtn');
         const btnText = document.getElementById('registerBtnText');
         const btnLoader = document.getElementById('registerLoader');
-        
-        registerBtn.disabled = true;
-        btnText.style.display = 'none';
-        btnLoader.style.display = 'inline';
-        
-        const formData = {
-            firstName: firstName,
-            lastName: lastName,
-            email: email,
-            phone: phone,
-            username: username,
-            password: password,
-            captcha: captchaInput
-        };
-        
+        registerBtn.disabled = true; btnText.style.display = 'none'; btnLoader.style.display = 'inline';
+
         try {
             const response = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({ firstName, lastName, email, phone, username, password, captcha: captchaInput })
             });
-            
             const data = await response.json();
-            
             if (response.ok) {
                 showToast('Account created successfully! Please log in.', 'success');
-                document.getElementById('regFullName').value = '';
-                document.getElementById('regEmail').value = '';
-                document.getElementById('regPhone').value = '';
-                document.getElementById('regUsername').value = '';
-                document.getElementById('regPassword').value = '';
-                document.getElementById('regConfirmPassword').value = '';
-                document.getElementById('captchaInput').value = '';
+                closeRegisterModal();
+                document.getElementById('registerBtn').disabled = false;
+                ['regFullName','regEmail','regPhone','regUsername','regPassword','regConfirmPassword','captchaInput'].forEach(id => document.getElementById(id).value = '');
                 document.getElementById('terms').checked = false;
-                generateCaptcha();
-                
-                setTimeout(() => {
-                    goTo('login');
-                }, 2000);
             } else {
                 let errorMsg = data.message || 'Registration failed';
-                if (data.errors && data.errors.length > 0) {
-                    errorMsg = data.errors[0].msg;
-                }
+                if (data.errors && data.errors.length > 0) errorMsg = data.errors[0].msg;
                 showRegisterError(errorMsg);
                 refreshCaptcha();
             }
         } catch (error) {
-            console.error('Registration error:', error);
             showRegisterError('Connection error. Please try again.');
             refreshCaptcha();
         } finally {
-            registerBtn.disabled = false;
-            btnText.style.display = 'inline';
-            btnLoader.style.display = 'none';
+            registerBtn.disabled = false; btnText.style.display = 'inline'; btnLoader.style.display = 'none';
         }
     }
-    
+
+    // Close register modal on overlay click
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('registerModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('registerModal')) closeRegisterModal();
+        });
+    });
+
     // Run session check on page load
     checkExistingSession();
 </script>
