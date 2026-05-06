@@ -14,11 +14,13 @@ const userSchema = new mongoose.Schema({
     membershipStatus: { 
         type: String, 
         enum: ['active', 'pending', 'expired', 'none'],
-        default: 'pending'
+        default: 'none'
     },
+    termsAccepted: { type: Boolean, required: true, default: false },
     membershipExpiration: { type: Date },
     membershipType: { type: String },
     isAdmin: { type: Boolean, default: false },
+
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
