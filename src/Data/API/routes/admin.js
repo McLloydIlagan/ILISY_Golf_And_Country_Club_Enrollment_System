@@ -184,6 +184,7 @@ router.post('/messages/:messageId/respond', async (req, res) => {
         const message = await Message.findById(req.params.messageId);
         if (!message) return res.status(404).json({ message: 'Message not found' });
 
+        // Append to existing conversation
         message.conversation.push({ sender: 'admin', message: response, timestamp: new Date() });
         message.response = response;
         message.resolution = resolution || null;
