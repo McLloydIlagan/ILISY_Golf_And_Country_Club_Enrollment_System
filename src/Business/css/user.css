@@ -78,48 +78,108 @@ section { scroll-margin-top: var(--navbar-h); }
 }
 .btn-hero:hover { background: var(--gold); color: black; }
 
-/* Membership Section */
-#membership {
+/* Portal Section */
+#portal {
     min-height: 100vh;
-    background: url('../Golfcourse_assets/golf_register_pic.jpg') no-repeat center/cover;
-    position: relative; display: flex; flex-direction: column;
+    background: var(--deep-green);
+    padding-bottom: 60px;
 }
-#membership::before {
-    content: ""; position: absolute; inset: 0;
-    background: rgba(0,0,0,0.55);
+.portal-header {
+    text-align: center;
+    padding: 60px 60px 0;
+    border-bottom: 1px solid rgba(212,179,106,0.2);
+    padding-bottom: 30px;
 }
-.membership-hero {
-    flex: 1; position: relative; z-index: 2;
-    display: flex; align-items: flex-end; padding: 40px 60px;
+.portal-header h1 { font-size: 36px; color: var(--gold); letter-spacing: 2px; margin-bottom: 8px; }
+.portal-sub { font-size: 14px; color: #aaa; }
+
+/* Tab Bar */
+.tab-bar {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    padding: 30px 60px 0;
+    border-bottom: 2px solid rgba(212,179,106,0.3);
 }
-.membership-hero h2 {
-    font-size: 48px; color: var(--gold);
+.tab-btn {
+    padding: 14px 36px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #aaa;
+    font-family: "Georgia", serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: -2px;
+    letter-spacing: 0.5px;
+}
+.tab-btn:hover { color: var(--gold); }
+.tab-btn.active {
+    color: var(--gold);
+    border-bottom: 3px solid var(--gold);
+}
+
+/* Tab Content */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.tab-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+}
+
+/* Membership hero bar inside tab */
+.membership-hero-bar {
+    padding: 40px 60px 20px;
+    text-align: center;
+}
+.membership-hero-bar h2 {
+    font-size: 36px; color: var(--gold);
     font-style: italic; letter-spacing: 2px; text-transform: uppercase;
 }
-.features-bar {
-    position: relative; z-index: 2;
-    background: var(--deep-green);
+
+/* Section cards inside tabs */
+.section-card {
+    background: white; border-radius: 12px;
+    padding: 40px 50px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     border-top: 3px solid var(--gold);
+}
+.section-card h2 { font-size: 22px; color: #222; margin-bottom: 25px; }
+
+/* Reservation card inside tab */
+.reservation-card {
+    background: white; border-radius: 12px;
+    padding: 40px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    border-top: 3px solid var(--gold);
+}
+
+/* Chat inside tab */
+.chat-wrap { max-width: 800px; margin: 0 auto; }
+.chat-container {
+    background: white; border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    border-top: 3px solid var(--gold);
+    display: flex; flex-direction: column;
+    min-height: 500px; overflow: hidden;
+}
+
+.features-bar {
+    background: rgba(255,255,255,0.05);
+    border-top: 1px solid rgba(212,179,106,0.3);
+    border-bottom: 1px solid rgba(212,179,106,0.3);
     display: flex; justify-content: space-around; padding: 25px 40px;
 }
 .feature-item {
     display: flex; flex-direction: column; align-items: center;
-    gap: 10px; color: white; font-size: 12px; text-align: center;
+    gap: 10px; color: #ccc; font-size: 12px; text-align: center;
 }
 .feature-item .icon { font-size: 26px; }
 
-.membership-form-wrap {
-    position: relative; z-index: 2;
-    background: var(--bg); padding: 50px 60px;
-}
-.section-card {
-    background: white; border-radius: 12px;
-    padding: 40px 50px; max-width: 860px; margin: 0 auto;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-}
-.section-card h2 { font-size: 24px; color: #222; margin-bottom: 25px; }
 .sub-title {
-    font-size: 13px; color: #666;
+    font-size: 13px; color: #888;
     margin: 20px 0 15px; padding-bottom: 6px;
     border-bottom: 1px solid #eee;
 }
@@ -142,26 +202,19 @@ section { scroll-margin-top: var(--navbar-h); }
     border-radius: 5px; font-size: 15px;
     font-family: "Georgia", serif; cursor: pointer; transition: all 0.3s;
 }
-.btn-olive:hover { background: var(--deep-green); transform: translateY(-2px); }
+.btn-olive:hover { background: #4a5a40; transform: translateY(-2px); }
 
-/* Messages Section */
-#messages { background: var(--bg); padding: 60px; min-height: 100vh; display: flex; flex-direction: column; }
-#messages h1 { font-size: 26px; color: #222; margin-bottom: 25px; text-align: center; }
-
-.chat-container {
-    background: white; border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-    display: flex; flex-direction: column;
-    flex: 1; max-width: 800px; margin: 0 auto; width: 100%;
-    min-height: 500px; overflow: hidden;
+.close-modal-btn {
+    background: none; border: none; color: white;
+    font-size: 22px; cursor: pointer; line-height: 1;
 }
+.close-modal-btn:hover { color: var(--gold); }
+
 .chat-body {
     flex: 1; padding: 30px;
     overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
     min-height: 350px;
 }
-
-/* Message Bubbles - Matching Admin Design */
 .msg-bubble {
     background: #f0f0f0;
     padding: 12px 16px;
@@ -249,49 +302,6 @@ section { scroll-margin-top: var(--navbar-h); }
 .send-btn:hover { transform: scale(1.2); }
 
 /* Reservation Section */
-#reservation { background: var(--bg); padding: 60px; min-height: 100vh; }
-#reservation h1 { font-size: 26px; color: #222; margin-bottom: 30px; text-align: center; }
-
-.reservation-card {
-    background: white; border-radius: 12px;
-    padding: 40px; max-width: 860px; margin: 0 auto;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-}
-
-.dual-cal { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
-.cal-col + .cal-col { border-left: 1px solid #ddd; }
-.cal-header {
-    background: var(--olive); color: white;
-    padding: 14px 18px; display: flex;
-    justify-content: space-between; align-items: center;
-}
-.cal-header h3 { font-size: 15px; font-weight: normal; }
-.nav-btn {
-    background: rgba(255,255,255,0.2); border: none; color: white;
-    width: 28px; height: 28px; border-radius: 50%;
-    cursor: pointer; font-size: 13px; transition: background 0.2s;
-}
-.nav-btn:hover { background: rgba(255,255,255,0.35); }
-.cal-grid {
-    display: grid; grid-template-columns: repeat(7,1fr);
-    padding: 14px; gap: 5px; background: #f5f3f5;
-}
-.day-lbl { font-size: 10px; color: #aaa; text-align: center; font-weight: bold; text-transform: uppercase; }
-.day-box {
-    aspect-ratio: 1; background: #d4cdd4; border-radius: 3px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; cursor: pointer; transition: all 0.2s;
-}
-.day-box:hover:not(.empty):not(.booked) { transform: scale(1.1); background: #bbb; }
-.day-box.booked { background: var(--booked); color: white; cursor: not-allowed; }
-.day-box.partial { background: var(--gold); color: white; }
-.day-box.empty { background: transparent; cursor: default; }
-
-.legend { display: flex; gap: 28px; margin-bottom: 25px; justify-content: center; }
-.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-.leg-box { width: 18px; height: 18px; border-radius: 3px; }
-
-/* Payment Layout */
 .payment-layout { display: grid; grid-template-columns: 1fr 300px; gap: 25px; max-width: 900px; margin: 0 auto; }
 .payment-card {
     background: white; border-radius: 12px;

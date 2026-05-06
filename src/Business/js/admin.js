@@ -275,6 +275,12 @@ async function loadPayments() {
             
             payments.forEach(payment => {
                 const row = tbody.insertRow();
+                const isRefunded = payment.paymentStatus === 'refunded';
+                const statusColors = {
+                    completed: '#28a745', pending: '#856404', refunded: '#9c403d',
+                    failed: '#dc3545', processing: '#0d6efd'
+                };
+                const statusColor = statusColors[payment.paymentStatus] || '#666';
                 row.innerHTML = `
                     <td>${escapeHtml(payment.firstName || '')}</td>
                     <td>${escapeHtml(payment.lastName || '')}</td>
@@ -283,7 +289,11 @@ async function loadPayments() {
                     <td>₱${(payment.amount || 0).toLocaleString()}</td>
                     <td>${payment.processedAt ? new Date(payment.processedAt).toLocaleDateString() : payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : 'Pending'}</td>
                     <td><span class="badge ${payment.transactionType === 'membership' ? 'badge-active' : 'badge-none'}">${escapeHtml(payment.transactionType || 'N/A')}</span></td>
-                    <td><button class="btn-refund" onclick="showRefundModal('${payment._id}', '${escapeHtml(payment.firstName)} ${escapeHtml(payment.lastName)}')">Refund</button></td>
+                    <td>
+                        <span style="background:${statusColor}; color:white; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold;">${payment.paymentStatus || 'pending'}</span>
+                        ${isRefunded && payment.refundReason ? `<br><small style="color:#aaa; font-size:10px;">${escapeHtml(payment.refundReason)}</small>` : ''}
+                    </td>
+                    <td><button class="btn-refund" onclick="showRefundModal('${payment._id}', '${escapeHtml(payment.firstName)} ${escapeHtml(payment.lastName)}')" ${isRefunded ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''}>Refund</button></td>
                 `;
             });
         }

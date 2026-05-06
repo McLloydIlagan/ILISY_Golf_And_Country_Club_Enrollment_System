@@ -734,7 +734,7 @@ function selectTimeSlot() {
 // Navigation & Initialization
 // ──────────────────────────────────────────────────────────────────
 
-const sections = ['home', 'membership', 'messages', 'reservation'];
+const sections = ['home', 'portal'];
 
 window.addEventListener('scroll', () => {
     const nav = document.getElementById('mainNav');
