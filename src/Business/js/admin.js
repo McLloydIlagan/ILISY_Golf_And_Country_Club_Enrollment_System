@@ -849,7 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const msgInput = document.getElementById('adminMsgInput');
     if (msgInput) {
         msgInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') adminSendMsg();
+            if (e.key === 'Enter') { e.preventDefault(); adminSendMsg(); }
         });
     }
     

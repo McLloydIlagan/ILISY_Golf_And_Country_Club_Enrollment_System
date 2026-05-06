@@ -185,31 +185,34 @@ router.post('/messages/:messageId/respond', async (req, res) => {
         const { response, resolution, feedback } = req.body;
         if (!response) return res.status(400).json({ message: 'Response is required' });
 
-        const message = await Message.findById(req.params.messageId);
+        const message = await Message.findByIdAndUpdate(
+            req.params.messageId,
+            {
+                $push: { conversation: { sender: 'admin', message: response, timestamp: new Date() } },
+                $set: {
+                    response,
+                    resolution: resolution || null,
+                    status: resolution ? 'resolved' : 'acknowledged',
+                    resolvedAt: resolution ? new Date() : null
+                }
+            },
+            { new: true }
+        );
         if (!message) return res.status(404).json({ message: 'Message not found' });
-
-        // Append to existing conversation
-        message.conversation.push({ 
-            sender: 'admin', 
-            message: response, 
-            timestamp: new Date() 
-        });
-        message.response = response;
-        message.resolution = resolution || null;
-        message.status = resolution ? 'resolved' : 'acknowledged';
-        message.resolvedAt = resolution ? new Date() : null;
-        await message.save();
 
         // Update or create record in records collection for archiving
         let record = await Record.findOne({ messageId: message._id });
         
         if (record) {
             // Update existing record
-            record.conversation = message.conversation;
-            record.feedback = feedback || response;
-            record.resolution = resolution || null;
-            record.recordedAt = new Date();
-            await record.save();
+            await Record.findByIdAndUpdate(record._id, {
+                $set: {
+                    conversation: message.conversation,
+                    feedback: feedback || response,
+                    resolution: resolution || null,
+                    recordedAt: new Date()
+                }
+            });
         } else {
             // Create new record only if it doesn't exist
             record = new Record({

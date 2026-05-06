@@ -767,7 +767,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const msgInput = document.getElementById('msgInput');
     if (msgInput) {
         msgInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
+            if (e.key === 'Enter') { e.preventDefault(); sendMessage(); }
         });
     }
     
