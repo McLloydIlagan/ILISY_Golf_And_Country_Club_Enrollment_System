@@ -1205,6 +1205,301 @@ function calculateOriginalPrice() {
     return total;
 }
 
+// 1. Shows the Payment Form after clicking "Proceed to Payment" on the first popup
+function showPaymentSection() {
+    // Hide the popup
+    document.getElementById('membershipPopup').style.display = 'none';
+    
+    // Hide the personal details form section
+    const personalDetailsCard = document.querySelector('#tab-membership .section-card');
+    if (personalDetailsCard) {
+        personalDetailsCard.style.display = 'none';
+    }
+    
+    // Show the payment form section
+    document.getElementById('membershipPayment').style.display = 'block';
+    
+    // Scroll to the top of the payment form so the user sees it
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/// Submits the Membership Payment with STRICT formatting checks
+function submitMembership(event) {
+    const btn = event ? event.target : document.querySelector('#membershipPayment .btn-pay-now');
+    const activeMethod = document.querySelector('#membershipPayment .pm-tab.active').innerText.trim();
+    const accountInput = document.getElementById('paymentAccount').value.trim();
+
+    // 1. Validate Card Payments
+    if (activeMethod.includes('Card')) {
+        // Find Expiration and CVC
+        const expiryInput = document.querySelector('#membershipPayment input[placeholder="MM/YY"]');
+        const expiry = expiryInput ? expiryInput.value.trim() : '';
+        const cvc = document.getElementById('cardCvc') ? document.getElementById('cardCvc').value.trim() : '';
+
+        // Clean spaces from card number (e.g., "1234 5678" becomes "12345678")
+        const cleanCard = accountInput.replace(/\s+/g, '');
+        
+        if (!/^\d{16}$/.test(cleanCard)) {
+            return showPaymentError(btn, "Invalid Card: Must be exactly 16 digits.");
+        }
+        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) {
+            return showPaymentError(btn, "Invalid Expiration: Use MM/YY format (e.g., 12/26).");
+        }
+        if (!/^\d{3,4}$/.test(cvc)) {
+            return showPaymentError(btn, "Invalid CVC: Must be 3 or 4 digits.");
+        }
+    } 
+    // 2. Validate GCash / Maya Payments
+    else {
+        const reference = document.getElementById('referenceNumber').value.trim();
+        
+        // Clean spaces or dashes from the phone number just in case the user typed them
+        const cleanPhone = accountInput.replace(/[\s-]/g, '');
+        
+        if (!/^(09\d{9}|\+639\d{9})$/.test(cleanPhone)) {
+            return showPaymentError(btn, `Invalid ${activeMethod}: Must be a valid 11-digit mobile number.`);
+        }
+        if (reference.length < 6) {
+            return showPaymentError(btn, "Invalid Reference ID: Please enter the exact transaction ID.");
+        }
+    }
+
+    // If everything is strictly correct, process it!
+    processPaymentAndShowReceipt('memFirstName', 'memLastName', 'membershipPayment');
+}
+
+// 3. Generates a .txt file and forces the browser to download it
+function downloadReceiptText() {
+    const tracking = document.getElementById('receiptTracking').textContent;
+    const name = document.getElementById('receiptName').textContent;
+    const date = new Date().toLocaleDateString();
+    
+    // This is the actual text that will be saved in the downloaded file
+    const receiptContent = `
+=========================================
+      ILISY GOLF & COUNTRY CLUB
+           OFFICIAL RECEIPT
+=========================================
+Date: ${date}
+Tracking Number: ${tracking}
+
+Member Name: ${name}
+Payment For: Membership Application
+Amount Paid: Php 1,000,000.00
+
+Status: Pending Admin Verification
+=========================================
+Thank you for applying to ILISY!
+Please keep this tracking number for your records.
+`;
+    
+    // Create a virtual file (Blob) in the browser's memory
+    const blob = new Blob([receiptContent], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    
+    // Set the downloaded file name
+    link.download = `ILISY_Receipt_${tracking}.txt`;
+    
+    // Simulate a click to start the download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 4. Closes everything and resets the page
+function closeReceiptAndReset() {
+    document.getElementById('receiptPopup').style.display = 'none';
+    window.location.reload(); // Refreshes the page to clear the form
+}
+
+// 1. Handles clicking the payment method buttons
+function pickMethod(btn) {
+    // Remove the 'active' blue highlight from ALL buttons
+    document.querySelectorAll('.pm-tab').forEach(b => b.classList.remove('active'));
+    
+    // Add the highlight ONLY to the clicked button
+    btn.classList.add('active');
+
+    // Get the elements we need to swap around
+    const method = btn.innerText.trim();
+    const accountLabel = document.getElementById('labelPaymentAccount');
+    const accountInput = document.getElementById('paymentAccount');
+    const secondaryRow = document.getElementById('secondaryRow'); // Expiry & CVC
+    const ewalletRow = document.getElementById('ewalletRow'); // Reference ID
+    const cardIcons = document.getElementById('cardIcons');
+
+    // Logic to swap the form fields based on what was clicked
+    if (method.includes('Card')) {
+        accountLabel.innerText = 'Card number';
+        accountInput.placeholder = '0000 0000 0000 0000';
+        cardIcons.style.display = 'block';
+        secondaryRow.style.display = 'flex'; 
+        ewalletRow.style.display = 'none'; 
+    } 
+    else if (method.includes('GCash') || method.includes('Maya')) {
+        accountLabel.innerText = method.includes('GCash') ? 'GCash Mobile Number' : 'Maya Mobile Number';
+        accountInput.placeholder = '09XX XXX XXXX';
+        cardIcons.style.display = 'none';
+        secondaryRow.style.display = 'none';
+        ewalletRow.style.display = 'block';
+    }
+}
+
+// Smart helper to show errors right above the pay button without ugly alerts
+function showPaymentError(buttonElement, message) {
+    // Remove old error if they clicked twice
+    const oldErr = document.getElementById('tempPayError');
+    if (oldErr) oldErr.remove();
+
+    // Create a new elegant red text warning
+    const err = document.createElement('div');
+    err.id = 'tempPayError';
+    err.style.color = '#9c403d';
+    err.style.fontSize = '13px';
+    err.style.marginBottom = '12px';
+    err.style.textAlign = 'center';
+    err.style.fontWeight = 'bold';
+    err.textContent = '⚠ ' + message;
+
+    // Insert it exactly above the button they just clicked
+    buttonElement.parentNode.insertBefore(err, buttonElement);
+    
+    // Make it vanish after 4 seconds
+    setTimeout(() => { if (err.parentNode) err.remove(); }, 4000);
+}
+
+// Submits the Membership Payment
+function submitMembership(event) {
+    // Get the button that was clicked so we can put errors above it
+    const btn = event ? event.target : document.querySelector('#membershipPayment .btn-pay-now');
+    
+    const activeMethod = document.querySelector('#membershipPayment .pm-tab.active').innerText.trim();
+    const account = document.getElementById('paymentAccount').value.trim();
+
+    // Validate based on the currently active tab (Card vs GCash)
+    if (activeMethod.includes('Card')) {
+        const cvc = document.getElementById('cardCvc') ? document.getElementById('cardCvc').value.trim() : '123'; // Fallback if ID is missing
+        if (!account || !cvc) {
+            return showPaymentError(btn, "Please enter your Card Number and Security Code (CVC).");
+        }
+    } else {
+        const reference = document.getElementById('referenceNumber').value.trim();
+        if (!account || !reference) {
+            return showPaymentError(btn, `Please enter your ${activeMethod} Number and Reference ID.`);
+        }
+    }
+
+    // If successful, show loader and receipt!
+    processPaymentAndShowReceipt('memFirstName', 'memLastName', 'membershipPayment');
+}
+
+// Submits the Reservation Payment with STRICT formatting checks
+function submitDynamicReservationPayment(event) {
+    const btn = event ? event.target : document.querySelector('#reservationPayment .btn-olive');
+    const activeMethod = document.querySelector('#reservationPayment .pm-tab.active').innerText.trim();
+    const accountInput = document.getElementById('resPaymentAccount').value.trim();
+    const reference = document.getElementById('resReferenceNumber').value.trim();
+
+    // Basic empty check
+    if (!accountInput || !reference) {
+         return showPaymentError(btn, `Please enter your ${activeMethod} details and Reference ID.`);
+    }
+
+    // Strict regex checks based on the active tab
+    if (activeMethod.includes('GCash') || activeMethod.includes('Maya')) {
+        const cleanPhone = accountInput.replace(/[\s-]/g, '');
+        if (!/^(09\d{9}|\+639\d{9})$/.test(cleanPhone)) {
+            return showPaymentError(btn, `Invalid ${activeMethod}: Must be a valid 11-digit mobile number.`);
+        }
+    } else if (activeMethod.includes('Card')) {
+        const cleanCard = accountInput.replace(/\s+/g, '');
+        if (!/^\d{16}$/.test(cleanCard)) {
+            return showPaymentError(btn, "Invalid Card: Must be exactly 16 digits.");
+        }
+    }
+
+    if (reference.length < 6) {
+        return showPaymentError(btn, "Invalid Reference ID: Please enter the exact transaction ID.");
+    }
+
+    // If everything is strictly correct, process it!
+    processPaymentAndShowReceipt('resFirstName', 'resLastName', 'reservationPayment');
+}
+
+// Universal function to trigger the processing screen and receipt popup
+function processPaymentAndShowReceipt(firstNameId, lastNameId, paymentSectionId) {
+    document.getElementById('processingOverlay').style.display = 'flex';
+
+    setTimeout(() => {
+        document.getElementById('processingOverlay').style.display = 'none';
+        
+        // Generate Tracking Number
+        const trackingNum = 'TRK-' + Math.floor(Math.random() * 900000 + 100000);
+        document.getElementById('receiptTracking').textContent = trackingNum;
+        
+        // Grab Name
+        const fName = document.getElementById(firstNameId).value;
+        const lName = document.getElementById(lastNameId).value;
+        document.getElementById('receiptName').textContent = fName + ' ' + lName;
+
+        // Swap Screens
+        document.getElementById(paymentSectionId).style.display = 'none';
+        document.getElementById('receiptPopup').style.display = 'flex';
+    }, 2000);
+}
+
+// Validates the Reservation Personal Details before showing payment
+function submitDynamicReservation() {
+    // 1. Grab all the values
+    const fName = document.getElementById('resFirstName').value.trim();
+    const lName = document.getElementById('resLastName').value.trim();
+    const gender = document.getElementById('resGender').value;
+    const phone = document.getElementById('resPhone').value.trim();
+    const email = document.getElementById('resEmail').value.trim();
+    const resType = document.getElementById('reservationTypeSelect').value;
+
+    const errorDiv = document.getElementById('resError');
+
+    // Helper to show errors smoothly
+    const showError = (msg) => {
+        if (errorDiv) {
+            errorDiv.textContent = '⚠ ' + msg;
+            errorDiv.style.display = 'block';
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+        }
+    };
+
+    // 2. Check for empty fields
+    if (!fName || !lName || !gender || !phone || !email || !resType) {
+        return showError("Please fill out all personal details and select a reservation type.");
+    }
+
+    // 3. Validate Email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return showError("Please enter a valid email address.");
+    }
+
+    // 4. Validate Phone Number
+    const cleanPhone = phone.replace(/[\s-]/g, '');
+    const phoneRegex = /^(09\d{9}|\+639\d{9})$/;
+    if (!phoneRegex.test(cleanPhone)) {
+        return showError("Please enter a valid 11-digit mobile number.");
+    }
+
+    // 5. If everything is perfect, hide errors and swap to the payment screen!
+    if (errorDiv) errorDiv.style.display = 'none';
+    
+    // Hide the details form and show the payment card
+    document.querySelector('#tab-reservation .reservation-card').style.display = 'none';
+    document.getElementById('reservationPayment').style.display = 'block';
+    
+    // Scroll to the top of the new payment section
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+
 
 
 window.submitDynamicReservation = submitDynamicReservation;

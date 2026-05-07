@@ -264,7 +264,7 @@ section { scroll-margin-top: var(--navbar-h); }
     /* ... keep your other responsive code here ... */
 }
 .form-group { display: flex; flex-direction: column; }
-.form-group label { font-size: 11px; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+.form-group label { font-size: 11px; color: #181818; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
 .form-group input, .form-group select {
     background: #e8e8e8; border: none;
     padding: 11px 12px; border-radius: 4px;
@@ -853,4 +853,108 @@ section { scroll-margin-top: var(--navbar-h); }
     .hero-content {
         padding: 0 20px;
     }
+}
+
+/* Modern Stripe-Style Checkout */
+.modern-checkout {
+    padding: 35px 45px;
+    border-radius: 12px;
+}
+.checkout-header h2 { 
+    font-size: 22px; 
+    margin-bottom: 25px; 
+    color: #1a1f36; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.payment-method-tabs {
+    display: flex; 
+    gap: 12px; 
+    margin-bottom: 25px;
+}
+.pm-tab {
+    flex: 1; 
+    padding: 14px 10px;
+    background: white; 
+    border: 1px solid #e0e6eb;
+    border-radius: 6px; 
+    cursor: pointer;
+    font-size: 14px; 
+    font-weight: 600; 
+    color: #4f566b;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    transition: all 0.2s ease;
+}
+.pm-tab.active {
+    border: 2px solid #5a67d8; /* The signature blue from the reference */
+    color: #5a67d8;
+    background: #f8faff;
+}
+
+.checkout-form .form-group label {
+    font-size: 13px; 
+    font-weight: 600; 
+    color: #30313d; 
+    margin-bottom: 8px; 
+    display: block; 
+    text-transform: none; 
+    letter-spacing: normal;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.checkout-form input {
+    width: 100%; 
+    padding: 14px 16px;
+    border: 1px solid #e0e6eb; 
+    border-radius: 6px;
+    font-size: 15px; 
+    background: #fff;
+    color: #1a1f36;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.checkout-form input:focus { 
+    border-color: #5a67d8; 
+    outline: none; 
+    box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.15);
+}
+.checkout-form input::placeholder {
+    color: #a3acb9;
+}
+
+.input-with-icon { 
+    position: relative; 
+}
+.card-brands {
+    position: absolute; 
+    right: 15px; 
+    top: 50%; 
+    transform: translateY(-50%);
+    font-size: 12px; 
+    font-weight: 800; 
+    color: #1a1f36; 
+}
+
+.btn-pay-now {
+    width: 100%; 
+    padding: 16px; 
+    margin-top: 30px;
+    background: #5a67d8; /* Matching the reference button */
+    color: white;
+    border: none; 
+    border-radius: 6px;
+    font-size: 16px; 
+    font-weight: 600; 
+    cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    transition: background 0.2s, transform 0.1s; 
+}
+.btn-pay-now:hover { 
+    background: #434ce6; 
+}
+.btn-pay-now:active {
+    transform: scale(0.98);
 }
