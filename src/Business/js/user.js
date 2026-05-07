@@ -584,33 +584,61 @@ async function submitMembership() {
 }
 
 function proceedToMembershipPayment() {
-    // Validate personal details first
-    const firstName = document.getElementById('memFirstName').value.trim();
-    const lastName = document.getElementById('memLastName').value.trim();
+    // 1. Grab all the values from the form
+    const fName = document.getElementById('memFirstName').value.trim();
+    const lName = document.getElementById('memLastName').value.trim();
+    const gender = document.getElementById('memGender').value;
+    const age = document.getElementById('memAge').value.trim();
     const email = document.getElementById('memEmail').value.trim();
+    const address = document.getElementById('memAddress').value.trim();
     const phone = document.getElementById('memPhone').value.trim();
-    
-    if (!firstName || !lastName || !email || !phone) {
-        alert('Please fill in all personal details first');
-        return;
+
+    const errorDiv = document.getElementById('memError');
+
+    // Helper function to display errors
+    const showError = (msg) => {
+        if (errorDiv) {
+            errorDiv.textContent = '⚠ ' + msg;
+            errorDiv.style.display = 'block';
+            // Hide error after 5 seconds
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000); 
+        } else {
+            alert(msg); // Fallback if HTML div is missing
+        }
+    };
+
+    // 2. Check for empty fields
+    if (!fName || !lName || !gender || !age || !email || !address || !phone) {
+        return showError('Please fill out all required personal details.');
     }
-    
+
+    // 3. Validate Age (Must be a valid number)
+    if (isNaN(age) || parseInt(age) < 1) {
+        return showError('Please enter a valid age.');
+    }
+
+    // 4. Validate Email Format using Regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-        alert('Please enter a valid email address');
-        return;
+        return showError('Please enter a valid email address (e.g., name@gmail.com).');
     }
+
+    // 5. Validate Phone Number (Philippine Format)
+    // Remove spaces or dashes just in case the user typed "0912 345 6789"
+    const cleanPhone = phone.replace(/[\s-]/g, '');
     
-    const phoneRegex = /^[0-9+\-\s]{7,15}$/;
-    if (!phoneRegex.test(phone)) {
-        alert('Please enter a valid phone number');
-        return;
+    // Checks for exactly 11 digits starting with "09", OR "+639" followed by 9 digits
+    const phoneRegex = /^(09\d{9}|\+639\d{9})$/;
+    
+    if (!phoneRegex.test(cleanPhone)) {
+        return showError('Please enter a valid 11-digit mobile number (e.g., 09123456789).');
     }
+
+    // 6. If all validation passes, hide errors and show the popup!
+    if (errorDiv) errorDiv.style.display = 'none';
     
-    // Hide the popup and show payment form
-    document.getElementById('membershipPopup').style.display = 'none';
-    document.getElementById('membershipPayment').style.display = 'block';
-    document.getElementById('membershipPayment').scrollIntoView({ behavior: 'smooth' });
+    // Trigger your popup
+    document.getElementById('membershipPopup').style.display = 'flex';
 }
 
 // ──────────────────────────────────────────────────────────────────
