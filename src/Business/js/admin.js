@@ -761,11 +761,17 @@ async function processRefund() {
 // Reservations Management
 // ──────────────────────────────────────────────────────────────────
 
+let allReservations = [];
+let filteredReservations = [];
+let currentReservationPage = 1;
+const reservationsPerPage = 10;
+
 async function loadReservations() {
     const token = getAuthToken();
     if (!token) return;
     
     try {
+        // Fetch ALL applications (not just pending)
         const response = await fetch(`${API_URL}/admin/applications`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -776,31 +782,248 @@ async function loadReservations() {
         }
         
         if (response.ok) {
-            const applications = await response.json();
+            allReservations = await response.json();
+            console.log('Loaded reservations:', allReservations.length); // Debug log
+            filterReservationsTable();
+        } else {
+            const error = await response.json();
+            console.error('Error response:', error);
             const tbody = document.getElementById('reservationAppTbody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            
-            if (applications.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No reservation applications found</td></tr>';
-                return;
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#dc3545;">Error loading reservations</td></tr>';
             }
-            
-            applications.forEach(app => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${escapeHtml(app.firstName)} ${escapeHtml(app.lastName)}</td>
-                    <td>${app.details?.date ? new Date(app.details.date).toLocaleDateString() : 'N/A'}</td>
-                    <td>${escapeHtml(app.details?.timeSlot || 'N/A')}</td>
-                    <td>
-                        <button class="action-btn btn-approve" onclick="approveReservation('${app._id}')">Approve</button>
-                        <button class="btn-remove" onclick="rejectReservation('${app._id}')">Reject</button>
-                    </td>
-                `;
-            });
         }
     } catch (error) {
         console.error('Error loading reservations:', error);
+        const tbody = document.getElementById('reservationAppTbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#dc3545;">Error loading reservations</td></tr>';
+        }
+    }
+}
+
+function filterReservationsTable() {
+    const searchInput = document.getElementById('reservationSearchInput');
+    const statusFilter = document.getElementById('reservationStatusFilter');
+    
+    const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
+    const statusFilterValue = statusFilter ? statusFilter.value : 'all';
+    
+    console.log('Filtering reservations. Total:', allReservations.length); // Debug log
+    
+    filteredReservations = allReservations.filter(app => {
+        // Search filter (name, email, phone)
+        const fullName = `${app.firstName} ${app.lastName}`.toLowerCase();
+        const email = (app.email || '').toLowerCase();
+        const phone = (app.phone || '').toLowerCase();
+        const matchesSearch = fullName.includes(searchQuery) || 
+                              email.includes(searchQuery) || 
+                              phone.includes(searchQuery);
+        
+        // Status filter
+        let matchesStatus = true;
+        if (statusFilterValue !== 'all') {
+            matchesStatus = app.status === statusFilterValue;
+        }
+        
+        return matchesSearch && matchesStatus;
+    });
+    
+    console.log('Filtered reservations:', filteredReservations.length); // Debug log
+    
+    currentReservationPage = 1;
+    renderReservationsTable();
+}
+
+function renderReservationsTable() {
+    const tbody = document.getElementById('reservationAppTbody');
+    if (!tbody) {
+        console.error('reservationAppTbody not found');
+        return;
+    }
+    
+    const startIndex = (currentReservationPage - 1) * reservationsPerPage;
+    const endIndex = startIndex + reservationsPerPage;
+    const pageReservations = filteredReservations.slice(startIndex, endIndex);
+    
+    console.log('Rendering reservations:', pageReservations.length); // Debug log
+    
+    if (pageReservations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No reservation applications found</td></tr>';
+        const paginationDiv = document.getElementById('reservationPagination');
+        if (paginationDiv) paginationDiv.innerHTML = '';
+        return;
+    }
+    
+    tbody.innerHTML = pageReservations.map(app => {
+        // Determine status class and text
+        let statusClass = 'status-pending';
+        let statusText = '⏳ Pending';
+        
+        if (app.status === 'approved') {
+            statusClass = 'status-confirmed';
+            statusText = '✓ Approved';
+        } else if (app.status === 'confirmed') {
+            statusClass = 'status-confirmed';
+            statusText = '✓ Confirmed';
+        } else if (app.status === 'rejected') {
+            statusClass = 'status-rejected';
+            statusText = '✗ Rejected';
+        } else if (app.status === 'processing') {
+            statusClass = 'status-pending';
+            statusText = '⏳ Processing';
+        }
+        
+        // Get date and time from details
+        const displayDate = app.details?.date ? new Date(app.details.date).toLocaleDateString() : 'N/A';
+        const displayTime = app.details?.timeSlot || 'N/A';
+        const displayType = app.type === 'membership' ? '🏌️ Membership' : '📅 Reservation';
+        
+        return `
+            <tr>
+                <td>
+                    <strong>${escapeHtml(app.firstName)} ${escapeHtml(app.lastName)}</strong><br>
+                    <small style="color:#666;">${escapeHtml(app.email || '')}</small>
+                </td>
+                <td>${displayDate}</td>
+                <td>${escapeHtml(displayTime)}</td>
+                <td><span class="badge" style="background:var(--sage);">${displayType}</span></td>
+                <td><strong>₱${(app.amount || 0).toLocaleString()}</strong></td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                <td>
+                    ${app.status === 'pending' ? `
+                        <button class="action-btn btn-approve" onclick="approveReservation('${app._id}')">Approve</button>
+                        <button class="btn-remove" onclick="rejectReservation('${app._id}')">Reject</button>
+                    ` : ''}
+                    <button class="btn-view-details" onclick="viewReservationDetails('${app._id}')" style="background: var(--sage-dark); color:#333; padding:4px 12px; border:none; border-radius:3px; font-size:12px; cursor:pointer;">Details</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    // Render pagination
+    renderReservationPagination();
+}
+
+function renderReservationPagination() {
+    const paginationDiv = document.getElementById('reservationPagination');
+    if (!paginationDiv) return;
+    
+    const totalPages = Math.ceil(filteredReservations.length / reservationsPerPage);
+    
+    if (totalPages <= 1) {
+        paginationDiv.innerHTML = '';
+        return;
+    }
+    
+    let paginationHtml = '';
+    
+    // Previous button
+    paginationHtml += `<button class="pagination-btn" onclick="changeReservationPage(${currentReservationPage - 1})" ${currentReservationPage === 1 ? 'disabled' : ''}>◀ Prev</button>`;
+    
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentReservationPage - 2 && i <= currentReservationPage + 2)) {
+            paginationHtml += `<button class="pagination-btn ${i === currentReservationPage ? 'active' : ''}" onclick="changeReservationPage(${i})">${i}</button>`;
+        } else if (i === currentReservationPage - 3 || i === currentReservationPage + 3) {
+            paginationHtml += `<span class="pagination-dots">...</span>`;
+        }
+    }
+    
+    // Next button
+    paginationHtml += `<button class="pagination-btn" onclick="changeReservationPage(${currentReservationPage + 1})" ${currentReservationPage === totalPages ? 'disabled' : ''}>Next ▶</button>`;
+    
+    paginationDiv.innerHTML = paginationHtml;
+}
+
+function changeReservationPage(page) {
+    const totalPages = Math.ceil(filteredReservations.length / reservationsPerPage);
+    if (page < 1 || page > totalPages) return;
+    currentReservationPage = page;
+    renderReservationsTable();
+}
+
+function resetReservationFilters() {
+    const searchInput = document.getElementById('reservationSearchInput');
+    const statusFilter = document.getElementById('reservationStatusFilter');
+    
+    if (searchInput) searchInput.value = '';
+    if (statusFilter) statusFilter.value = 'all';
+    
+    filterReservationsTable();
+}
+
+async function viewReservationDetails(appId) {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/admin/application/${appId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        if (response.ok) {
+            const app = await response.json();
+            
+            // Create a modal to show details
+            const modalHtml = `
+                <div class="modal-overlay show" id="reservationDetailModal" style="display:flex;">
+                    <div class="validate-modal" style="max-width: 500px;">
+                        <div class="validate-modal-header">
+                            <h3>📋 Reservation Details</h3>
+                            <button class="close-modal-btn" onclick="closeModal('reservationDetailModal')">&times;</button>
+                        </div>
+                        <div class="validate-modal-body">
+                            <div class="app-detail-section">
+                                <h4>👤 Customer Information</h4>
+                                <div class="detail-row"><span class="detail-label">Name:</span><span class="detail-value">${escapeHtml(app.firstName)} ${escapeHtml(app.lastName)}</span></div>
+                                <div class="detail-row"><span class="detail-label">Email:</span><span class="detail-value">${escapeHtml(app.email)}</span></div>
+                                <div class="detail-row"><span class="detail-label">Phone:</span><span class="detail-value">${escapeHtml(app.phone)}</span></div>
+                            </div>
+                            <div class="app-detail-section">
+                                <h4>📅 Reservation Details</h4>
+                                <div class="detail-row"><span class="detail-label">Date:</span><span class="detail-value">${app.details?.date ? new Date(app.details.date).toLocaleDateString() : 'N/A'}</span></div>
+                                <div class="detail-row"><span class="detail-label">Time Slot:</span><span class="detail-value">${escapeHtml(app.details?.timeSlot || 'N/A')}</span></div>
+                                <div class="detail-row"><span class="detail-label">Type:</span><span class="detail-value">${app.type === 'membership' ? 'Membership' : 'Reservation'}</span></div>
+                                <div class="detail-row"><span class="detail-label">Amount:</span><span class="detail-value"><strong>₱${(app.amount || 0).toLocaleString()}</strong></span></div>
+                                <div class="detail-row"><span class="detail-label">Status:</span><span class="detail-value"><span class="status-badge ${app.status === 'pending' ? 'status-pending' : 'status-confirmed'}">${app.status}</span></span></div>
+                            </div>
+                            <div class="app-detail-section">
+                                <h4>💰 Payment Information</h4>
+                                <div class="detail-row"><span class="detail-label">Method:</span><span class="detail-value">${escapeHtml(app.paymentMethod || 'N/A')}</span></div>
+                                <div class="detail-row"><span class="detail-label">Account #:</span><span class="detail-value">${escapeHtml(app.accountNumber || 'N/A')}</span></div>
+                                <div class="detail-row"><span class="detail-label">Reference #:</span><span class="detail-value highlight">${escapeHtml(app.referenceNumber || 'N/A')}</span></div>
+                            </div>
+                            <div class="modal-action-buttons" style="margin-top: 20px;">
+                                <button class="btn-verify" onclick="approveReservation('${app._id}'); closeModal('reservationDetailModal');">✓ Approve</button>
+                                <button class="btn-reject-modal" onclick="rejectReservation('${app._id}'); closeModal('reservationDetailModal');">✗ Reject</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('reservationDetailModal');
+            if (existingModal) existingModal.remove();
+            
+            // Add modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Add click outside to close
+            const modal = document.getElementById('reservationDetailModal');
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal('reservationDetailModal');
+            });
+        }
+    } catch (error) {
+        console.error('Error viewing details:', error);
+        showToast('Error loading details', 'error');
     }
 }
 
@@ -833,14 +1056,21 @@ async function approveReservation(appId) {
     }
 }
 
+
 async function rejectReservation(appId) {
     const token = getAuthToken();
     if (!token) return;
     
+    const reason = prompt('Enter rejection reason (optional):');
+    
     try {
         const response = await fetch(`${API_URL}/admin/reservations/${appId}/reject`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ rejectionReason: reason || 'No reason provided' })
         });
         
         if (response.status === 401) {

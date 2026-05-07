@@ -56,7 +56,7 @@ router.delete('/users/:userId', async (req, res) => {
 
 router.get('/applications', async (req, res) => {
     try {
-        const applications = await Application.find({ status: 'pending' });
+        const applications = await Application.find().sort({ createdAt: -1 });
         res.json(applications);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -260,7 +260,6 @@ router.get('/pending-applications', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-
 // Get application by ID with full details
 router.get('/application/:appId', async (req, res) => {
     try {
