@@ -126,16 +126,24 @@
                 </div>
 
                 <div class="payment-method-tabs">
-                    <button class="pm-tab method-btn active" onclick="pickMethod(this)"><span class="pm-icon">💳</span> Card</button>
-                    <button class="pm-tab method-btn" onclick="pickMethod(this)"><span class="pm-icon">📱</span> GCash</button>
-                    <button class="pm-tab method-btn" onclick="pickMethod(this)"><span class="pm-icon">🏦</span> Maya</button>
+                    <button class="pm-tab method-btn active" onclick="pickMethod(this)"><span class="pm-icon">🏦</span> BDO</button>
+                    <button class="pm-tab method-btn" onclick="pickMethod(this)"><span class="pm-icon">🏦</span> Metrobank</button>
+                    <button class="pm-tab method-btn" onclick="pickMethod(this)"><span class="pm-icon">🏦</span> BPI</button>
                 </div>
 
                 <div class="checkout-form">
+                    <div id="merchantInfoBox" style="background: #f8faff; border: 1px solid #5a67d8; padding: 15px; border-radius: 6px; margin-bottom: 20px; color: #4f566b;">
+                        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">This payment will be sent to:</div>
+                        <div style="font-size: 15px; color: #1a1f36;">
+                            <strong>ILISY Golf Club <span id="merchantBankName">BDO</span></strong><br>
+                            <span id="merchantAccountNumber" style="font-family: monospace; font-size: 18px; color: #5a67d8; display: inline-block; margin-top: 4px;">4512 3456 7890 1234</span>
+                        </div>
+                    </div>
+
                     <div class="form-group" style="margin-bottom: 20px;">
-                        <label id="labelPaymentAccount">Card number</label>
+                        <label id="labelPaymentAccount">BDO Card number</label>
                         <div class="input-with-icon">
-                            <input type="text" placeholder="0000 0000 0000 0000" id="paymentAccount" maxlength="19" oninput="this.value = this.value.replace(/[^0-9 ]/g, '')">
+                            <input type="text" placeholder="0000 0000 0000 0000" id="paymentAccount" maxlength="19" oninput="formatCardNumber(this)">
                             <div class="card-brands" id="cardIcons">VISA &nbsp; MC</div>
                         </div>
                     </div>
@@ -143,7 +151,7 @@
                     <div class="form-row" id="secondaryRow" style="display: flex; gap: 15px;">
                         <div class="form-group" style="flex: 1;">
                             <label>Expiration date</label>
-                            <input type="text" placeholder="MM/YY" maxlength="5" oninput="this.value = this.value.replace(/[^0-9/]/g, '')">
+                            <input type="text" placeholder="MM/YY" maxlength="5" oninput="formatExpiry(this, event)">
                         </div>
                         <div class="form-group" style="flex: 1;">
                             <label>Security code</label>
@@ -151,14 +159,10 @@
                         </div>
                     </div>
 
-                    <div class="form-group" id="ewalletRow" style="display: none; margin-top: 15px;">
-                        <label>Reference / Transaction ID</label>
-                        <input type="text" placeholder="Enter reference number from payment" id="referenceNumber" maxlength="20" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '')">
-                    </div>
-
                     <button class="btn-pay-now" onclick="submitMembership(event)">Pay ₱1,000,000</button>
                 </div>
             </div>
+       </div>
     </div>
 
     <!-- TAB: CUSTOMER SERVICE -->
@@ -291,20 +295,25 @@
 </div>
 
 <div class="modal-overlay" id="receiptPopup">
-    <div class="popup-card" style="width: 450px;">
-        <div style="font-size: 48px;">🧾</div>
-        <hr>
-        <h3>Application Submitted!</h3>
-        <p>Your payment is under review. Please save your tracking number.</p>
+    <div class="popup-card" style="width: 450px; background: #f4f6f8;">
         
-        <div style="background: rgba(255,255,255,0.1); padding: 18px; margin: 18px 0; border-radius: 5px; text-align: left; font-size: 14px;">
-            <p style="margin-bottom: 8px;"><strong>Tracking No:</strong> <span id="receiptTracking" style="color: var(--gold); font-family: monospace; font-size: 16px;"></span></p>
-            <p style="margin-bottom: 8px;"><strong>Name:</strong> <span id="receiptName"></span></p>
-            <p><strong>Amount Paid:</strong> ₱1,000,000</p>
+        <div id="receiptImageArea" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); color: #1a1f36;">
+            <div style="font-size: 48px; text-align: center; margin-bottom: 10px;">🧾</div>
+            <h3 style="text-align: center; color: #1a1f36; margin: 0;">ILISY Golf Club</h3>
+            <p style="text-align: center; color: #4a5568; margin-top: 5px; margin-bottom: 15px; font-size: 14px;">Official Payment Receipt</p>
+            <hr style="border: 0; border-top: 1px dashed #a0aec0; margin-bottom: 20px;">
+            
+            <div style="text-align: left; font-size: 14px; color: #1a1f36;">
+                <p style="margin-bottom: 12px; color: #1a1f36;"><strong style="color: #1a1f36;">Tracking No:</strong> <span id="receiptTracking" style="color: #1a1f36; font-family: monospace; font-size: 16px; font-weight: 700; float: right;"></span></p>
+                <p style="margin-bottom: 12px; color: #1a1f36;"><strong style="color: #1a1f36;">Name:</strong> <span id="receiptName" style="color: #1a1f36; float: right; font-weight: 600;"></span></p>
+                <p style="margin-bottom: 12px; color: #1a1f36;"><strong style="color: #1a1f36;">Payment For:</strong> <span style="color: #1a1f36; float: right;">Membership Application</span></p>
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+                <p style="font-size: 16px; color: #1a1f36;"><strong style="color: #1a1f36;">Amount Paid:</strong> <span style="float: right; color: #276749; font-weight: 800;">₱1,000,000</span></p>
+            </div>
         </div>
         
-        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
-            <button class="btn-olive" style="margin: 0; padding: 10px 20px;" onclick="downloadReceiptText()">📥 Download Receipt</button>
+        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 25px;">
+            <button class="btn-olive" style="margin: 0; padding: 10px 20px;" onclick="downloadReceiptImage()">📥 Save as PNG</button>
             <button class="popup-close" style="margin: 0; padding: 10px 20px;" onclick="closeReceiptAndReset()">Done</button>
         </div>
     </div>
@@ -328,6 +337,7 @@
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="../js/user.js"></script>
 <script>
     function switchTab(name, btn) {

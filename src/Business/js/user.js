@@ -1268,43 +1268,30 @@ function submitMembership(event) {
     processPaymentAndShowReceipt('memFirstName', 'memLastName', 'membershipPayment');
 }
 
-// 3. Generates a .txt file and forces the browser to download it
-function downloadReceiptText() {
+// Generates a high-quality .png image of the receipt using html2canvas
+function downloadReceiptImage() {
+    // Target the specific box we want to take a picture of
+    const captureArea = document.getElementById('receiptImageArea');
     const tracking = document.getElementById('receiptTracking').textContent;
-    const name = document.getElementById('receiptName').textContent;
-    const date = new Date().toLocaleDateString();
-    
-    // This is the actual text that will be saved in the downloaded file
-    const receiptContent = `
-=========================================
-      ILISY GOLF & COUNTRY CLUB
-           OFFICIAL RECEIPT
-=========================================
-Date: ${date}
-Tracking Number: ${tracking}
 
-Member Name: ${name}
-Payment For: Membership Application
-Amount Paid: Php 1,000,000.00
-
-Status: Pending Admin Verification
-=========================================
-Thank you for applying to ILISY!
-Please keep this tracking number for your records.
-`;
-    
-    // Create a virtual file (Blob) in the browser's memory
-    const blob = new Blob([receiptContent], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    
-    // Set the downloaded file name
-    link.download = `ILISY_Receipt_${tracking}.txt`;
-    
-    // Simulate a click to start the download
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Use the library to render the HTML into a virtual Canvas
+    html2canvas(captureArea, {
+        scale: 2, // Multiplies the resolution by 2 so the text isn't blurry
+        backgroundColor: "#ffffff", // Ensures a solid white background
+        logging: false // Keeps your developer console clean
+    }).then(canvas => {
+        // Convert that canvas into a PNG data URL
+        const imgData = canvas.toDataURL("image/png");
+        
+        // Create a hidden link and force the browser to download it
+        const link = document.createElement('a');
+        link.download = `ILISY_Receipt_${tracking}.png`;
+        link.href = imgData;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
 }
 
 // 4. Closes everything and resets the page
@@ -1313,37 +1300,110 @@ function closeReceiptAndReset() {
     window.location.reload(); // Refreshes the page to clear the form
 }
 
-// 1. Handles clicking the payment method buttons
-function pickMethod(btn) {
-    // Remove the 'active' blue highlight from ALL buttons
-    document.querySelectorAll('.pm-tab').forEach(b => b.classList.remove('active'));
+// Auto-formats the Card Number to add spaces every 4 digits
+function formatCardNumber(input) {
+    // 1. Strip out anything that isn't a number
+    let val = input.value.replace(/\D/g, '');
     
-    // Add the highlight ONLY to the clicked button
+    // 2. Add a space after every 4 digits
+    val = val.replace(/(.{4})/g, '$1 ').trim();
+    
+    // 3. Update the visible input box
+    input.value = val;
+}
+
+// Auto-formats the Expiration Date (Caps MM at 12, Caps DD at 31)
+function formatExpiry(input, event) {
+    // 1. If the user hits Backspace, let them delete naturally
+    if (event.inputType === 'deleteContentBackward') return;
+    
+    // 2. Strip out anything that isn't a number
+    let val = input.value.replace(/\D/g, '');
+    
+    if (val.length >= 2) {
+        // 3. Format the Month (First 2 digits)
+        let month = val.substring(0, 2);
+        if (parseInt(month) > 12) month = '12';
+        if (parseInt(month) === 0) month = '01'; // Prevents 00
+        
+        // 4. Format the Day/Second Half (Last 2 digits)
+        let day = val.substring(2, 4);
+        if (day.length === 2) {
+            if (parseInt(day) > 31) day = '31';
+            if (parseInt(day) === 0) day = '01'; // Prevents 00
+        }
+        
+        // 5. Automatically add the slash
+        input.value = month + '/' + day;
+    } else {
+        input.value = val;
+    }
+}
+
+function pickMethod(btn) {
+    console.log("Button clicked: " + btn.innerText); // This helps you see if it's working in F12
+
+    // 1. Swap active class
+    document.querySelectorAll('.pm-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    // Get the elements we need to swap around
     const method = btn.innerText.trim();
-    const accountLabel = document.getElementById('labelPaymentAccount');
-    const accountInput = document.getElementById('paymentAccount');
-    const secondaryRow = document.getElementById('secondaryRow'); // Expiry & CVC
-    const ewalletRow = document.getElementById('ewalletRow'); // Reference ID
-    const cardIcons = document.getElementById('cardIcons');
+    
+    // 2. Grab the elements
+    const bankNameDisplay = document.getElementById('merchantBankName');
+    const accountNoDisplay = document.getElementById('merchantAccountNumber');
+    const inputLabel = document.getElementById('labelPaymentAccount');
 
-    // Logic to swap the form fields based on what was clicked
-    if (method.includes('Card')) {
-        accountLabel.innerText = 'Card number';
-        accountInput.placeholder = '0000 0000 0000 0000';
-        cardIcons.style.display = 'block';
-        secondaryRow.style.display = 'flex'; 
-        ewalletRow.style.display = 'none'; 
-    } 
-    else if (method.includes('GCash') || method.includes('Maya')) {
-        accountLabel.innerText = method.includes('GCash') ? 'GCash Mobile Number' : 'Maya Mobile Number';
-        accountInput.placeholder = '09XX XXX XXXX';
-        cardIcons.style.display = 'none';
-        secondaryRow.style.display = 'none';
-        ewalletRow.style.display = 'block';
+    // 3. The "Safety" Check - If any of these are missing, the code stops here
+    if (!bankNameDisplay || !accountNoDisplay) {
+        console.error("Error: Could not find the merchant info IDs in your HTML!");
+        return;
     }
+
+    // 4. Perform the Swap
+    bankNameDisplay.innerText = method;
+    
+    if (inputLabel) {
+        inputLabel.innerText = method + " Card number";
+    }
+
+    if (method.includes("BDO")) {
+        accountNoDisplay.innerText = "4512 3456 7890 1234";
+    } else if (method.includes("Metrobank")) {
+        accountNoDisplay.innerText = "5123 9988 7766 5544";
+    } else if (method.includes("BPI")) {
+        accountNoDisplay.innerText = "4213 0011 2233 4455";
+    }
+
+    // 5. Clear the user's input box
+    const userAccountInput = document.getElementById('paymentAccount');
+    if (userAccountInput) userAccountInput.value = "";
+}
+
+// Submits the Payment with STRICT formatting checks for ALL tabs
+function submitMembership(event) {
+    const btn = event ? event.target : document.querySelector('#membershipPayment .btn-pay-now');
+    const accountInput = document.getElementById('paymentAccount').value.trim();
+    const expiryInput = document.querySelector('#membershipPayment input[placeholder="MM/YY"]');
+    const expiry = expiryInput ? expiryInput.value.trim() : '';
+    const cvc = document.getElementById('cardCvc') ? document.getElementById('cardCvc').value.trim() : '';
+    
+    // Clean spaces to check true length
+    const cleanCard = accountInput.replace(/\s+/g, '');
+    
+    // Since all tabs use the card format, we run the same strict checks
+    if (!/^\d{16}$/.test(cleanCard)) {
+        return showPaymentError(btn, "Invalid Card: Must be exactly 16 digits.");
+    }
+    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) {
+        return showPaymentError(btn, "Invalid Expiration: Use MM/DD format.");
+    }
+    if (!/^\d{3,4}$/.test(cvc)) {
+        return showPaymentError(btn, "Invalid CVC: Must be 3 or 4 digits.");
+    }
+
+    // Process the payment and show receipt
+    processPaymentAndShowReceipt('memFirstName', 'memLastName', 'membershipPayment');
 }
 
 // Smart helper to show errors right above the pay button without ugly alerts
@@ -1369,30 +1429,7 @@ function showPaymentError(buttonElement, message) {
     setTimeout(() => { if (err.parentNode) err.remove(); }, 4000);
 }
 
-// Submits the Membership Payment
-function submitMembership(event) {
-    // Get the button that was clicked so we can put errors above it
-    const btn = event ? event.target : document.querySelector('#membershipPayment .btn-pay-now');
-    
-    const activeMethod = document.querySelector('#membershipPayment .pm-tab.active').innerText.trim();
-    const account = document.getElementById('paymentAccount').value.trim();
 
-    // Validate based on the currently active tab (Card vs GCash)
-    if (activeMethod.includes('Card')) {
-        const cvc = document.getElementById('cardCvc') ? document.getElementById('cardCvc').value.trim() : '123'; // Fallback if ID is missing
-        if (!account || !cvc) {
-            return showPaymentError(btn, "Please enter your Card Number and Security Code (CVC).");
-        }
-    } else {
-        const reference = document.getElementById('referenceNumber').value.trim();
-        if (!account || !reference) {
-            return showPaymentError(btn, `Please enter your ${activeMethod} Number and Reference ID.`);
-        }
-    }
-
-    // If successful, show loader and receipt!
-    processPaymentAndShowReceipt('memFirstName', 'memLastName', 'membershipPayment');
-}
 
 // Submits the Reservation Payment with STRICT formatting checks
 function submitDynamicReservationPayment(event) {
@@ -1498,6 +1535,8 @@ function submitDynamicReservation() {
     // Scroll to the top of the new payment section
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+
 
 
 
