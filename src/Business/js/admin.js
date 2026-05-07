@@ -38,8 +38,6 @@ function checkSession() {
     return true;
 }
 
-
-// Save scroll position when leaving a page
 function saveScrollPosition(pageId) {
     const pageElement = document.getElementById(`page-${pageId}`);
     if (pageElement) {
@@ -48,7 +46,6 @@ function saveScrollPosition(pageId) {
     }
 }
 
-// Restore scroll position when loading a page
 function restoreScrollPosition(pageId) {
     const savedScroll = localStorage.getItem(`scroll_${pageId}`);
     if (savedScroll) {
@@ -56,30 +53,24 @@ function restoreScrollPosition(pageId) {
         if (pageElement) {
             pageElement.scrollTop = parseInt(savedScroll);
         }
-        // Also try to restore window scroll if needed
         setTimeout(() => {
             window.scrollTo(0, parseInt(savedScroll));
         }, 100);
     }
 }
 
-
-
 function saveCurrentPage(pageId) {
     localStorage.setItem('adminCurrentPage', pageId);
 }
 
-// Load last visited page on refresh
 function loadLastVisitedPage() {
     const lastPage = localStorage.getItem('adminCurrentPage');
     if (lastPage && document.getElementById(`page-${lastPage}`)) {
         showPage(lastPage);
     } else {
-        // Default to dashboard if no saved page or page doesn't exist
         showPage('dashboard');
     }
 }
-
 
 function showToast(message, type = 'success') {
     const toast = document.createElement('div');
@@ -110,15 +101,14 @@ function escapeHtml(text) {
 // ──────────────────────────────────────────────────────────────────
 // Navigation
 // ──────────────────────────────────────────────────────────────────
+
 function showPage(id) {
-    // Save current page's scroll position before leaving
     const activePage = document.querySelector('.page.active');
     if (activePage && activePage.id) {
         const currentPageId = activePage.id.replace('page-', '');
         saveScrollPosition(currentPageId);
     }
     
-    // Save current page to localStorage
     saveCurrentPage(id);
     
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -132,7 +122,6 @@ function showPage(id) {
         items[map[id]].classList.add('active');
     }
     
-    // Load data based on selected page
     if (id === 'dashboard') loadDashboardStats();
     else if (id === 'accounts') loadUsers();
     else if (id === 'payments') loadPayments();
@@ -141,11 +130,9 @@ function showPage(id) {
     else if (id === 'customerservice') loadCustomerServiceRecords();
     else if (id === 'manage_reservations') loadReservationTypes();
     
-    // Restore scroll position for the new page
     restoreScrollPosition(id);
 }
 
-// Also save scroll on window before unload
 window.addEventListener('beforeunload', () => {
     const activePage = document.querySelector('.page.active');
     if (activePage && activePage.id) {
@@ -196,7 +183,6 @@ let adminCalendarData = [];
 let currentCalendarFilter = 'all';
 let calendarReservationTypes = [];
 
-// Add this function to load reservation types for the calendar filter
 async function loadCalendarReservationTypes() {
     const token = getAuthToken();
     if (!token) return;
@@ -221,18 +207,13 @@ async function loadCalendarReservationTypes() {
     }
 }
 
-// Populate the calendar filter dropdown with types from database
 function populateCalendarFilter() {
     const filterSelect = document.getElementById('calendarTypeFilter');
     if (!filterSelect) return;
     
-    // Keep the "All Reservations" option
     let optionsHtml = '<option value="all">📌 All Reservations</option>';
-    
-    // Add membership option (special case)
     optionsHtml += '<option value="membership">🏌️ Membership Applications</option>';
     
-    // Add categories from ReservationType (unique categories)
     const uniqueCategories = [...new Set(calendarReservationTypes.map(type => type.category))];
     
     uniqueCategories.forEach(category => {
@@ -265,7 +246,6 @@ function populateCalendarFilter() {
         optionsHtml += `<option value="${category}">${icon} ${displayName}</option>`;
     });
     
-    // Add individual reservation types for more granular filtering
     if (calendarReservationTypes.length > 0) {
         optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
         
@@ -283,11 +263,9 @@ async function loadAdminCalendar() {
     const token = getAuthToken();
     if (!token) return;
     
-    // Get the selected filter
     const filterSelect = document.getElementById('calendarTypeFilter');
     let selectedFilter = filterSelect ? filterSelect.value : 'all';
     
-    // Parse the filter value
     let filterType = 'all';
     let filterValue = '';
     
@@ -334,13 +312,11 @@ function renderAdminCalendar() {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     
-    // Update header
     const monthYearSpan = document.getElementById('adminCalendarMonthYear');
     if (monthYearSpan) {
         monthYearSpan.textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(adminCurrentMonth);
     }
     
-    // Get current filter
     const filterSelect = document.getElementById('calendarTypeFilter');
     const currentFilter = filterSelect ? filterSelect.value : 'all';
     let isMembershipFilter = currentFilter === 'membership';
@@ -352,13 +328,11 @@ function renderAdminCalendar() {
     if (!grid) return;
     grid.innerHTML = '';
     
-    // Add weekday headers
     const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     weekdays.forEach(day => {
         grid.innerHTML += `<div style="font-size:10px;color:#888;text-align:center;font-weight:bold;">${day}</div>`;
     });
     
-    // Add empty cells for days before first day of month
     for (let i = 0; i < firstDay; i++) {
         grid.innerHTML += `<div class="res-day empty"></div>`;
     }
@@ -372,26 +346,21 @@ function renderAdminCalendar() {
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const isToday = cellDate.toDateString() === today.toDateString();
         
-        // Filter reservations based on selected type
         let dayReservations = adminCalendarData;
         
         if (isMembershipFilter) {
-            // Filter for membership applications only
             dayReservations = adminCalendarData.filter(res => res.type === 'membership');
         } else if (isSpecificTypeFilter && specificTypeId) {
-            // Filter for specific reservation type by ID
             dayReservations = adminCalendarData.filter(res => 
                 res.reservationTypeId === specificTypeId || 
                 res.details?.reservationTypeId === specificTypeId
             );
         } else if (categoryFilter) {
-            // Filter by category
             dayReservations = adminCalendarData.filter(res => 
                 (res.category || res.reservationCategory || '').toLowerCase() === categoryFilter
             );
         }
         
-        // Further filter by date
         const dayReservationsFiltered = dayReservations.filter(res => {
             const resDate = new Date(res.date);
             return resDate.getFullYear() === year && 
@@ -412,7 +381,6 @@ function renderAdminCalendar() {
         
         const todayClass = isToday ? 'today' : '';
         
-        // Add tooltip with reservation info
         let tooltipInfo = '';
         if (bookedCount > 0) {
             const types = [...new Set(dayReservationsFiltered.map(r => r.reservationType || r.type || 'Reservation'))];
@@ -449,7 +417,6 @@ async function openAdminDayDetails(dateKey) {
         day: 'numeric' 
     });
     
-    // Update modal header
     const modalDate = document.getElementById('resDetailDate');
     if (modalDate) modalDate.textContent = formattedDate;
     
@@ -459,10 +426,8 @@ async function openAdminDayDetails(dateKey) {
     const modalBody = document.querySelector('#resDetailModal .res-detail-body');
     if (!modalBody) return;
     
-    // Get current filter to pass to API
     const currentFilter = document.getElementById('calendarTypeFilter')?.value || 'all';
     
-    // Show loading
     modalBody.innerHTML = `
         <div style="text-align:center; padding:20px;">
             <div class="loading-spinner" style="display:inline-block;"></div> Loading reservations...
@@ -485,7 +450,6 @@ async function openAdminDayDetails(dateKey) {
         if (response.ok) {
             let reservations = await response.json();
             
-            // Apply client-side filter if needed
             if (currentFilter !== 'all' && currentFilter !== 'membership') {
                 reservations = reservations.filter(res => {
                     const resType = (res.reservationType || res.type || 'golf').toLowerCase();
@@ -506,7 +470,6 @@ async function openAdminDayDetails(dateKey) {
                 return;
             }
             
-            // Build detailed reservations list (same as before)
             let slotsHtml = `
                 <div class="res-detail-header-info" style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">
                     <strong>Total ${currentFilter !== 'all' ? currentFilter + ' ' : ''}Reservations: ${reservations.length}</strong>
@@ -570,102 +533,8 @@ async function openAdminDayDetails(dateKey) {
         `;
     }
     
-    // Show modal
     const modal = document.getElementById('resDetailModal');
     if (modal) modal.classList.add('show');
-}
-
-async function loadDayReservations(dateKey) {
-    const token = getAuthToken();
-    if (!token) return;
-    
-    const modalBody = document.querySelector('#resDetailModal .res-detail-body');
-    if (!modalBody) return;
-    
-    // Show loading
-    modalBody.innerHTML = `
-        <div style="text-align:center; padding:20px;">
-            <div class="loading-spinner" style="display:inline-block;"></div> Loading reservations...
-        </div>
-        <div style="text-align:right; margin-top:16px;">
-            <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
-        </div>
-    `;
-    
-    try {
-        const response = await fetch(`${API_URL}/admin/reservations/by-date/${dateKey}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.status === 401) {
-            handleLogout();
-            return;
-        }
-        
-        if (response.ok) {
-            const reservations = await response.json();
-            
-            if (reservations.length === 0) {
-                modalBody.innerHTML = `
-                    <div style="text-align:center; padding:40px; color:#888;">
-                        No reservations for this day.
-                    </div>
-                    <div style="text-align:right; margin-top:16px;">
-                        <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Build reservations list
-            let slotsHtml = '';
-            reservations.forEach(res => {
-                const statusClass = res.status === 'confirmed' ? 'status-confirmed' : 'status-pending';
-                const statusText = res.status === 'confirmed' ? 'Confirmed' : 'Pending';
-                slotsHtml += `
-                    <div class="res-slot-row">
-                        <span class="res-slot-time">${escapeHtml(res.timeSlot || 'N/A')}</span>
-                        <span class="res-slot-name">${escapeHtml(res.firstName)} ${escapeHtml(res.lastName)}</span>
-                        <span class="res-slot-contact" style="font-size:11px; color:#666;">${escapeHtml(res.phone || '')}</span>
-                        <span class="res-slot-status" style="margin-left:auto;">
-                            <span class="status-badge ${statusClass}">
-                                ${statusText}
-                            </span>
-                        </span>
-                    </div>
-                `;
-            });
-            
-            modalBody.innerHTML = `
-                <div class="res-detail-select">
-                    <span>Reservations for this day: ${reservations.length}</span>
-                </div>
-                ${slotsHtml}
-                <div style="text-align:right; margin-top:16px;">
-                    <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
-                </div>
-            `;
-        } else {
-            modalBody.innerHTML = `
-                <div style="text-align:center; padding:40px; color:#dc3545;">
-                    Failed to load reservations.
-                </div>
-                <div style="text-align:right; margin-top:16px;">
-                    <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
-                </div>
-            `;
-        }
-    } catch (error) {
-        console.error('Error loading day reservations:', error);
-        modalBody.innerHTML = `
-            <div style="text-align:center; padding:40px; color:#dc3545;">
-                Error loading reservations.
-            </div>
-            <div style="text-align:right; margin-top:16px;">
-                <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
-            </div>
-        `;
-    }
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -711,7 +580,7 @@ async function loadUsers() {
                         ${user.membershipStatus === 'active' ? 
                             `<button class="btn-revoke" onclick="revokeMembership('${user._id}')" style="background: #9c403d; color: white; padding: 4px 12px; border: none; border-radius: 3px; cursor: pointer; margin-left: 5px;">Revoke</button>` 
                             : ''}
-                     </td>
+                    </td>
                 `;
             });
         }
@@ -932,14 +801,16 @@ async function processRefund() {
 // Reservations Management
 // ──────────────────────────────────────────────────────────────────
 
-
+let allReservations = [];
+let filteredReservations = [];
+let currentReservationPage = 1;
+const reservationsPerPage = 10;
 
 async function loadReservations() {
     const token = getAuthToken();
     if (!token) return;
     
     try {
-        // Fetch ALL applications (not just pending)
         const response = await fetch(`${API_URL}/admin/applications`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -951,7 +822,7 @@ async function loadReservations() {
         
         if (response.ok) {
             allReservations = await response.json();
-            console.log('Loaded reservations:', allReservations.length); // Debug log
+            console.log('Loaded reservations:', allReservations.length);
             filterReservationsTable();
         } else {
             const error = await response.json();
@@ -970,13 +841,6 @@ async function loadReservations() {
     }
 }
 
-// Add these variables at the top with other variables
-let allReservations = [];
-let filteredReservations = [];
-let currentReservationPage = 1;
-const reservationsPerPage = 10;
-
-// Update the filterReservationsTable function
 function filterReservationsTable() {
     const searchInput = document.getElementById('reservationSearchInput');
     const statusFilter = document.getElementById('reservationStatusFilter');
@@ -987,10 +851,8 @@ function filterReservationsTable() {
     let typeFilterValue = typeFilter ? typeFilter.value : 'all';
     
     console.log('Filtering reservations. Total:', allReservations.length);
-    console.log('Type filter:', typeFilterValue);
     
     filteredReservations = allReservations.filter(app => {
-        // Search filter (name, email, phone)
         const fullName = `${app.firstName} ${app.lastName}`.toLowerCase();
         const email = (app.email || '').toLowerCase();
         const phone = (app.phone || '').toLowerCase();
@@ -998,13 +860,11 @@ function filterReservationsTable() {
                               email.includes(searchQuery) || 
                               phone.includes(searchQuery);
         
-        // Status filter
         let matchesStatus = true;
         if (statusFilterValue !== 'all') {
             matchesStatus = app.status === statusFilterValue;
         }
         
-        // Type filter - handle new format
         let matchesType = true;
         if (typeFilterValue !== 'all') {
             if (typeFilterValue === 'membership') {
@@ -1012,17 +872,14 @@ function filterReservationsTable() {
             } else if (typeFilterValue === 'reservation') {
                 matchesType = app.type === 'reservation';
             } else if (typeFilterValue.startsWith('cat_')) {
-                // Filter by category
                 const category = typeFilterValue.replace('cat_', '');
                 const appCategory = app.category || app.details?.category || '';
                 matchesType = appCategory.toLowerCase() === category.toLowerCase();
             } else if (typeFilterValue.startsWith('type_')) {
-                // Filter by specific reservation type ID
                 const typeId = typeFilterValue.replace('type_', '');
                 const appTypeId = app.reservationTypeId || app.details?.reservationTypeId || '';
                 matchesType = appTypeId === typeId;
             } else {
-                // Legacy filter
                 matchesType = app.type === typeFilterValue;
             }
         }
@@ -1049,7 +906,6 @@ function resetReservationFilters() {
     filterReservationsTable();
 }
 
-// Add function to update results count
 function updateResultsCount() {
     const countDiv = document.getElementById('resultsCount');
     if (countDiv) {
@@ -1076,8 +932,6 @@ function renderReservationsTable() {
     const endIndex = startIndex + reservationsPerPage;
     const pageReservations = filteredReservations.slice(startIndex, endIndex);
     
-    console.log('Rendering reservations:', pageReservations.length);
-    
     if (pageReservations.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px;">📋 No reservation applications found</td></tr>';
         const paginationDiv = document.getElementById('reservationPagination');
@@ -1087,7 +941,6 @@ function renderReservationsTable() {
     }
     
     tbody.innerHTML = pageReservations.map(app => {
-        // Determine status class and text
         let statusClass = 'status-pending';
         let statusText = '⏳ Pending';
         
@@ -1108,7 +961,6 @@ function renderReservationsTable() {
             statusText = '⏳ Processing';
         }
         
-        // Get date and time from details
         const displayDate = app.details?.date ? new Date(app.details.date).toLocaleDateString() : 'N/A';
         const displayTime = app.details?.timeSlot || 'N/A';
         const displayType = app.type === 'membership' ? '🏌️ Membership' : '📅 Reservation';
@@ -1136,7 +988,6 @@ function renderReservationsTable() {
         `;
     }).join('');
     
-    // Render pagination
     renderReservationPagination();
     updateResultsCount();
 }
@@ -1153,11 +1004,8 @@ function renderReservationPagination() {
     }
     
     let paginationHtml = '';
-    
-    // Previous button
     paginationHtml += `<button class="pagination-btn" onclick="changeReservationPage(${currentReservationPage - 1})" ${currentReservationPage === 1 ? 'disabled' : ''}>◀ Prev</button>`;
     
-    // Page numbers
     for (let i = 1; i <= totalPages; i++) {
         if (i === 1 || i === totalPages || (i >= currentReservationPage - 2 && i <= currentReservationPage + 2)) {
             paginationHtml += `<button class="pagination-btn ${i === currentReservationPage ? 'active' : ''}" onclick="changeReservationPage(${i})">${i}</button>`;
@@ -1166,29 +1014,16 @@ function renderReservationPagination() {
         }
     }
     
-    // Next button
     paginationHtml += `<button class="pagination-btn" onclick="changeReservationPage(${currentReservationPage + 1})" ${currentReservationPage === totalPages ? 'disabled' : ''}>Next ▶</button>`;
     
     paginationDiv.innerHTML = paginationHtml;
 }
 
-// Add change page function
 function changeReservationPage(page) {
     const totalPages = Math.ceil(filteredReservations.length / reservationsPerPage);
     if (page < 1 || page > totalPages) return;
     currentReservationPage = page;
     renderReservationsTable();
-}
-
-
-function resetReservationFilters() {
-    const searchInput = document.getElementById('reservationSearchInput');
-    const statusFilter = document.getElementById('reservationStatusFilter');
-    
-    if (searchInput) searchInput.value = '';
-    if (statusFilter) statusFilter.value = 'all';
-    
-    filterReservationsTable();
 }
 
 async function viewReservationDetails(appId) {
@@ -1207,14 +1042,9 @@ async function viewReservationDetails(appId) {
         
         if (response.ok) {
             const app = await response.json();
-            
-            // Determine if this is from Reservation collection or Application collection
             const isFromReservation = app.source === 'reservation' || !app.paymentMethod;
-            
-            // Create a unique ID for this modal to avoid conflicts
             const modalId = `reservationDetailModal_${Date.now()}`;
             
-            // Create a modal to show details
             const modalHtml = `
                 <div class="modal-overlay show" id="${modalId}" style="display:flex;">
                     <div class="validate-modal" style="max-width: 550px;">
@@ -1262,14 +1092,11 @@ async function viewReservationDetails(appId) {
                 </div>
             `;
             
-            // Remove existing modal with same ID if any
             const existingModal = document.getElementById(modalId);
             if (existingModal) existingModal.remove();
             
-            // Add modal to body
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             
-            // Add event listener to the close button
             const closeBtn = document.querySelector(`[data-modal-id="${modalId}"]`);
             if (closeBtn) {
                 closeBtn.addEventListener('click', function() {
@@ -1277,7 +1104,6 @@ async function viewReservationDetails(appId) {
                 });
             }
             
-            // Add click outside to close
             const modal = document.getElementById(modalId);
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) closeModalById(modalId);
@@ -1289,13 +1115,11 @@ async function viewReservationDetails(appId) {
     }
 }
 
-// Add this helper function to close modals by ID
 function closeModalById(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('show');
         modal.style.display = 'none';
-        // Remove the modal from DOM after animation
         setTimeout(() => {
             if (modal && modal.parentNode) {
                 modal.remove();
@@ -1303,7 +1127,6 @@ function closeModalById(modalId) {
         }, 300);
     }
 }
-
 
 async function approveReservation(appId) {
     const token = getAuthToken();
@@ -1333,7 +1156,6 @@ async function approveReservation(appId) {
         showToast('Error approving reservation', 'error');
     }
 }
-
 
 async function rejectReservation(appId) {
     const token = getAuthToken();
@@ -1371,12 +1193,18 @@ async function rejectReservation(appId) {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Messages / Customer Service with Auto-Refresh
+// Messages / Customer Service with Auto-Refresh (NO SPAM)
 // ──────────────────────────────────────────────────────────────────
 
 let adminPollingInterval = null;
 let currentMessage = null;
 let currentUserId = null;
+
+// Enable audio on first user interaction
+document.addEventListener('click', function enableAudio() {
+    audioContextAllowed = true;
+    document.removeEventListener('click', enableAudio);
+}, { once: true });
 
 async function loadMessages() {
     const token = getAuthToken();
@@ -1405,7 +1233,7 @@ async function loadMessages() {
                     return;
                 }
                 
-                // Group messages by userId to prevent duplicates
+                // Group messages by userId
                 const uniqueUsers = new Map();
                 messages.forEach(msg => {
                     if (!uniqueUsers.has(msg.userId) || new Date(msg.createdAt) > new Date(uniqueUsers.get(msg.userId).createdAt)) {
@@ -1419,7 +1247,11 @@ async function loadMessages() {
                     const contactDiv = document.createElement('div');
                     contactDiv.className = 'msg-contact';
                     contactDiv.setAttribute('data-user-id', msg.userId);
+                    contactDiv.setAttribute('data-conversation-id', msg._id);
                     contactDiv.onclick = () => selectContact(contactDiv, msg);
+                    
+                    // Check if there are new messages (same logic as user.js)
+                    const isPending = msg.status === 'pending';
                     
                     contactDiv.innerHTML = `
                         <div class="contact-avatar">👤</div>
@@ -1427,7 +1259,7 @@ async function loadMessages() {
                             <div class="msg-contact-name">${escapeHtml(msg.userName || 'User')}</div>
                             <div style="font-size:11px;color:#ccc;">${escapeHtml(msg.concernType || 'general')}</div>
                         </div>
-                        <div class="msg-contact-dot ${msg.status === 'pending' ? 'online' : ''}" style="margin-left:auto;"></div>
+                        <div class="msg-contact-dot ${isPending ? 'online' : ''}" style="margin-left:auto;"></div>
                     `;
                     msgSidebar.appendChild(contactDiv);
                     
@@ -1448,6 +1280,56 @@ async function loadMessages() {
     }
 }
 
+function updateSeenMessages(userId, conversation) {
+    if (!conversation) return;
+    
+    const userMessages = conversation.filter(c => c.sender === 'user');
+    if (userMessages.length > 0) {
+        const lastMessage = userMessages[userMessages.length - 1];
+        const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message}`;
+        lastMessageIds.set(userId, lastMessageId);
+        
+        userMessages.forEach(msg => {
+            const msgId = `${msg.timestamp}_${msg.message}`;
+            if (notifiedMessageIds.has(msgId)) {
+                notifiedMessageIds.delete(msgId);
+            }
+        });
+    }
+}
+
+function playNotificationSound() {
+    try {
+        // Simple beep using Audio
+        const audio = new Audio();
+        // Use a simple data URI beep (no external file needed)
+        const beep = "data:audio/wav;base64,U3RlYWx0aCBpcyBhIGJlZXAuLi4=";
+        // Just create a simple oscillator as fallback
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+            const audioContext = new AudioContext();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            gainNode.gain.value = 0.1;
+            
+            oscillator.start();
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.2);
+            oscillator.stop(audioContext.currentTime + 0.2);
+            
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }
+    } catch(e) {
+        console.log('🔔 New message notification');
+    }
+}
+
 async function refreshCurrentConversation() {
     if (!currentMessage) return;
     
@@ -1464,9 +1346,30 @@ async function refreshCurrentConversation() {
             const updatedMessage = messages.find(m => m.userId === currentUserId);
             
             if (updatedMessage) {
+                // Check for new messages from admin (we sent) or user
+                const conversation = updatedMessage.conversation || [];
+                
+                if (conversation.length > 0) {
+                    const lastMessage = conversation[conversation.length - 1];
+                    const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message}`;
+                    const lastShown = localStorage.getItem(`admin_last_shown_${updatedMessage._id}`);
+                    
+                    // If last message is from user and we haven't shown it yet
+                    if (lastMessage.sender === 'user' && lastShown !== lastMessageId) {
+                        // Play sound and show toast only for new user messages (not during initial load)
+                        if (lastShown) {
+                            playNotificationSound();
+                            showToast(`📩 New message from ${escapeHtml(updatedMessage.userName)}: "${lastMessage.message.substring(0, 50)}..."`, 'info');
+                        }
+                        localStorage.setItem(`admin_last_shown_${updatedMessage._id}`, lastMessageId);
+                    }
+                }
+                
                 currentMessage = updatedMessage;
                 
                 const msgBody = document.getElementById('msgBody');
+                const wasAutoScrolling = msgBody.scrollHeight - msgBody.scrollTop <= msgBody.clientHeight + 100;
+                
                 msgBody.innerHTML = '';
                 
                 if (updatedMessage.conversation && updatedMessage.conversation.length > 0) {
@@ -1489,7 +1392,10 @@ async function refreshCurrentConversation() {
                 } else {
                     msgBody.innerHTML = `<div class="chat-bubble bubble-received">${escapeHtml(updatedMessage.message || 'No message')}</div>`;
                 }
-                msgBody.scrollTop = msgBody.scrollHeight;
+                
+                if (wasAutoScrolling) {
+                    msgBody.scrollTop = msgBody.scrollHeight;
+                }
             }
         }
     } catch (error) {
@@ -1529,6 +1435,19 @@ function selectContact(element, message) {
         msgBody.innerHTML = `<div class="chat-bubble bubble-received">${escapeHtml(message.message || 'No message')}</div>`;
     }
     msgBody.scrollTop = msgBody.scrollHeight;
+    
+    // Mark as read by updating localStorage
+    if (message.conversation && message.conversation.length > 0) {
+        const lastMessage = message.conversation[message.conversation.length - 1];
+        if (lastMessage.sender === 'user') {
+            const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message}`;
+            localStorage.setItem(`admin_last_shown_${message._id}`, lastMessageId);
+        }
+    }
+    
+    // Remove the pending dot
+    const dot = element.querySelector('.msg-contact-dot');
+    if (dot) dot.classList.remove('online');
 }
 
 async function adminSendMsg() {
@@ -1543,6 +1462,9 @@ async function adminSendMsg() {
     
     const token = getAuthToken();
     if (!token) return;
+    
+    const sendBtn = document.querySelector('.send-btn');
+    sendBtn.disabled = true;
     
     try {
         const response = await fetch(`${API_URL}/admin/messages/${currentMessage._id}/respond`, {
@@ -1577,11 +1499,9 @@ async function adminSendMsg() {
             
             showToast('Response sent', 'success');
             
-            const activeContact = document.querySelector('.msg-contact.active');
-            if (activeContact) {
-                const dot = activeContact.querySelector('.msg-contact-dot');
-                if (dot) dot.classList.remove('online');
-            }
+            // Update last shown to our own message
+            const lastMessageId = `${new Date().getTime()}_${text}`;
+            localStorage.setItem(`admin_last_shown_${currentMessage._id}`, lastMessageId);
             
             setTimeout(() => loadMessages(), 500);
         } else {
@@ -1591,14 +1511,25 @@ async function adminSendMsg() {
     } catch (error) {
         console.error('Error sending message:', error);
         showToast('Error sending message', 'error');
+    } finally {
+        sendBtn.disabled = false;
     }
 }
 
 function startAdminMessagePolling() {
     if (adminPollingInterval) clearInterval(adminPollingInterval);
+    
     adminPollingInterval = setInterval(() => {
-        loadMessages();
+        if (!document.hidden) {
+            loadMessages();
+        }
     }, 5000);
+    
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            loadMessages();
+        }
+    });
 }
 
 function stopAdminMessagePolling() {
@@ -1625,7 +1556,7 @@ async function loadCustomerServiceRecords() {
                 tbody.innerHTML = '';
                 
                 if (resolved.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No resolved records found</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No resolved records found</tr>';
                     return;
                 }
                 
@@ -1708,7 +1639,6 @@ async function openValidateModal(applicationId) {
     const modal = document.getElementById('validatePaymentModal');
     const modalBody = document.getElementById('validateModalBody');
     
-    // Show loading
     modalBody.innerHTML = '<div class="loading-spinner">Loading application details...</div>';
     modal.classList.add('show');
     
@@ -2347,25 +2277,13 @@ async function deleteReservationType(typeId) {
 document.addEventListener('DOMContentLoaded', () => {
     if (!checkSession()) return;
     
-    // Initialize admin calendar (dynamic)
     adminCurrentMonth = new Date();
     
-    // Load reservation types for filters FIRST, then load calendar
     loadReservationTypesForFilters().then(() => {
         loadAdminCalendar();
     });
     
-    // Load data based on current page (don't load all data upfront)
-    // loadDashboardStats();  // REMOVE THESE
-    // loadUsers();           // REMOVE THESE
-    // loadPayments();        // REMOVE THESE
-    // loadMessages();        // REMOVE THESE
-    // loadReservations();    // REMOVE THESE
-    // loadCustomerServiceRecords();  // REMOVE THESE
-    // loadPendingApplications();     // REMOVE THESE
-    
     startAdminMessagePolling();
-    // startMembershipStatusPolling();  // REMOVE THIS - function doesn't exist
     
     document.querySelectorAll('.modal-overlay').forEach(o => {
         o.addEventListener('click', e => {
@@ -2381,16 +2299,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     window.addEventListener('beforeunload', () => {
-        if (pollingInterval) clearInterval(pollingInterval);
-        // stopMembershipStatusPolling();  // REMOVE THIS
+        if (adminPollingInterval) clearInterval(adminPollingInterval);
     });
     
-    // NEW: Load the last visited page instead of always dashboard
-    // This should be the LAST thing that runs
     loadLastVisitedPage();
 });
 
-// Function to load reservation types and populate both filters
 async function loadReservationTypesForFilters() {
     const token = getAuthToken();
     if (!token) return;
@@ -2410,7 +2324,6 @@ async function loadReservationTypesForFilters() {
             calendarReservationTypes = types;
             tableReservationTypes = types;
             
-            // Populate both filters
             populateCalendarFilter();
             populateTableTypeFilter();
         }
@@ -2419,70 +2332,10 @@ async function loadReservationTypesForFilters() {
     }
 }
 
-// Populate the calendar filter dropdown
-function populateCalendarFilter() {
-    const filterSelect = document.getElementById('calendarTypeFilter');
-    if (!filterSelect) return;
-    
-    let optionsHtml = '<option value="all">📌 All Reservations</option>';
-    optionsHtml += '<option value="membership">🏌️ Membership Applications</option>';
-    optionsHtml += '<option disabled style="background: #eee;">───── Categories ─────</option>';
-    
-    // Add unique categories
-    const uniqueCategories = [...new Set(calendarReservationTypes.map(type => type.category))];
-    
-    const categoryIcons = {
-        golf: '⛳',
-        amenities: '🍽️',
-        events: '🎉',
-        accommodation: '🏨',
-        premium: '✨'
-    };
-    
-    const categoryNames = {
-        golf: 'Golf / Tee Time',
-        amenities: 'Amenities (Spa, Dining, etc.)',
-        events: 'Events',
-        accommodation: 'Accommodation',
-        premium: 'Premium Services'
-    };
-    
-    uniqueCategories.forEach(category => {
-        const icon = categoryIcons[category] || '📌';
-        const displayName = categoryNames[category] || category.charAt(0).toUpperCase() + category.slice(1);
-        optionsHtml += `<option value="cat_${category}">${icon} ${displayName}</option>`;
-    });
-    
-    // Add individual reservation types
-    if (calendarReservationTypes.length > 0) {
-        optionsHtml += '<option disabled style="background: #eee;">───── Specific Types ─────</option>';
-        
-        calendarReservationTypes.forEach(type => {
-            if (type.isActive) {
-                const statusIcon = type.isActive ? '✅' : '⭕';
-                optionsHtml += `<option value="type_${type._id}">  ${type.icon || '📌'} ${type.name} ${statusIcon}</option>`;
-            }
-        });
-        
-        // Also show inactive types with warning
-        const inactiveTypes = calendarReservationTypes.filter(type => !type.isActive);
-        if (inactiveTypes.length > 0) {
-            optionsHtml += '<option disabled style="background: #eee;">───── Inactive Types ─────</option>';
-            inactiveTypes.forEach(type => {
-                optionsHtml += `<option value="type_${type._id}" disabled style="color: #999;">  ⚠️ ${type.icon || '📌'} ${type.name} (Inactive)</option>`;
-            });
-        }
-    }
-    
-    filterSelect.innerHTML = optionsHtml;
-}
-
-// Populate the table type filter dropdown
 function populateTableTypeFilter() {
     const filterSelect = document.getElementById('reservationTypeFilter');
     if (!filterSelect) return;
     
-    // Get the current value to preserve selection if possible
     const currentValue = filterSelect.value;
     
     let optionsHtml = '<option value="all">📌 All Types</option>';
@@ -2490,7 +2343,6 @@ function populateTableTypeFilter() {
     optionsHtml += '<option value="reservation">📅 Reservation</option>';
     optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
     
-    // Add categories
     const uniqueCategories = [...new Set(tableReservationTypes.map(type => type.category))];
     
     const categoryIcons = {
@@ -2515,7 +2367,6 @@ function populateTableTypeFilter() {
         optionsHtml += `<option value="cat_${category}">${icon} ${displayName} (All)</option>`;
     });
     
-    // Add individual types
     if (tableReservationTypes.length > 0) {
         optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
         
@@ -2528,7 +2379,6 @@ function populateTableTypeFilter() {
     
     filterSelect.innerHTML = optionsHtml;
     
-    // Restore previous selection if possible
     if (currentValue && filterSelect.querySelector(`option[value="${currentValue}"]`)) {
         filterSelect.value = currentValue;
     }
@@ -2540,7 +2390,6 @@ async function revokeMembership(userId) {
     const token = getAuthToken();
     if (!token) return;
     
-    // Show loading
     showToast('Revoking membership...', 'info');
     
     try {
@@ -2561,8 +2410,8 @@ async function revokeMembership(userId) {
         if (response.ok) {
             const result = await response.json();
             showToast(`Membership revoked successfully! Previous status: ${result.previousStatus}`, 'success');
-            loadUsers(); // Refresh the users table
-            loadDashboardStats(); // Update dashboard stats
+            loadUsers();
+            loadDashboardStats();
         } else {
             const error = await response.json();
             showToast(error.message || 'Revoke failed', 'error');
@@ -2618,3 +2467,4 @@ window.toggleTimeSlotAvailability = toggleTimeSlotAvailability;
 window.deleteTimeSlot = deleteTimeSlot;
 window.changeAdminMonth = changeAdminMonth;
 window.openAdminDayDetails = openAdminDayDetails;
+window.revokeMembership = revokeMembership;
