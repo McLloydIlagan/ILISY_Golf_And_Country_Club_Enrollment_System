@@ -38,6 +38,49 @@ function checkSession() {
     return true;
 }
 
+
+// Save scroll position when leaving a page
+function saveScrollPosition(pageId) {
+    const pageElement = document.getElementById(`page-${pageId}`);
+    if (pageElement) {
+        const scrollY = pageElement.scrollTop || window.scrollY;
+        localStorage.setItem(`scroll_${pageId}`, scrollY);
+    }
+}
+
+// Restore scroll position when loading a page
+function restoreScrollPosition(pageId) {
+    const savedScroll = localStorage.getItem(`scroll_${pageId}`);
+    if (savedScroll) {
+        const pageElement = document.getElementById(`page-${pageId}`);
+        if (pageElement) {
+            pageElement.scrollTop = parseInt(savedScroll);
+        }
+        // Also try to restore window scroll if needed
+        setTimeout(() => {
+            window.scrollTo(0, parseInt(savedScroll));
+        }, 100);
+    }
+}
+
+
+
+function saveCurrentPage(pageId) {
+    localStorage.setItem('adminCurrentPage', pageId);
+}
+
+// Load last visited page on refresh
+function loadLastVisitedPage() {
+    const lastPage = localStorage.getItem('adminCurrentPage');
+    if (lastPage && document.getElementById(`page-${lastPage}`)) {
+        showPage(lastPage);
+    } else {
+        // Default to dashboard if no saved page or page doesn't exist
+        showPage('dashboard');
+    }
+}
+
+
 function showToast(message, type = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -67,19 +110,29 @@ function escapeHtml(text) {
 // ──────────────────────────────────────────────────────────────────
 // Navigation
 // ──────────────────────────────────────────────────────────────────
-
 function showPage(id) {
+    // Save current page's scroll position before leaving
+    const activePage = document.querySelector('.page.active');
+    if (activePage && activePage.id) {
+        const currentPageId = activePage.id.replace('page-', '');
+        saveScrollPosition(currentPageId);
+    }
+    
+    // Save current page to localStorage
+    saveCurrentPage(id);
+    
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     const page = document.getElementById('page-' + id);
     if (page) page.classList.add('active');
     
-    const map = { dashboard: 0, reservations: 1, accounts: 2, payments: 3, messages: 4, customerservice: 5 };
+    const map = { dashboard: 0, reservations: 1, accounts: 2, payments: 3, messages: 4, customerservice: 5, manage_reservations: 6 };
     const items = document.querySelectorAll('.nav-item');
     if (map[id] !== undefined && items[map[id]]) {
         items[map[id]].classList.add('active');
     }
     
+    // Load data based on selected page
     if (id === 'dashboard') loadDashboardStats();
     else if (id === 'accounts') loadUsers();
     else if (id === 'payments') loadPayments();
@@ -87,7 +140,19 @@ function showPage(id) {
     else if (id === 'reservations') loadReservations();
     else if (id === 'customerservice') loadCustomerServiceRecords();
     else if (id === 'manage_reservations') loadReservationTypes();
+    
+    // Restore scroll position for the new page
+    restoreScrollPosition(id);
 }
+
+// Also save scroll on window before unload
+window.addEventListener('beforeunload', () => {
+    const activePage = document.querySelector('.page.active');
+    if (activePage && activePage.id) {
+        const currentPageId = activePage.id.replace('page-', '');
+        saveScrollPosition(currentPageId);
+    }
+});
 
 // ──────────────────────────────────────────────────────────────────
 // Dashboard Functions
@@ -1115,12 +1180,6 @@ function changeReservationPage(page) {
     renderReservationsTable();
 }
 
-function changeReservationPage(page) {
-    const totalPages = Math.ceil(filteredReservations.length / reservationsPerPage);
-    if (page < 1 || page > totalPages) return;
-    currentReservationPage = page;
-    renderReservationsTable();
-}
 
 function resetReservationFilters() {
     const searchInput = document.getElementById('reservationSearchInput');
@@ -2296,17 +2355,18 @@ document.addEventListener('DOMContentLoaded', () => {
         loadAdminCalendar();
     });
     
-    // Load all data
-    loadDashboardStats();
-    loadUsers();
-    loadPayments();
-    loadMessages();
-    loadReservations();
-    loadCustomerServiceRecords();
-    loadPendingApplications();
+    // Load data based on current page (don't load all data upfront)
+    // loadDashboardStats();  // REMOVE THESE
+    // loadUsers();           // REMOVE THESE
+    // loadPayments();        // REMOVE THESE
+    // loadMessages();        // REMOVE THESE
+    // loadReservations();    // REMOVE THESE
+    // loadCustomerServiceRecords();  // REMOVE THESE
+    // loadPendingApplications();     // REMOVE THESE
     
     startAdminMessagePolling();
-    startMembershipStatusPolling();
+    // startMembershipStatusPolling();  // REMOVE THIS - function doesn't exist
+    
     document.querySelectorAll('.modal-overlay').forEach(o => {
         o.addEventListener('click', e => {
             if (e.target === o) o.classList.remove('show');
@@ -2321,9 +2381,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     window.addEventListener('beforeunload', () => {
-    if (pollingInterval) clearInterval(pollingInterval);
-    stopMembershipStatusPolling();
+        if (pollingInterval) clearInterval(pollingInterval);
+        // stopMembershipStatusPolling();  // REMOVE THIS
     });
+    
+    // NEW: Load the last visited page instead of always dashboard
+    // This should be the LAST thing that runs
+    loadLastVisitedPage();
 });
 
 // Function to load reservation types and populate both filters
