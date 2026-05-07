@@ -563,4 +563,32 @@ router.get('/reservations/by-date/:date', async (req, res) => {
     }
 });
 
+router.patch('/users/:userId/revoke-membership', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { reason } = req.body;
+        
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        // Store previous status for audit
+        const previousStatus = user.membershipStatus;
+        
+        // Revoke membership
+        user.membershipStatus = 'expired';
+        user.adminNotes = `Membership revoked on ${new Date().toISOString()}. Reason: ${reason || 'Not specified'}. Previous status: ${previousStatus}`;
+        await user.save();
+        
+        res.json({ 
+            message: 'Membership revoked successfully',
+            previousStatus: previousStatus,
+            newStatus: 'expired'
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;
