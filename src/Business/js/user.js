@@ -1185,12 +1185,30 @@ function confirmDynamicDateTime() {
         return;
     }
     
+    // Update the display divs that exist in the HTML
     const displayDiv = document.getElementById('selectedDateTimeDisplay');
-    displayDiv.innerHTML = `Selected: ${dynamicSelectedDate} at ${dynamicSelectedTime}`;
+    if (displayDiv) {
+        displayDiv.innerHTML = `Selected: ${dynamicSelectedDate} at ${dynamicSelectedTime}`;
+    }
     
-    document.getElementById('selectedDateDisplay').innerHTML = `Day of Reservation: <strong>${dynamicSelectedDate}</strong>`;
-    document.getElementById('selectedTimeDisplay').innerHTML = `Time of Reservation: <strong>${dynamicSelectedTime}</strong>`;
-    document.getElementById('finalAmount').textContent = dynamicTotalPrice;
+    // Update the new reservation payment form display elements
+    const newDateDisplay = document.getElementById('selectedDateDisplayRes');
+    const newTimeDisplay = document.getElementById('selectedTimeDisplayRes');
+    const finalAmountResSpan = document.getElementById('finalAmountRes');
+    const totalPriceSpan = document.getElementById('totalPrice');
+    const finalAmountSpan = document.getElementById('finalAmount');
+    
+    if (newDateDisplay) newDateDisplay.innerHTML = dynamicSelectedDate;
+    if (newTimeDisplay) newTimeDisplay.innerHTML = dynamicSelectedTime;
+    if (finalAmountResSpan) finalAmountResSpan.textContent = dynamicTotalPrice;
+    if (totalPriceSpan) totalPriceSpan.textContent = dynamicTotalPrice;
+    if (finalAmountSpan) finalAmountSpan.textContent = dynamicTotalPrice;
+    
+    // Also update old elements if they exist (for backward compatibility)
+    const oldDateDisplay = document.getElementById('selectedDateDisplay');
+    const oldTimeDisplay = document.getElementById('selectedTimeDisplay');
+    if (oldDateDisplay) oldDateDisplay.innerHTML = `Day of Reservation: <strong>${dynamicSelectedDate}</strong>`;
+    if (oldTimeDisplay) oldTimeDisplay.innerHTML = `Time of Reservation: <strong>${dynamicSelectedTime}</strong>`;
     
     closeDynamicCalendarPopup();
     showToast('Date and time confirmed!', 'success');
@@ -1224,14 +1242,50 @@ async function submitDynamicReservation() {
         return;
     }
     
-    // Show payment form
-    const paymentSection = document.getElementById('reservationPayment');
-    paymentSection.style.display = 'block';
-    paymentSection.scrollIntoView({ behavior: 'smooth' });
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showToast('Please enter a valid email address', 'error');
+        return;
+    }
     
-    document.getElementById('selectedDateDisplay').innerHTML = `Day of Reservation: <strong>${dynamicSelectedDate}</strong>`;
-    document.getElementById('selectedTimeDisplay').innerHTML = `Time of Reservation: <strong>${dynamicSelectedTime}</strong>`;
-    document.getElementById('finalAmount').textContent = dynamicTotalPrice;
+    // Validate phone
+    const cleanPhone = phone.replace(/[\s-]/g, '');
+    const phoneRegex = /^(09\d{9}|\+639\d{9})$/;
+    if (!phoneRegex.test(cleanPhone)) {
+        showToast('Please enter a valid 11-digit mobile number', 'error');
+        return;
+    }
+    
+    // Hide the reservation card and show the payment form
+    const reservationCard = document.querySelector('#tab-reservation .reservation-card');
+    if (reservationCard) {
+        reservationCard.style.display = 'none';
+    }
+    
+    // Update the payment form with selected date/time and amount
+    const newDateDisplay = document.getElementById('selectedDateDisplayRes');
+    const newTimeDisplay = document.getElementById('selectedTimeDisplayRes');
+    const finalAmountResSpan = document.getElementById('finalAmountRes');
+    
+    if (newDateDisplay) newDateDisplay.innerHTML = dynamicSelectedDate;
+    if (newTimeDisplay) newTimeDisplay.innerHTML = dynamicSelectedTime;
+    if (finalAmountResSpan) finalAmountResSpan.textContent = dynamicTotalPrice;
+    
+    // Show the payment form
+    const paymentSection = document.getElementById('reservationPayment');
+    if (paymentSection) {
+        paymentSection.style.display = 'block';
+        paymentSection.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Also update old elements if they exist
+    const oldDateDisplay = document.getElementById('selectedDateDisplay');
+    const oldTimeDisplay = document.getElementById('selectedTimeDisplay');
+    const oldFinalAmount = document.getElementById('finalAmount');
+    if (oldDateDisplay) oldDateDisplay.innerHTML = `Day of Reservation: <strong>${dynamicSelectedDate}</strong>`;
+    if (oldTimeDisplay) oldTimeDisplay.innerHTML = `Time of Reservation: <strong>${dynamicSelectedTime}</strong>`;
+    if (oldFinalAmount) oldFinalAmount.textContent = dynamicTotalPrice;
 }
 
 async function submitDynamicReservationPayment() {
@@ -1876,6 +1930,237 @@ function displayUserName() {
     }
 }
 
+async function submitReservationPayment() {
+    if (!checkSession()) return;
+    
+    const token = getAuthToken();
+    
+    // Get personal details
+    const firstName = document.getElementById('resFirstName').value.trim();
+    const lastName = document.getElementById('resLastName').value.trim();
+    const email = document.getElementById('resEmail').value.trim();
+    const phone = document.getElementById('resPhone').value.trim();
+    
+    // Get payment details from modern form
+    const activeMethod = document.querySelector('#reservationPayment .pm-tab.active');
+    let paymentMethod = 'BDO';
+    
+    if (activeMethod) {
+        const methodText = activeMethod.innerText.trim();
+        if (methodText.includes('BDO')) paymentMethod = 'BDO';
+        else if (methodText.includes('Metrobank')) paymentMethod = 'Metrobank';
+        else if (methodText.includes('BPI')) paymentMethod = 'BPI';
+        else paymentMethod = 'BDO';
+    }
+    
+    const accountNumber = document.getElementById('resPaymentAccount').value.trim();
+    const expiryInput = document.getElementById('resExpiry');
+    const expiry = expiryInput ? expiryInput.value.trim() : '';
+    const cvc = document.getElementById('resCardCvc') ? document.getElementById('resCardCvc').value.trim() : '';
+    
+    // Validate personal details
+    if (!firstName || !lastName) {
+        showToast('Please enter your first and last name', 'error');
+        return;
+    }
+    
+    if (!email) {
+        showToast('Please enter your email address', 'error');
+        return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showToast('Please enter a valid email address', 'error');
+        return;
+    }
+    
+    if (!phone) {
+        showToast('Please enter your phone number', 'error');
+        return;
+    }
+    
+    const cleanPhone = phone.replace(/[\s-]/g, '');
+    const phoneRegex = /^(09\d{9}|\+639\d{9})$/;
+    if (!phoneRegex.test(cleanPhone)) {
+        showToast('Please enter a valid 11-digit mobile number', 'error');
+        return;
+    }
+    
+    // Validate card payment
+    if (!accountNumber) {
+        showToast('Please enter your card number', 'error');
+        return;
+    }
+    
+    const cleanCard = accountNumber.replace(/\s+/g, '');
+    if (!/^\d{16}$/.test(cleanCard)) {
+        showToast('Please enter a valid 16-digit card number', 'error');
+        return;
+    }
+    
+    if (!expiry || !/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) {
+        showToast('Please enter valid expiration date (MM/YY)', 'error');
+        return;
+    }
+    
+    if (!cvc || !/^\d{3,4}$/.test(cvc)) {
+        showToast('Please enter valid CVV code', 'error');
+        return;
+    }
+    
+    // Generate reference number
+    const referenceNumber = `RES-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    
+    const data = {
+        userId: localStorage.getItem('userId'),
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        phone: cleanPhone,
+        date: dynamicSelectedDate,
+        timeSlot: dynamicSelectedTime,
+        reservationType: selectedReservationTypeData?.name,
+        paymentMethod: paymentMethod,
+        accountNumber: cleanCard,
+        referenceNumber: referenceNumber,
+        amount: dynamicTotalPrice,
+        originalAmount: calculateOriginalPrice(),
+        isMember: isUserMember(),
+        memberDiscount: isUserMember() ? 0.2 : 0,
+        cardExpiry: expiry,
+        cardCvc: cvc
+    };
+    
+    console.log('📤 Submitting reservation:', data);
+    
+    const overlay = document.getElementById('processingOverlay');
+    overlay.style.display = 'flex';
+    document.getElementById('processingMsg').textContent = 'Submitting your reservation...';
+    
+    try {
+        const response = await fetch(`${API_URL}/reservations/apply`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.status === 401) {
+            overlay.style.display = 'none';
+            localStorage.clear();
+            showToast('Session expired. Please login again.', 'error');
+            setTimeout(() => window.location.href = '../index.html', 2000);
+            return;
+        }
+        
+        const result = await response.json();
+        console.log('📥 Server response:', response.status, result);
+        
+        if (response.ok) {
+            overlay.style.display = 'none';
+            const memberText = isUserMember() ? ' (Member discount applied!)' : '';
+            showToast(`Reservation submitted!${memberText} Admin will verify your payment.`, 'success');
+            
+            document.getElementById('receiptTracking').textContent = referenceNumber;
+            document.getElementById('receiptName').textContent = firstName + ' ' + lastName;
+            document.getElementById('receiptPopup').style.display = 'flex';
+            
+            // Reset form
+            document.getElementById('reservationPayment').style.display = 'none';
+            document.getElementById('reservationTypeSelect').value = '';
+            document.getElementById('dynamicOptionsContainer').innerHTML = '';
+            document.getElementById('dateTimeSelection').style.display = 'none';
+            document.getElementById('priceDisplay').style.display = 'none';
+            document.getElementById('submitReservationBtn').style.display = 'none';
+            
+            // Show the reservation card again
+            const reservationCard = document.querySelector('#tab-reservation .reservation-card');
+            if (reservationCard) reservationCard.style.display = 'block';
+            
+            // Reset payment form fields
+            document.getElementById('resPaymentAccount').value = '';
+            if (document.getElementById('resExpiry')) document.getElementById('resExpiry').value = '';
+            if (document.getElementById('resCardCvc')) document.getElementById('resCardCvc').value = '';
+            
+            dynamicSelectedDate = null;
+            dynamicSelectedTime = null;
+            selectedReservationTypeData = null;
+        } else {
+            overlay.style.display = 'none';
+            showToast(result.message || 'Reservation failed', 'error');
+        }
+    } catch (error) {
+        overlay.style.display = 'none';
+        console.error('Error:', error);
+        showToast('Connection error: ' + error.message, 'error');
+    }
+}
+
+function pickReservationMethod(btn) {
+    console.log("Reservation payment method clicked: " + btn.innerText);
+    
+    document.querySelectorAll('#reservationPayment .pm-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    const method = btn.innerText.trim();
+    const bankNameDisplay = document.getElementById('resMerchantBankName');
+    const accountNoDisplay = document.getElementById('resMerchantAccountNumber');
+    const inputLabel = document.getElementById('resLabelPaymentAccount');
+    
+    if (!bankNameDisplay || !accountNoDisplay) {
+        console.error("Error: Could not find merchant info elements!");
+        return;
+    }
+    
+    bankNameDisplay.innerText = method;
+    
+    if (inputLabel) {
+        inputLabel.innerText = method + " Card number";
+    }
+    
+    if (method.includes("BDO")) {
+        accountNoDisplay.innerText = "4512 3456 7890 1234";
+    } else if (method.includes("Metrobank")) {
+        accountNoDisplay.innerText = "5123 9988 7766 5544";
+    } else if (method.includes("BPI")) {
+        accountNoDisplay.innerText = "4213 0011 2233 4455";
+    }
+    
+    const userAccountInput = document.getElementById('resPaymentAccount');
+    if (userAccountInput) userAccountInput.value = "";
+    
+    const expiryInput = document.getElementById('resExpiry');
+    const cvcInput = document.getElementById('resCardCvc');
+    if (expiryInput) expiryInput.value = "";
+    if (cvcInput) cvcInput.value = "";
+}
+
+function formatReservationCardNumber(input) {
+    let val = input.value.replace(/\D/g, '');
+    val = val.replace(/(.{4})/g, '$1 ').trim();
+    input.value = val;
+}
+
+function formatReservationExpiry(input, event) {
+    if (event.inputType === 'deleteContentBackward') return;
+    let val = input.value.replace(/\D/g, '');
+    if (val.length >= 2) {
+        let month = val.substring(0, 2);
+        if (parseInt(month) > 12) month = '12';
+        if (parseInt(month) === 0) month = '01';
+        let day = val.substring(2, 4);
+        if (day.length === 2) {
+            if (parseInt(day) > 31) day = '31';
+            if (parseInt(day) === 0) day = '01';
+        }
+        input.value = month + '/' + day;
+    } else {
+        input.value = val;
+    }
+}
 
 window.submitDynamicReservation = submitDynamicReservation;
 window.submitDynamicReservationPayment = submitDynamicReservationPayment;

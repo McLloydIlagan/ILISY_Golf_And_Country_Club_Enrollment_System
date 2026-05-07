@@ -136,11 +136,11 @@
                     <h2>Complete Payment</h2>
                 </div>
 
-                <div class="payment-method-tabs">
-                    <button class="pm-tab method-btn active" onclick="pickMethod(this)"><span class="pm-icon">🏦</span> BDO</button>
-                    <button class="pm-tab method-btn" onclick="pickMethod(this)"><span class="pm-icon">🏦</span> Metrobank</button>
-                    <button class="pm-tab method-btn" onclick="pickMethod(this)"><span class="pm-icon">🏦</span> BPI</button>
-                </div>
+                    <div class="payment-method-tabs">
+                        <button class="pm-tab method-btn active" onclick="pickMethod(this)"><span class="pm-icon">🏦</span> BDO</button>
+                        <button class="pm-tab method-btn" onclick="pickMethod(this)"><span class="pm-icon">🏦</span> Metrobank</button>
+                        <button class="pm-tab method-btn" onclick="pickMethod(this)"><span class="pm-icon">🏦</span> BPI</button>
+                    </div>
 
                 <div class="checkout-form">
                     <div id="merchantInfoBox" style="background: #f8faff; border: 1px solid #5a67d8; padding: 15px; border-radius: 6px; margin-bottom: 20px; color: #4f566b;">
@@ -200,76 +200,102 @@
     </div>
 
     <!-- TAB: RESERVATION -->
-    <div class="tab-content" id="tab-reservation">
-        <div class="tab-inner">
-            <div class="reservation-card">
-                <p class="sub-title">Personal Details</p>
-                <div class="form-grid-4">
-                    <div class="form-group"><label>First Name</label><input type="text" id="resFirstName"></div>
-                    <div class="form-group"><label>Last Name</label><input type="text" id="resLastName"></div>
-                    <div class="form-group"><label>Gender</label>
-                        <select id="resGender"><option></option><option>Male</option><option>Female</option></select>
-                    </div>
-                    <div class="form-group"><label>Phone Number</label><input type="tel" id="resPhone"></div>
+<div class="tab-content" id="tab-reservation">
+    <div class="tab-inner">
+        <div class="reservation-card">
+            <p class="sub-title">Personal Details</p>
+            <div class="form-grid-4">
+                <div class="form-group"><label>First Name</label><input type="text" id="resFirstName"></div>
+                <div class="form-group"><label>Last Name</label><input type="text" id="resLastName"></div>
+                <div class="form-group"><label>Gender</label>
+                    <select id="resGender"><option></option><option>Male</option><option>Female</option></select>
                 </div>
-                <div class="form-grid-4" style="margin-bottom:24px;">
-                    <div class="form-group" style="grid-column:span 2"><label>Email Address</label><input type="email" id="resEmail"></div>
-                </div>
-
-                <p class="sub-title">Select Reservation Type</p>
-                <div class="reservation-type-selector">
-                    <select id="reservationTypeSelect" onchange="onReservationTypeChange()">
-                        <option value="">-- Select Reservation Type --</option>
-                    </select>
-                </div>
-
-                <div id="dynamicOptionsContainer" style="margin-top: 20px;"></div>
-
-                <div id="dateTimeSelection" style="display: none; margin-top: 20px;">
-                    <p class="sub-title">Select Date & Time</p>
-                    <button type="button" class="btn-olive" style="width:100%; margin-bottom:15px;" onclick="openDynamicCalendarPopup()">
-                        📅 Choose Date & Time
-                    </button>
-                    <div id="selectedDateTimeDisplay" style="font-size:13px; color:#666; text-align:center; padding:10px; background:var(--sage); border-radius:5px;"></div>
-                </div>
-
-                <div id="priceDisplay" class="price-display" style="display: none; margin-top: 15px;">
-                    <div class="member-rate">Total: ₱<span id="totalPrice">0</span></div>
-                    <div class="guest-rate">Member discount available</div>
-                </div>
-
-                <button class="btn-olive" id="submitReservationBtn" style="display: none;" onclick="submitDynamicReservation()">Submit Reservation</button>
+                <div class="form-group"><label>Phone Number</label><input type="tel" id="resPhone"></div>
+            </div>
+            <div class="form-grid-4" style="margin-bottom:24px;">
+                <div class="form-group" style="grid-column:span 2"><label>Email Address</label><input type="email" id="resEmail"></div>
             </div>
 
-            <div id="reservationPayment" style="display:none; margin-top:30px;">
-                <h2 style="text-align:center; font-size:22px; color:#222; margin-bottom:25px;">Payment Form — Reservation</h2>
-                <div class="payment-layout">
-                    <div class="payment-card">
-                        <h2>Payment Form</h2>
-                        <p class="pay-msg">Please complete your payment details below</p>
-                        <div class="method-row">
-                            <button type="button" class="method-btn active" onclick="pickMethod(this)">GCash</button>
-                            <button type="button" class="method-btn" onclick="pickMethod(this)">Maya</button>
-                            <button type="button" class="method-btn" onclick="pickMethod(this)">BPI</button>
-                            <button type="button" class="method-btn" onclick="pickMethod(this)">BDO</button>
-                            <button type="button" class="method-btn" onclick="pickMethod(this)">Cash</button>
+            <p class="sub-title">Select Reservation Type</p>
+            <div class="reservation-type-selector">
+                <select id="reservationTypeSelect" onchange="onReservationTypeChange()">
+                    <option value="">-- Select Reservation Type --</option>
+                </select>
+            </div>
+
+            <div id="dynamicOptionsContainer" style="margin-top: 20px;"></div>
+
+            <div id="dateTimeSelection" style="display: none; margin-top: 20px;">
+                <p class="sub-title">Select Date & Time</p>
+                <button type="button" class="btn-olive" style="width:100%; margin-bottom:15px;" onclick="openDynamicCalendarPopup()">
+                    📅 Choose Date & Time
+                </button>
+                <div id="selectedDateTimeDisplay" style="font-size:13px; color:#666; text-align:center; padding:10px; background:var(--sage); border-radius:5px;"></div>
+            </div>
+
+            <div id="priceDisplay" class="price-display" style="display: none; margin-top: 15px;">
+                <div class="member-rate">Total: ₱<span id="totalPrice">0</span></div>
+                <div class="guest-rate">Member discount available</div>
+            </div>
+
+            <button class="btn-olive" id="submitReservationBtn" style="display: none;" onclick="submitDynamicReservation()">Submit Reservation</button>
+        </div>
+
+        <!-- MODERN RESERVATION PAYMENT FORM -->
+        <div id="reservationPayment" style="display:none; margin-top:30px;">
+            <div class="section-card modern-checkout" style="max-width: 600px; margin: 0 auto;">
+                <div class="checkout-header">
+                    <h2>Complete Reservation Payment</h2>
+                </div>
+
+                <div class="payment-method-tabs">
+                    <button class="pm-tab method-btn active" onclick="pickReservationMethod(this)"><span class="pm-icon">🏦</span> BDO</button>
+                    <button class="pm-tab method-btn" onclick="pickReservationMethod(this)"><span class="pm-icon">🏦</span> Metrobank</button>
+                    <button class="pm-tab method-btn" onclick="pickReservationMethod(this)"><span class="pm-icon">🏦</span> BPI</button>
+                </div>
+
+                <div class="checkout-form">
+                    <div id="resMerchantInfoBox" style="background: #f8faff; border: 1px solid #5a67d8; padding: 15px; border-radius: 6px; margin-bottom: 20px; color: #4f566b;">
+                        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">This payment will be sent to:</div>
+                        <div style="font-size: 15px; color: #1a1f36;">
+                            <strong>ILISY Golf Club <span id="resMerchantBankName">BDO</span></strong><br>
+                            <span id="resMerchantAccountNumber" style="font-family: monospace; font-size: 18px; color: #5a67d8; display: inline-block; margin-top: 4px;">4512 3456 7890 1234</span>
                         </div>
-                        <p class="pay-label">Account Number</p>
-                        <input type="text" class="pay-input" id="resPaymentAccount" placeholder="Enter your account number">
-                        <p class="pay-label">Reference / Transaction ID</p>
-                        <input type="text" class="pay-input" id="resReferenceNumber" placeholder="Enter reference number from payment">
-                        <hr class="divider">
-                        <div class="detail-row">
-                            <div id="selectedDateDisplay">Day of Reservation: <strong>Not selected</strong></div>
-                            <div id="selectedTimeDisplay">Time of Reservation: <strong>Not selected</strong></div>
-                            <div>Total Amount: <strong>₱<span id="finalAmount">0</span></strong></div>
-                        </div>
-                        <button type="button" class="btn-olive" style="margin-top:25px;" onclick="submitDynamicReservationPayment()">Submit Reservation</button>
                     </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label id="resLabelPaymentAccount">BDO Card number</label>
+                        <div class="input-with-icon">
+                            <input type="text" placeholder="0000 0000 0000 0000" id="resPaymentAccount" maxlength="19" oninput="formatReservationCardNumber(this)">
+                            <div class="card-brands" id="resCardIcons">VISA &nbsp; MC</div>
+                        </div>
+                    </div>
+
+                    <div class="form-row" id="resSecondaryRow" style="display: flex; gap: 15px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label>Expiration date</label>
+                            <input type="text" placeholder="MM/YY" id="resExpiry" maxlength="5" oninput="formatReservationExpiry(this, event)">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Security code</label>
+                            <input type="text" placeholder="CVC" id="resCardCvc" maxlength="4" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        </div>
+                    </div>
+
+                    <hr class="divider" style="margin: 20px 0;">
+                    
+                    <div class="detail-row" style="margin-bottom: 15px;">
+                        <div><strong>Day of Reservation:</strong> <span id="selectedDateDisplayRes">Not selected</span></div>
+                        <div><strong>Time of Reservation:</strong> <span id="selectedTimeDisplayRes">Not selected</span></div>
+                        <div><strong>Total Amount:</strong> <strong style="color: var(--olive);">₱<span id="finalAmountRes">0</span></strong></div>
+                    </div>
+
+                    <button class="btn-pay-now" onclick="submitReservationPayment()">Pay Now</button>
                 </div>
             </div>
         </div>
     </div>
+</div>
 </section>
 
 <!-- Dynamic Calendar Modal -->
