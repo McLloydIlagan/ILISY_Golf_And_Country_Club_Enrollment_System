@@ -122,18 +122,12 @@
                 <button class="cal-nav-btn" onclick="changeAdminMonth(1)">▶</button>
             </div>
             
-            <!-- Calendar Type Filter -->
+            <!-- Calendar Type Filter - Dynamic -->
             <div style="padding: 10px 20px; background: var(--sage); border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <label style="font-size: 12px; font-weight: bold; color: #333;">📅 Show:</label>
-                    <select id="calendarTypeFilter" onchange="loadAdminCalendar()" style="padding: 6px 12px; border-radius: 5px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif; font-size: 12px;">
+                    <label style="font-size: 12px; font-weight: bold; color: #333;">📅 Calendar View:</label>
+                    <select id="calendarTypeFilter" onchange="loadAdminCalendar()" style="padding: 6px 12px; border-radius: 5px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif; font-size: 12px; min-width: 180px;">
                         <option value="all">📌 All Reservations</option>
-                        <option value="membership">🏌️ Membership</option>
-                        <option value="reservation">📅 Tee Time / Golf</option>
-                        <option value="accommodation">🏨 Accommodation</option>
-                        <option value="amenities">🍽️ Amenities</option>
-                        <option value="events">🎉 Events</option>
-                        <option value="premium">✨ Premium</option>
                     </select>
                 </div>
                 <div style="font-size: 11px; color: #555;">
@@ -159,7 +153,7 @@
                         <input type="text" id="reservationSearchInput" placeholder="Search by name, email, phone..." oninput="filterReservationsTable()" style="width: 220px;">
                     </div>
                     
-                    <!-- Filter Dropdown -->
+                    <!-- Status Filter Dropdown -->
                     <select id="reservationStatusFilter" onchange="filterReservationsTable()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif;">
                         <option value="all">📋 All Status</option>
                         <option value="pending">⏳ Pending</option>
@@ -169,11 +163,17 @@
                         <option value="cancelled">❌ Cancelled</option>
                     </select>
                     
-                    <!-- Type Filter -->
-                    <select id="reservationTypeFilter" onchange="filterReservationsTable()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif;">
+                    <!-- Type Filter Dropdown - Dynamic -->
+                    <select id="reservationTypeFilter" onchange="filterReservationsTable()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif; min-width: 160px;">
                         <option value="all">📌 All Types</option>
-                        <option value="reservation">📅 Reservation</option>
                         <option value="membership">🏌️ Membership</option>
+                        <option value="reservation">📅 Reservation</option>
+                        <option disabled style="background: #eee;">──────────</option>
+                        <option value="golf_category">⛳ Golf</option>
+                        <option value="amenities_category">🍽️ Amenities</option>
+                        <option value="events_category">🎉 Events</option>
+                        <option value="accommodation_category">🏨 Accommodation</option>
+                        <option value="premium_category">✨ Premium</option>
                     </select>
                     
                     <!-- Reset Button -->

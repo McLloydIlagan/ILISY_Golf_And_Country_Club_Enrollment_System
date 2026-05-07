@@ -4,6 +4,8 @@ const API_URL = 'https://ilisy-golf-and-country-club-enrollment.onrender.com/api
 // Helper Functions
 // ──────────────────────────────────────────────────────────────────
 
+let tableReservationTypes = [];
+
 function getAuthToken() {
     return localStorage.getItem('authToken');
 }
@@ -127,6 +129,90 @@ let adminCurrentMonth = new Date();
 let adminReservationsData = [];
 let adminCalendarData = [];
 let currentCalendarFilter = 'all';
+let calendarReservationTypes = [];
+
+// Add this function to load reservation types for the calendar filter
+async function loadCalendarReservationTypes() {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/reservation-types/admin/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        if (response.ok) {
+            const types = await response.json();
+            calendarReservationTypes = types;
+            populateCalendarFilter();
+        }
+    } catch (error) {
+        console.error('Error loading reservation types for calendar:', error);
+    }
+}
+
+// Populate the calendar filter dropdown with types from database
+function populateCalendarFilter() {
+    const filterSelect = document.getElementById('calendarTypeFilter');
+    if (!filterSelect) return;
+    
+    // Keep the "All Reservations" option
+    let optionsHtml = '<option value="all">📌 All Reservations</option>';
+    
+    // Add membership option (special case)
+    optionsHtml += '<option value="membership">🏌️ Membership Applications</option>';
+    
+    // Add categories from ReservationType (unique categories)
+    const uniqueCategories = [...new Set(calendarReservationTypes.map(type => type.category))];
+    
+    uniqueCategories.forEach(category => {
+        let icon = '📅';
+        let displayName = category.charAt(0).toUpperCase() + category.slice(1);
+        
+        switch(category) {
+            case 'golf':
+                icon = '🏌️';
+                displayName = 'Golf / Tee Time';
+                break;
+            case 'amenities':
+                icon = '🍽️';
+                displayName = 'Amenities (Spa, Dining, etc.)';
+                break;
+            case 'events':
+                icon = '🎉';
+                displayName = 'Events';
+                break;
+            case 'accommodation':
+                icon = '🏨';
+                displayName = 'Accommodation';
+                break;
+            case 'premium':
+                icon = '✨';
+                displayName = 'Premium Services';
+                break;
+        }
+        
+        optionsHtml += `<option value="${category}">${icon} ${displayName}</option>`;
+    });
+    
+    // Add individual reservation types for more granular filtering
+    if (calendarReservationTypes.length > 0) {
+        optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
+        
+        calendarReservationTypes.forEach(type => {
+            if (type.isActive) {
+                optionsHtml += `<option value="type_${type._id}">  📌 ${type.icon || '📌'} ${type.name}</option>`;
+            }
+        });
+    }
+    
+    filterSelect.innerHTML = optionsHtml;
+}
 
 async function loadAdminCalendar() {
     const token = getAuthToken();
@@ -134,14 +220,29 @@ async function loadAdminCalendar() {
     
     // Get the selected filter
     const filterSelect = document.getElementById('calendarTypeFilter');
-    currentCalendarFilter = filterSelect ? filterSelect.value : 'all';
+    let selectedFilter = filterSelect ? filterSelect.value : 'all';
+    
+    // Parse the filter value
+    let filterType = 'all';
+    let filterValue = '';
+    
+    if (selectedFilter === 'membership') {
+        filterType = 'membership';
+    } else if (selectedFilter === 'all') {
+        filterType = 'all';
+    } else if (selectedFilter.startsWith('cat_')) {
+        filterType = 'category';
+        filterValue = selectedFilter.replace('cat_', '');
+    } else if (selectedFilter.startsWith('type_')) {
+        filterType = 'type_id';
+        filterValue = selectedFilter.replace('type_', '');
+    }
     
     try {
         const year = adminCurrentMonth.getFullYear();
         const month = adminCurrentMonth.getMonth() + 1;
         
-        // Pass the filter to the backend
-        const response = await fetch(`${API_URL}/admin/reservations/calendar?year=${year}&month=${month}&filter=${currentCalendarFilter}`, {
+        const response = await fetch(`${API_URL}/admin/reservations/calendar?year=${year}&month=${month}&filterType=${filterType}&filterValue=${filterValue}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -152,7 +253,7 @@ async function loadAdminCalendar() {
         
         if (response.ok) {
             adminCalendarData = await response.json();
-            console.log('Calendar data loaded:', adminCalendarData.length, 'filter:', currentCalendarFilter);
+            console.log('Calendar data loaded:', adminCalendarData.length, 'filter:', selectedFilter);
         }
     } catch (error) {
         console.error('Error loading calendar:', error);
@@ -174,6 +275,14 @@ function renderAdminCalendar() {
         monthYearSpan.textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(adminCurrentMonth);
     }
     
+    // Get current filter
+    const filterSelect = document.getElementById('calendarTypeFilter');
+    const currentFilter = filterSelect ? filterSelect.value : 'all';
+    let isMembershipFilter = currentFilter === 'membership';
+    let isSpecificTypeFilter = currentFilter.startsWith('type_');
+    let specificTypeId = isSpecificTypeFilter ? currentFilter.replace('type_', '') : null;
+    let categoryFilter = !isMembershipFilter && !isSpecificTypeFilter && currentFilter !== 'all' ? currentFilter : null;
+    
     const grid = document.getElementById('adminCalGrid');
     if (!grid) return;
     grid.innerHTML = '';
@@ -191,7 +300,7 @@ function renderAdminCalendar() {
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const totalSlots = 10; // Default capacity per day
+    const totalSlots = 10;
     
     for (let d = 1; d <= daysInMonth; d++) {
         const cellDate = new Date(year, month, d);
@@ -199,37 +308,33 @@ function renderAdminCalendar() {
         const isToday = cellDate.toDateString() === today.toDateString();
         
         // Filter reservations based on selected type
-        let dayReservations = [];
+        let dayReservations = adminCalendarData;
         
-        if (currentCalendarFilter === 'all') {
-            // Show all reservations
-            dayReservations = adminCalendarData.filter(res => {
-                const resDate = new Date(res.date);
-                return resDate.getFullYear() === year && 
-                       resDate.getMonth() === month && 
-                       resDate.getDate() === d;
-            });
-        } else {
-            // Filter by specific type
-            dayReservations = adminCalendarData.filter(res => {
-                const resDate = new Date(res.date);
-                const matchesDate = resDate.getFullYear() === year && 
-                                    resDate.getMonth() === month && 
-                                    resDate.getDate() === d;
-                if (!matchesDate) return false;
-                
-                // Check reservation type
-                const reservationType = res.reservationType || res.type || res.category || '';
-                return reservationType.toLowerCase() === currentCalendarFilter.toLowerCase() ||
-                       (currentCalendarFilter === 'reservation' && (reservationType === 'golf' || reservationType === 'tee time')) ||
-                       (currentCalendarFilter === 'accommodation' && reservationType === 'accommodation') ||
-                       (currentCalendarFilter === 'amenities' && reservationType === 'amenities') ||
-                       (currentCalendarFilter === 'events' && reservationType === 'events') ||
-                       (currentCalendarFilter === 'premium' && reservationType === 'premium');
-            });
+        if (isMembershipFilter) {
+            // Filter for membership applications only
+            dayReservations = adminCalendarData.filter(res => res.type === 'membership');
+        } else if (isSpecificTypeFilter && specificTypeId) {
+            // Filter for specific reservation type by ID
+            dayReservations = adminCalendarData.filter(res => 
+                res.reservationTypeId === specificTypeId || 
+                res.details?.reservationTypeId === specificTypeId
+            );
+        } else if (categoryFilter) {
+            // Filter by category
+            dayReservations = adminCalendarData.filter(res => 
+                (res.category || res.reservationCategory || '').toLowerCase() === categoryFilter
+            );
         }
         
-        const bookedCount = dayReservations.length;
+        // Further filter by date
+        const dayReservationsFiltered = dayReservations.filter(res => {
+            const resDate = new Date(res.date);
+            return resDate.getFullYear() === year && 
+                   resDate.getMonth() === month && 
+                   resDate.getDate() === d;
+        });
+        
+        const bookedCount = dayReservationsFiltered.length;
         let statusClass = 'available';
         
         if (bookedCount === 0) {
@@ -245,7 +350,7 @@ function renderAdminCalendar() {
         // Add tooltip with reservation info
         let tooltipInfo = '';
         if (bookedCount > 0) {
-            const types = [...new Set(dayReservations.map(r => r.reservationType || r.type || 'Reservation'))];
+            const types = [...new Set(dayReservationsFiltered.map(r => r.reservationType || r.type || 'Reservation'))];
             tooltipInfo = `data-info="${bookedCount} booking${bookedCount !== 1 ? 's' : ''} (${types.join(', ')})"`;
         } else {
             tooltipInfo = `data-info="No bookings"`;
@@ -811,9 +916,10 @@ function filterReservationsTable() {
     
     const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
     const statusFilterValue = statusFilter ? statusFilter.value : 'all';
-    const typeFilterValue = typeFilter ? typeFilter.value : 'all';
+    let typeFilterValue = typeFilter ? typeFilter.value : 'all';
     
     console.log('Filtering reservations. Total:', allReservations.length);
+    console.log('Type filter:', typeFilterValue);
     
     filteredReservations = allReservations.filter(app => {
         // Search filter (name, email, phone)
@@ -830,10 +936,27 @@ function filterReservationsTable() {
             matchesStatus = app.status === statusFilterValue;
         }
         
-        // Type filter
+        // Type filter - handle new format
         let matchesType = true;
         if (typeFilterValue !== 'all') {
-            matchesType = app.type === typeFilterValue;
+            if (typeFilterValue === 'membership') {
+                matchesType = app.type === 'membership';
+            } else if (typeFilterValue === 'reservation') {
+                matchesType = app.type === 'reservation';
+            } else if (typeFilterValue.startsWith('cat_')) {
+                // Filter by category
+                const category = typeFilterValue.replace('cat_', '');
+                const appCategory = app.category || app.details?.category || '';
+                matchesType = appCategory.toLowerCase() === category.toLowerCase();
+            } else if (typeFilterValue.startsWith('type_')) {
+                // Filter by specific reservation type ID
+                const typeId = typeFilterValue.replace('type_', '');
+                const appTypeId = app.reservationTypeId || app.details?.reservationTypeId || '';
+                matchesType = appTypeId === typeId;
+            } else {
+                // Legacy filter
+                matchesType = app.type === typeFilterValue;
+            }
         }
         
         return matchesSearch && matchesStatus && matchesType;
@@ -846,7 +969,6 @@ function filterReservationsTable() {
     updateResultsCount();
 }
 
-// Add reset filters function
 function resetReservationFilters() {
     const searchInput = document.getElementById('reservationSearchInput');
     const statusFilter = document.getElementById('reservationStatusFilter');
@@ -2165,7 +2287,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize admin calendar (dynamic)
     adminCurrentMonth = new Date();
-    loadAdminCalendar();
+    
+    // Load reservation types for filters FIRST, then load calendar
+    loadReservationTypesForFilters().then(() => {
+        loadAdminCalendar();
+    });
     
     // Load all data
     loadDashboardStats();
@@ -2195,6 +2321,150 @@ document.addEventListener('DOMContentLoaded', () => {
         stopAdminMessagePolling();
     });
 });
+
+// Function to load reservation types and populate both filters
+async function loadReservationTypesForFilters() {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/reservation-types/admin/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        if (response.ok) {
+            const types = await response.json();
+            calendarReservationTypes = types;
+            tableReservationTypes = types;
+            
+            // Populate both filters
+            populateCalendarFilter();
+            populateTableTypeFilter();
+        }
+    } catch (error) {
+        console.error('Error loading reservation types for filters:', error);
+    }
+}
+
+// Populate the calendar filter dropdown
+function populateCalendarFilter() {
+    const filterSelect = document.getElementById('calendarTypeFilter');
+    if (!filterSelect) return;
+    
+    let optionsHtml = '<option value="all">📌 All Reservations</option>';
+    optionsHtml += '<option value="membership">🏌️ Membership Applications</option>';
+    optionsHtml += '<option disabled style="background: #eee;">───── Categories ─────</option>';
+    
+    // Add unique categories
+    const uniqueCategories = [...new Set(calendarReservationTypes.map(type => type.category))];
+    
+    const categoryIcons = {
+        golf: '⛳',
+        amenities: '🍽️',
+        events: '🎉',
+        accommodation: '🏨',
+        premium: '✨'
+    };
+    
+    const categoryNames = {
+        golf: 'Golf / Tee Time',
+        amenities: 'Amenities (Spa, Dining, etc.)',
+        events: 'Events',
+        accommodation: 'Accommodation',
+        premium: 'Premium Services'
+    };
+    
+    uniqueCategories.forEach(category => {
+        const icon = categoryIcons[category] || '📌';
+        const displayName = categoryNames[category] || category.charAt(0).toUpperCase() + category.slice(1);
+        optionsHtml += `<option value="cat_${category}">${icon} ${displayName}</option>`;
+    });
+    
+    // Add individual reservation types
+    if (calendarReservationTypes.length > 0) {
+        optionsHtml += '<option disabled style="background: #eee;">───── Specific Types ─────</option>';
+        
+        calendarReservationTypes.forEach(type => {
+            if (type.isActive) {
+                const statusIcon = type.isActive ? '✅' : '⭕';
+                optionsHtml += `<option value="type_${type._id}">  ${type.icon || '📌'} ${type.name} ${statusIcon}</option>`;
+            }
+        });
+        
+        // Also show inactive types with warning
+        const inactiveTypes = calendarReservationTypes.filter(type => !type.isActive);
+        if (inactiveTypes.length > 0) {
+            optionsHtml += '<option disabled style="background: #eee;">───── Inactive Types ─────</option>';
+            inactiveTypes.forEach(type => {
+                optionsHtml += `<option value="type_${type._id}" disabled style="color: #999;">  ⚠️ ${type.icon || '📌'} ${type.name} (Inactive)</option>`;
+            });
+        }
+    }
+    
+    filterSelect.innerHTML = optionsHtml;
+}
+
+// Populate the table type filter dropdown
+function populateTableTypeFilter() {
+    const filterSelect = document.getElementById('reservationTypeFilter');
+    if (!filterSelect) return;
+    
+    // Get the current value to preserve selection if possible
+    const currentValue = filterSelect.value;
+    
+    let optionsHtml = '<option value="all">📌 All Types</option>';
+    optionsHtml += '<option value="membership">🏌️ Membership</option>';
+    optionsHtml += '<option value="reservation">📅 Reservation</option>';
+    optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
+    
+    // Add categories
+    const uniqueCategories = [...new Set(tableReservationTypes.map(type => type.category))];
+    
+    const categoryIcons = {
+        golf: '⛳',
+        amenities: '🍽️',
+        events: '🎉',
+        accommodation: '🏨',
+        premium: '✨'
+    };
+    
+    const categoryNames = {
+        golf: 'Golf',
+        amenities: 'Amenities',
+        events: 'Events',
+        accommodation: 'Accommodation',
+        premium: 'Premium'
+    };
+    
+    uniqueCategories.forEach(category => {
+        const icon = categoryIcons[category] || '📌';
+        const displayName = categoryNames[category] || category.charAt(0).toUpperCase() + category.slice(1);
+        optionsHtml += `<option value="cat_${category}">${icon} ${displayName} (All)</option>`;
+    });
+    
+    // Add individual types
+    if (tableReservationTypes.length > 0) {
+        optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
+        
+        tableReservationTypes.forEach(type => {
+            if (type.isActive) {
+                optionsHtml += `<option value="type_${type._id}">  ${type.icon || '📌'} ${type.name}</option>`;
+            }
+        });
+    }
+    
+    filterSelect.innerHTML = optionsHtml;
+    
+    // Restore previous selection if possible
+    if (currentValue && filterSelect.querySelector(`option[value="${currentValue}"]`)) {
+        filterSelect.value = currentValue;
+    }
+}
 
 // Make functions global
 window.showPage = showPage;
