@@ -6,18 +6,25 @@ const jwt = require('jsonwebtoken');
 
 // 1.0 Register Account (Level 2 & Level 3: 1.3.1 Validate Credentials)
 router.post('/register', [
-    body('firstName').notEmpty().trim(),
-    body('lastName').notEmpty().trim(),
-    body('email').isEmail().normalizeEmail(),
-    body('username').notEmpty().trim().isLength({ min: 3 }),
-    body('password').isLength({ min: 6 }),
-    body('phone').notEmpty(),
+    body('firstName').notEmpty().withMessage('First name is required').trim(),
+    body('lastName').notEmpty().withMessage('Last name is required').trim(),
+    body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+    body('username').notEmpty().withMessage('Username is required').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('phone').notEmpty().withMessage('Phone number is required'),
     body('captcha').notEmpty().withMessage('CAPTCHA verification required')
 ], async (req, res) => {
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
+            // Return detailed validation errors
+            return res.status(400).json({ 
+                message: 'Validation failed',
+                errors: errors.array().map(err => ({
+                    field: err.path,
+                    message: err.msg
+                }))
+            });
         }
 
         const { firstName, lastName, email, username, password, phone } = req.body;
@@ -26,8 +33,7 @@ router.post('/register', [
         const normalizedEmail = email.trim().toLowerCase();
         const normalizedUsername = username.trim().toLowerCase();
 
-        console.log('Checking for existing user with email:', normalizedEmail);
-        console.log('Checking for existing user with username:', normalizedUsername);
+        console.log('Registration attempt:', { firstName, lastName, email: normalizedEmail, username: normalizedUsername, phone });
 
         // Check email first
         const existingEmail = await User.findOne({ email: normalizedEmail });
@@ -67,7 +73,6 @@ router.post('/register', [
         
         console.log('User created successfully:', user._id);
 
-        // Return success without exposing sensitive data
         res.status(201).json({
             message: 'Account created successfully',
             userId: user._id,
@@ -77,7 +82,6 @@ router.post('/register', [
     } catch (error) {
         console.error('Registration error:', error);
         
-        // Handle MongoDB duplicate key error (fallback)
         if (error.code === 11000) {
             const field = Object.keys(error.keyPattern)[0];
             const fieldName = field === 'email' ? 'Email' : 'Username';
@@ -102,10 +106,9 @@ router.post('/login', async (req, res) => {
 
         const normalizedInput = username.trim().toLowerCase();
         
-        // Case-insensitive search for username, exact match for email
         const user = await User.findOne({
             $or: [
-                { username: { $regex: `^${normalizedInput}$`, $options: 'i' } }, // Case-insensitive
+                { username: { $regex: `^${normalizedInput}$`, $options: 'i' } },
                 { email: normalizedInput }
             ]
         });
@@ -149,8 +152,6 @@ router.post('/check-email', async (req, res) => {
         }
 
         const normalizedEmail = email.trim().toLowerCase();
-        
-        // Simple findOne
         const existingUser = await User.findOne({ email: normalizedEmail });
 
         if (existingUser) {
@@ -180,8 +181,6 @@ router.post('/check-username', async (req, res) => {
         }
 
         const normalizedUsername = username.trim().toLowerCase();
-        
-        // Simple findOne
         const existingUser = await User.findOne({ username: normalizedUsername });
 
         if (existingUser) {
@@ -204,7 +203,7 @@ router.post('/check-username', async (req, res) => {
 // DEBUG: Get all users (remove in production)
 router.get('/debug-users', async (req, res) => {
     try {
-        const users = await User.find({}, 'email username firstName lastName isAdmin');
+        const users = await User.find({}, 'email username firstName lastName phone isAdmin');
         res.json({ 
             count: users.length,
             users: users 

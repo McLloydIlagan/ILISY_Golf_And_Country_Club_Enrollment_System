@@ -941,127 +941,157 @@
     }
 
     async function handleRegister(e) {
-        e.preventDefault();
-        const fullName = document.getElementById('regFullName').value.trim();
-        const nameParts = fullName.split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-        const email = document.getElementById('regEmail').value.trim();
-        const phone = document.getElementById('regPhone').value.trim();
-        const username = document.getElementById('regUsername').value.trim();
-        const password = document.getElementById('regPassword').value;
-        const confirmPassword = document.getElementById('regConfirmPassword').value;
-        const captchaInput = document.getElementById('captchaInput').value.trim();
-        const termsCheckbox = document.getElementById('terms');
+    e.preventDefault();
+    const fullName = document.getElementById('regFullName').value.trim();
+    const nameParts = fullName.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    const email = document.getElementById('regEmail').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regConfirmPassword').value;
+    const captchaInput = document.getElementById('captchaInput').value.trim();
+    const termsCheckbox = document.getElementById('terms');
 
-        // Check CAPTCHA first (case-insensitive, trimmed)
-        if (captchaInput.trim().toUpperCase() !== currentCaptcha.trim().toUpperCase()) {
-            showRegisterError('Invalid CAPTCHA code. Please try again.');
-            refreshCaptcha();
-            return;
-        }
-
-        // Validate password
-        const passwordError = validatePassword(password);
-        if (passwordError) { 
-            showRegisterError(passwordError); 
-            return; 
-        }
-
-        // Check passwords match
-        if (password !== confirmPassword) { 
-            showRegisterError('Passwords do not match!'); 
-            return; 
-        }
-
-        // Check terms accepted
-        if (!termsCheckbox.checked) { 
-            showRegisterError('Please accept the Terms & Conditions'); 
-            return; 
-        }
-
-        // Validate phone
-        const phoneRegex = /^(09|\+63|0)[0-9]{9,10}$/;
-        if (!phoneRegex.test(phone.replace(/\s/g, ''))) { 
-            showRegisterError('Please enter a valid phone number (e.g., 09123456789)'); 
-            return; 
-        }
-
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) { 
-            showRegisterError('Please enter a valid email address'); 
-            return; 
-        }
-
-        // Check if email is available (after validation from input)
-        if (!isEmailAvailable) {
-            showRegisterError('The email you entered is already registered. Please use a different email.');
-            return;
-        }
-
-        // Check if username is available (after validation from input)
-        if (!isUsernameAvailable) {
-            showRegisterError('The username you entered is already taken. Please choose a different username.');
-            return;
-        }
-
-        const registerBtn = document.getElementById('registerBtn');
-        const btnText = document.getElementById('registerBtnText');
-        const btnLoader = document.getElementById('registerLoader');
-        registerBtn.disabled = true; 
-        btnText.style.display = 'none'; 
-        btnLoader.style.display = 'inline';
-
-        try {
-            const response = await fetch(`${API_URL}/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ firstName, lastName, email, phone, username, password, captcha: captchaInput })
-            });
-            const data = await response.json();
-            
-            if (response.ok) {
-                showToast('Account created successfully! Please log in.', 'success');
-                closeRegisterModal();
-                document.getElementById('registerBtn').disabled = false;
-                ['regFullName','regEmail','regPhone','regUsername','regPassword','regConfirmPassword','captchaInput'].forEach(id => document.getElementById(id).value = '');
-                document.getElementById('terms').checked = false;
-                // Clear validation messages
-                document.getElementById('emailError').textContent = '';
-                document.getElementById('usernameError').textContent = '';
-            } else {
-                let errorMsg = data.message || 'Registration failed';
-                
-                // Handle specific field errors from backend
-                if (data.field === 'email') {
-                    errorMsg = data.message || 'This email is already registered';
-                    isEmailAvailable = false;
-                    document.getElementById('emailError').textContent = '✗ ' + errorMsg;
-                    document.getElementById('emailError').style.color = '#ff9999';
-                } else if (data.field === 'username') {
-                    errorMsg = data.message || 'This username is already taken';
-                    isUsernameAvailable = false;
-                    document.getElementById('usernameError').textContent = '✗ ' + errorMsg;
-                    document.getElementById('usernameError').style.color = '#ff9999';
-                }
-                
-                if (data.errors && data.errors.length > 0) {
-                    errorMsg = data.errors[0].msg;
-                }
-                
-                showRegisterError(errorMsg);
-                refreshCaptcha();
-            }
-        } catch (error) {
-            showRegisterError('Connection error. Please try again.');
-            refreshCaptcha();
-        } finally {
-            registerBtn.disabled = false; 
-            btnText.style.display = 'inline'; 
-            btnLoader.style.display = 'none';
-        }
+    // Check CAPTCHA first (case-insensitive, trimmed)
+    if (captchaInput.trim().toUpperCase() !== currentCaptcha.trim().toUpperCase()) {
+        showRegisterError('Invalid CAPTCHA code. Please try again.');
+        refreshCaptcha();
+        return;
     }
+
+    // Validate password
+    const passwordError = validatePassword(password);
+    if (passwordError) { 
+        showRegisterError(passwordError); 
+        return; 
+    }
+
+    // Check passwords match
+    if (password !== confirmPassword) { 
+        showRegisterError('Passwords do not match!'); 
+        return; 
+    }
+
+    // Check terms accepted
+    if (!termsCheckbox.checked) { 
+        showRegisterError('Please accept the Terms & Conditions'); 
+        return; 
+    }
+
+    // Validate phone (more flexible for testing)
+    // Remove spaces, dashes, and plus sign for validation
+    const cleanPhone = phone.replace(/[\s\-\(\)\+]/g, '');
+    // Accept 10-15 digit numbers (simpler validation for testing)
+    const phoneRegex = /^[0-9]{10,15}$/;
+    if (!phoneRegex.test(cleanPhone)) { 
+        showRegisterError('Please enter a valid phone number (10-15 digits)'); 
+        return; 
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) { 
+        showRegisterError('Please enter a valid email address'); 
+        return; 
+    }
+
+    // Check if username is at least 3 characters
+    if (username.length < 3) {
+        showRegisterError('Username must be at least 3 characters');
+        return;
+    }
+
+    // Check if email is available (after validation from input)
+    if (!isEmailAvailable) {
+        showRegisterError('The email you entered is already registered. Please use a different email.');
+        return;
+    }
+
+    // Check if username is available (after validation from input)
+    if (!isUsernameAvailable) {
+        showRegisterError('The username you entered is already taken. Please choose a different username.');
+        return;
+    }
+
+    const registerBtn = document.getElementById('registerBtn');
+    const btnText = document.getElementById('registerBtnText');
+    const btnLoader = document.getElementById('registerLoader');
+    registerBtn.disabled = true; 
+    btnText.style.display = 'none'; 
+    btnLoader.style.display = 'inline';
+
+    try {
+        console.log('Sending registration data:', {
+            firstName, lastName, email, phone, username, password: '***', captcha: captchaInput
+        });
+
+        const response = await fetch(`${API_URL}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                firstName, 
+                lastName, 
+                email, 
+                phone: cleanPhone,  // Send cleaned phone number
+                username, 
+                password, 
+                captcha: captchaInput 
+            })
+        });
+        
+        const data = await response.json();
+        console.log('Registration response:', response.status, data);
+        
+        if (response.ok) {
+            showToast('Account created successfully! Please log in.', 'success');
+            closeRegisterModal();
+            // Reset form
+            document.getElementById('regFullName').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPhone').value = '';
+            document.getElementById('regUsername').value = '';
+            document.getElementById('regPassword').value = '';
+            document.getElementById('regConfirmPassword').value = '';
+            document.getElementById('captchaInput').value = '';
+            document.getElementById('terms').checked = false;
+            // Clear validation messages
+            document.getElementById('emailError').textContent = '';
+            document.getElementById('usernameError').textContent = '';
+        } else {
+            let errorMsg = data.message || 'Registration failed';
+            
+            // Handle specific field errors from backend
+            if (data.field === 'email') {
+                errorMsg = data.message || 'This email is already registered';
+                isEmailAvailable = false;
+                document.getElementById('emailError').textContent = '✗ ' + errorMsg;
+                document.getElementById('emailError').style.color = '#ff9999';
+            } else if (data.field === 'username') {
+                errorMsg = data.message || 'This username is already taken';
+                isUsernameAvailable = false;
+                document.getElementById('usernameError').textContent = '✗ ' + errorMsg;
+                document.getElementById('usernameError').style.color = '#ff9999';
+            }
+            
+            if (data.errors && data.errors.length > 0) {
+                errorMsg = data.errors.map(err => err.msg).join(', ');
+            }
+            
+            showRegisterError(errorMsg);
+            refreshCaptcha();
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        showRegisterError('Connection error: ' + error.message);
+        refreshCaptcha();
+    } finally {
+        registerBtn.disabled = false; 
+        btnText.style.display = 'inline'; 
+        btnLoader.style.display = 'none';
+    }
+}
 
 
     // Run session check on page load
