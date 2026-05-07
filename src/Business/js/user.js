@@ -150,6 +150,107 @@ function scrollToSection(id) {
 // Message Functions
 // ──────────────────────────────────────────────────────────────────
 
+
+
+// ──────────────────────────────────────────────────────────────────
+// Tab Persistence Functions
+// ──────────────────────────────────────────────────────────────────
+
+// Save current tab to localStorage
+function saveCurrentTab(tabName) {
+    localStorage.setItem('userCurrentTab', tabName);
+}
+
+// Load last visited tab on refresh
+// Load last visited tab on refresh
+function loadLastVisitedTab() {
+    const lastTab = localStorage.getItem('userCurrentTab');
+    const membershipStatus = localStorage.getItem('membershipStatus');
+    const validTabs = ['membership', 'messages', 'reservation'];
+    
+    // If user has active membership, they shouldn't see membership tab
+    const isMember = membershipStatus === 'active';
+    
+    // Determine default tab based on membership status
+    let defaultTab = isMember ? 'reservation' : 'membership';
+    
+    // If there's a saved tab and it's valid
+    if (lastTab && validTabs.includes(lastTab)) {
+        // Don't allow members to go to membership tab
+        if (isMember && lastTab === 'membership') {
+            console.log('Member cannot access membership tab, defaulting to reservation');
+            defaultTab = 'reservation';
+        } else {
+            defaultTab = lastTab;
+        }
+    }
+    
+    // Find and trigger the correct tab
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    for (let i = 0; i < tabButtons.length; i++) {
+        const btn = tabButtons[i];
+        const onclickAttr = btn.getAttribute('onclick');
+        if (onclickAttr && onclickAttr.includes(defaultTab)) {
+            switchTab(defaultTab, btn);
+            break;
+        }
+    }
+    console.log('Restored tab:', defaultTab);
+}
+
+// Save scroll position for current tab
+function saveTabScrollPosition(tabName) {
+    const tabContent = document.getElementById(`tab-${tabName}`);
+    if (tabContent) {
+        const scrollY = tabContent.scrollTop || window.scrollY;
+        localStorage.setItem(`user_scroll_${tabName}`, scrollY);
+    }
+}
+
+// Restore scroll position for tab
+function restoreTabScrollPosition(tabName) {
+    const savedScroll = localStorage.getItem(`user_scroll_${tabName}`);
+    if (savedScroll) {
+        const tabContent = document.getElementById(`tab-${tabName}`);
+        if (tabContent) {
+            setTimeout(() => {
+                tabContent.scrollTop = parseInt(savedScroll);
+            }, 100);
+        }
+    }
+}
+
+function switchTab(name, btn) {
+    // Save current tab's scroll position before leaving
+    const activeTab = document.querySelector('.tab-content.active');
+    if (activeTab && activeTab.id) {
+        const currentTabName = activeTab.id.replace('tab-', '');
+        saveTabScrollPosition(currentTabName);
+    }
+    
+    // Save current tab to localStorage
+    saveCurrentTab(name);
+    
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+    
+    // Restore scroll position for the new tab
+    restoreTabScrollPosition(name);
+    
+    // If switching to messages, load conversation history
+    if (name === 'messages') {
+        loadConversationHistory();
+    }
+}
+
+
+
+
+
+
+
 function addMsg(text, type, isHistory = false) {
     const chatBody = document.getElementById('chatBody');
     const row = document.createElement('div');
@@ -271,86 +372,9 @@ function startPollingForResponses() {
     pollingInterval = setInterval(checkForNewMessages, 3000);
 }
 
-async function checkForNewMessages() {
-    if (!checkSession()) return;
-    
-    const userId = localStorage.getItem('userId');
-    if (!userId) return;
-    
-    try {
-        const response = await apiFetch(`${API_URL}/messages/user/${userId}`);
-        
-        if (response.ok) {
-            const conversations = await response.json();
-            // ... rest of your code
-        }
-    } catch (error) {
-        console.error('Error checking for messages:', error);
-    }
-}
 
-async function loadConversationHistory() {
-    if (!checkSession()) return;
-    
-    const userId = localStorage.getItem('userId');
-    
-    if (!userId) return;
-    
-    try {
-        const response = await apiFetch(`${API_URL}/messages/user/${userId}`);
-        
-        if (response.ok) {
-            const conversations = await response.json();
-            
-            if (conversations.length > 0) {
-                const latest = conversations[0];
-                currentConversationId = latest._id;
-                localStorage.setItem('currentConversationId', currentConversationId);
-                
-                const chatBody = document.getElementById('chatBody');
-                chatBody.innerHTML = '';
-                
-                if (latest.conversation && latest.conversation.length > 0) {
-                    latest.conversation.forEach(conv => {
-                        const row = document.createElement('div');
-                        row.className = `msg-row ${conv.sender === 'user' ? 'right' : ''}`;
-                        if (conv.sender === 'admin') {
-                            row.innerHTML = `
-                                <div class="user-avatar">👤</div>
-                                <div class="msg-bubble received">${escapeHtml(conv.message)}</div>
-                            `;
-                        } else {
-                            row.innerHTML = `
-                                <div class="msg-bubble sent">${escapeHtml(conv.message)}</div>
-                                <div class="avatar-right">👤</div>
-                            `;
-                        }
-                        chatBody.appendChild(row);
-                    });
-                    
-                    const lastMessage = latest.conversation[latest.conversation.length - 1];
-                    if (lastMessage) {
-                        const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message}`;
-                        localStorage.setItem(`last_shown_${latest._id}`, lastMessageId);
-                    }
-                }
-                
-                const quickRepliesDiv = document.createElement('div');
-                quickRepliesDiv.className = 'quick-replies';
-                quickRepliesDiv.id = 'quickReplies';
-                quickRepliesDiv.innerHTML = `
-                    <button class="quick-btn" onclick="sendQuickReply('I want to make a refund')">💰 I want to make a refund</button>
-                    <button class="quick-btn" onclick="sendQuickReply('My payment did not process')">💳 My payment did not process</button>
-                    <button class="quick-btn" onclick="sendQuickReply('I have an inquiry about my reservation')">📅 I have an inquiry about my reservation</button>
-                `;
-                chatBody.appendChild(quickRepliesDiv);
-                chatBody.scrollTop = chatBody.scrollHeight;
-            }
-        }
-    } catch (error) {
-        console.error('Error loading conversation history:', error);
-    }
-}
+
+
 
 // ──────────────────────────────────────────────────────────────────
 // Calendar Functions
@@ -823,7 +847,7 @@ window.addEventListener('scroll', () => {
     });
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (!checkSession()) return;
     
     // Display username in navbar
@@ -834,17 +858,16 @@ document.addEventListener('DOMContentLoaded', () => {
     startPollingForResponses();
     loadReservationTypes();
     
-    // Start membership status polling
-    startMembershipStatusPolling();
+    // Wait for membership status to be checked before loading last tab
+    await startMembershipStatusPolling();
     
-    // ========== NEW: Membership Form Name Validation ==========
+    // ========== Membership Form Name Validation ==========
     const memFirstName = document.getElementById('memFirstName');
     const memLastName = document.getElementById('memLastName');
     
-    // Name validation function
     function validateMemberName(input, errorSpanId, fieldName) {
         const nameValue = input.value.trim();
-        const nameRegex = /^[A-Za-z\s\-']*$/; // letters, spaces, hyphens, apostrophes
+        const nameRegex = /^[A-Za-z\s\-']*$/;
         const errorSpan = document.getElementById(errorSpanId);
         
         if (!errorSpan) return false;
@@ -899,7 +922,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('beforeunload', () => {
         if (pollingInterval) clearInterval(pollingInterval);
         stopMembershipStatusPolling();
+        
+        const activeTab = document.querySelector('.tab-content.active');
+        if (activeTab && activeTab.id) {
+            const currentTabName = activeTab.id.replace('tab-', '');
+            saveTabScrollPosition(currentTabName);
+        }
     });
+    
+    // Load the last visited tab after membership status is determined
+    loadLastVisitedTab();
 });
 
 // ──────────────────────────────────────────────────────────────────
@@ -1630,16 +1662,16 @@ function submitDynamicReservation() {
 let membershipCheckInterval = null;
 let currentMembershipStatus = null;
 
+let hasShownApprovalNotification = false;
+
 // Add this function to check membership status
 async function checkMembershipStatus() {
     if (!checkSession()) return;
     
     const userId = localStorage.getItem('userId');
-    
     if (!userId) return;
     
     try {
-        // CHANGED: Use apiFetch instead of fetch
         const response = await apiFetch(`${API_URL}/users/${userId}/membership-status`);
         
         if (response.ok) {
@@ -1656,15 +1688,39 @@ async function checkMembershipStatus() {
             
             // Check if status changed to active (just got approved)
             if (previousStatus !== 'active' && newStatus === 'active') {
-                showMembershipApprovedNotification();
+                const hasSeenApproval = localStorage.getItem('hasSeenMembershipApproval');
+                
+                if (!hasSeenApproval) {
+                    showMembershipApprovedNotification();
+                    localStorage.setItem('hasSeenMembershipApproval', 'true');
+                }
                 hideMembershipTab();
+                
+                // If user just became a member and is on membership tab, switch to reservation
+                const activeTab = document.querySelector('.tab-content.active');
+                if (activeTab && activeTab.id === 'tab-membership') {
+                    const reservationTab = document.querySelector('.tab-btn[onclick*="reservation"]');
+                    if (reservationTab) {
+                        switchTab('reservation', reservationTab);
+                    }
+                }
             }
             
             // If membership was revoked (active -> expired/none)
             if (previousStatus === 'active' && newStatus !== 'active') {
                 showToast('Your membership has been revoked. Please contact admin.', 'error');
                 showMembershipTab();
-                displayUserName(); // Refresh to remove glow
+                displayUserName();
+                localStorage.removeItem('hasSeenMembershipApproval');
+                
+                // If user is no longer a member and is on reservation tab, switch to membership
+                const activeTab = document.querySelector('.tab-content.active');
+                if (activeTab && activeTab.id === 'tab-reservation') {
+                    const membershipTab = document.querySelector('.tab-btn[onclick*="membership"]');
+                    if (membershipTab) {
+                        switchTab('membership', membershipTab);
+                    }
+                }
             }
             
             updateMembershipUI(newStatus);
@@ -1676,6 +1732,11 @@ async function checkMembershipStatus() {
 
 // Show membership approved notification
 function showMembershipApprovedNotification() {
+    // Check if modal already exists to prevent duplicates
+    if (document.getElementById('membershipApprovedModal')) {
+        return;
+    }
+    
     // Create custom modal popup
     const modalHtml = `
         <div class="modal-overlay show" id="membershipApprovedModal" style="display:flex;">
@@ -1696,17 +1757,9 @@ function showMembershipApprovedNotification() {
         </div>
     `;
     
-    // Remove existing modal if any
-    const existingModal = document.getElementById('membershipApprovedModal');
-    if (existingModal) existingModal.remove();
-    
-    // Add modal to body
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     
-    // Play sound (optional - requires user interaction first)
-    // showToast('🎉 Congratulations! Your membership has been approved!', 'success');
-    
-    // Close after 5 seconds if not clicked
+    // Auto-close after 8 seconds
     setTimeout(() => {
         const modal = document.getElementById('membershipApprovedModal');
         if (modal && modal.style.display === 'flex') {
@@ -1715,6 +1768,7 @@ function showMembershipApprovedNotification() {
         }
     }, 8000);
 }
+
 
 function closeMembershipApprovedModal() {
     const modal = document.getElementById('membershipApprovedModal');
@@ -1812,18 +1866,17 @@ function showMemberWelcomeMessage() {
 }
 
 // Start polling for membership status changes
-function startMembershipStatusPolling() {
+async function startMembershipStatusPolling() {
     if (membershipCheckInterval) clearInterval(membershipCheckInterval);
     
-    // Check immediately
-    checkMembershipStatus();
+    // Check immediately and wait for it
+    await checkMembershipStatus();
     
     // Then check every 30 seconds
     membershipCheckInterval = setInterval(() => {
         checkMembershipStatus();
     }, 30000);
 }
-
 function stopMembershipStatusPolling() {
     if (membershipCheckInterval) {
         clearInterval(membershipCheckInterval);
