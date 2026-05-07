@@ -1010,3 +1010,298 @@ section { scroll-margin-top: var(--navbar-h); }
 .btn-pay-now:active {
     transform: scale(0.98);
 }
+
+/* ============================================
+   IMAGE MESSAGE STYLES
+   ============================================ */
+
+/* Image message bubble styling */
+.msg-bubble.image-message {
+    padding: 0;
+    overflow: hidden;
+    max-width: 250px;
+    background: transparent;
+    border: none;
+}
+
+.msg-bubble.image-message img {
+    width: 100%;
+    height: auto;
+    max-height: 200px;
+    object-fit: cover;
+    display: block;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.msg-bubble.image-message img:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+/* Sent image message */
+.msg-row.right .msg-bubble.image-message {
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+}
+
+/* Received image message */
+.msg-row:not(.right) .msg-bubble.image-message {
+    border: 2px solid var(--sage-dark);
+    border-radius: 12px;
+}
+
+/* ============================================
+   IMAGE PREVIEW CONTAINER (before sending)
+   ============================================ */
+
+.image-preview-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    background: var(--sage);
+    border-radius: 12px;
+    margin: 10px 0;
+    width: 100%;
+    max-width: 300px;
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.image-preview {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--gold);
+}
+
+.image-preview-filename {
+    font-size: 11px;
+    color: #333;
+    flex: 1;
+    word-break: break-all;
+    font-family: monospace;
+}
+
+.remove-image-preview {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.remove-image-preview:hover {
+    background: #c82333;
+    transform: scale(1.1);
+}
+
+/* ============================================
+   FULLSCREEN IMAGE VIEWER MODAL
+   ============================================ */
+
+.image-viewer-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 20000;
+    cursor: pointer;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.image-viewer-modal img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+}
+
+.image-viewer-modal .close-btn {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: white;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+    background: none;
+    border: none;
+    z-index: 20001;
+}
+
+.image-viewer-modal .close-btn:hover {
+    transform: scale(1.2);
+    color: var(--gold);
+}
+
+/* ============================================
+   UPLOADING INDICATOR
+   ============================================ */
+
+.image-uploading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    background: var(--sage);
+    border-radius: 12px;
+    font-size: 12px;
+    color: #555;
+}
+
+.image-uploading .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--gold);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   FILE INPUT HOVER EFFECT
+   ============================================ */
+/* Update existing footer-icon styles */
+.footer-icon {
+    color: var(--gold);
+    font-size: 20px;
+    cursor: pointer;
+    transition: transform 0.2s, color 0.2s;
+}
+
+.footer-icon:hover {
+    transform: scale(1.2);
+    color: white;
+}
+
+/* Add specific style for attachment button */
+.footer-icon[onclick*="imageUploadInput"] {
+    background: rgba(212, 179, 106, 0.15);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.footer-icon[onclick*="imageUploadInput"]:hover {
+    background: rgba(212, 179, 106, 0.3);
+}
+/* ============================================
+   IMAGE BADGE FOR MESSAGES
+   ============================================ */
+
+.image-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--gold);
+    background: rgba(212, 179, 106, 0.1);
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 5px;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS FOR IMAGES
+   ============================================ */
+
+@media (max-width: 768px) {
+    .msg-bubble.image-message {
+        max-width: 200px;
+    }
+    
+    .image-preview-container {
+        max-width: 250px;
+    }
+    
+    .image-viewer-modal img {
+        max-width: 95%;
+        max-height: 85%;
+    }
+    
+    .image-viewer-modal .close-btn {
+        top: 15px;
+        right: 20px;
+        font-size: 30px;
+    }
+}
+
+/* ============================================
+   ANIMATION FOR NEW IMAGES
+   ============================================ */
+
+@keyframes imagePopIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.msg-bubble.image-message {
+    animation: imagePopIn 0.3s ease-out;
+}
+
+/* ============================================
+   DOWNLOAD BUTTON FOR IMAGES (optional)
+   ============================================ */
+
+.image-actions {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 4px;
+    padding: 2px 5px;
+    display: none;
+    gap: 5px;
+}
+
+.msg-bubble.image-message:hover .image-actions {
+    display: flex;
+}
+
+.image-actions button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px;
+}
+
+.image-actions button:hover {
+    color: var(--gold);
+}

@@ -167,6 +167,73 @@ function scrollToBottom() {
     }
 }
 
+
+// View full image in modal (for admin)
+function viewFullImage(imageUrl) {
+    // Create modal element
+    const modal = document.createElement('div');
+    modal.className = 'image-viewer-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 20000;
+        cursor: pointer;
+    `;
+    
+    modal.innerHTML = `
+        <button class="image-viewer-close" style="
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            z-index: 20001;
+        ">&times;</button>
+        <img src="${imageUrl}" alt="Full size image" style="
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+        ">
+    `;
+    
+    // Close when clicking on the background
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    // Close with escape key
+    const closeHandler = function(e) {
+        if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', closeHandler);
+        }
+    };
+    document.addEventListener('keydown', closeHandler);
+    
+    // Close button
+    const closeBtn = modal.querySelector('.image-viewer-close');
+    closeBtn.addEventListener('click', function() {
+        modal.remove();
+        document.removeEventListener('keydown', closeHandler);
+    });
+    
+    document.body.appendChild(modal);
+}
+
 // ──────────────────────────────────────────────────────────────────
 // Navigation
 // ──────────────────────────────────────────────────────────────────
@@ -1399,13 +1466,13 @@ async function refreshCurrentConversation() {
                 
                 if (conversation.length > 0) {
                     const lastMessage = conversation[conversation.length - 1];
-                    const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message}`;
+                    const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message || lastMessage.imageUrl || ''}`;
                     const lastShown = localStorage.getItem(`admin_last_shown_${updatedMessage._id}`);
                     
                     if (lastMessage.sender === 'user' && lastShown !== lastMessageId) {
                         if (lastShown) {
                             playNotificationSound();
-                            showToast(`📩 New message from ${escapeHtml(updatedMessage.userName)}: "${lastMessage.message.substring(0, 50)}..."`, 'info');
+                            showToast(`📩 New message from ${escapeHtml(updatedMessage.userName)}: "${(lastMessage.message || '📎 Sent an image').substring(0, 50)}..."`, 'info');
                         }
                         localStorage.setItem(`admin_last_shown_${updatedMessage._id}`, lastMessageId);
                     }
@@ -1422,21 +1489,56 @@ async function refreshCurrentConversation() {
                     updatedMessage.conversation.forEach(conv => {
                         const row = document.createElement('div');
                         row.className = `msg-row-wrap ${conv.sender === 'admin' ? 'sent' : ''}`;
-                        if (conv.sender === 'user') {
-                            row.innerHTML = `
-                                <div class="chat-avatar">👤</div>
-                                <div class="chat-bubble bubble-received">${escapeHtml(conv.message)}</div>
-                            `;
+                        
+                        // CHECK IF THIS IS AN IMAGE MESSAGE
+                        if (conv.imageUrl) {
+                            // Image message
+                            if (conv.sender === 'user') {
+                                row.innerHTML = `
+                                    <div class="chat-avatar">👤</div>
+                                    <div class="chat-bubble bubble-received image-message" onclick="viewFullImage('${conv.imageUrl}')">
+                                        <img src="${conv.imageUrl}" alt="Receipt image">
+                                    </div>
+                                `;
+                            } else {
+                                row.innerHTML = `
+                                    <div class="chat-bubble bubble-sent image-message" onclick="viewFullImage('${conv.imageUrl}')">
+                                        <img src="${conv.imageUrl}" alt="Receipt image">
+                                    </div>
+                                    <div class="chat-avatar">👤</div>
+                                `;
+                            }
                         } else {
-                            row.innerHTML = `
-                                <div class="chat-bubble bubble-sent">${escapeHtml(conv.message)}</div>
-                                <div class="chat-avatar">👤</div>
-                            `;
+                            // Regular text message
+                            if (conv.sender === 'user') {
+                                row.innerHTML = `
+                                    <div class="chat-avatar">👤</div>
+                                    <div class="chat-bubble bubble-received">${escapeHtml(conv.message)}</div>
+                                `;
+                            } else {
+                                row.innerHTML = `
+                                    <div class="chat-bubble bubble-sent">${escapeHtml(conv.message)}</div>
+                                    <div class="chat-avatar">👤</div>
+                                `;
+                            }
                         }
                         msgBody.appendChild(row);
                     });
                 } else {
-                    msgBody.innerHTML = `<div class="chat-bubble bubble-received">${escapeHtml(updatedMessage.message || 'No message')}</div>`;
+                    // Check if the main message has an imageUrl
+                    if (updatedMessage.imageUrl) {
+                        const row = document.createElement('div');
+                        row.className = 'msg-row-wrap';
+                        row.innerHTML = `
+                            <div class="chat-avatar">👤</div>
+                            <div class="chat-bubble bubble-received image-message" onclick="viewFullImage('${updatedMessage.imageUrl}')">
+                                <img src="${updatedMessage.imageUrl}" alt="Receipt image">
+                            </div>
+                        `;
+                        msgBody.appendChild(row);
+                    } else {
+                        msgBody.innerHTML = `<div class="chat-bubble bubble-received">${escapeHtml(updatedMessage.message || 'No message')}</div>`;
+                    }
                 }
                 
                 if (wasAutoScrolling) {
@@ -1505,26 +1607,15 @@ async function adminSendMsg() {
     const text = input.value.trim();
     if (!text) return;
     
-    const token = getAuthToken();
-    if (!token) return;
-    
     const sendBtn = document.querySelector('.send-btn');
     sendBtn.disabled = true;
     
     try {
-        const response = await fetch(`${API_URL}/admin/messages/${currentMessage._id}/respond`, {
+        // CHANGED: Use apiFetch instead of regular fetch
+        const response = await apiFetch(`${API_URL}/admin/messages/${currentMessage._id}/respond`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify({ response: text })
         });
-        
-        if (response.status === 401) {
-            handleLogout();
-            return;
-        }
         
         if (response.ok) {
             const msgBody = document.getElementById('msgBody');

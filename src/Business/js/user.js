@@ -2085,6 +2085,402 @@ function formatReservationExpiry(input, event) {
     }
 }
 
+// Image upload and preview variables
+let pendingImageFile = null;
+let pendingImagePreview = null;
+
+// Handle image selection for receipt upload
+function uploadReceiptImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        showToast('Please select an image file', 'error');
+        input.value = '';
+        return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('Image too large. Max 5MB.', 'error');
+        input.value = '';
+        return;
+    }
+    
+    pendingImageFile = file;
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        pendingImagePreview = e.target.result;
+        showImagePreviewInChat(pendingImagePreview, file.name);
+    };
+    reader.readAsDataURL(file);
+    
+    // Clear input
+    input.value = '';
+}
+
+// Show image preview in chat area before sending
+function showImagePreviewInChat(previewUrl, filename) {
+    const chatBody = document.getElementById('chatBody');
+    
+    // Remove existing preview if any
+    const existingPreview = document.querySelector('.image-preview-container');
+    if (existingPreview) existingPreview.remove();
+    
+    // Create preview container
+    const previewContainer = document.createElement('div');
+    previewContainer.className = 'image-preview-container msg-row';
+    previewContainer.innerHTML = `
+        <img src="${previewUrl}" class="image-preview">
+        <span class="image-preview-filename">${escapeHtml(filename)}</span>
+        <button class="remove-image-preview" onclick="removeImagePreview()">✕</button>
+    `;
+    
+    chatBody.appendChild(previewContainer);
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+// Remove image preview
+function removeImagePreview() {
+    pendingImageFile = null;
+    pendingImagePreview = null;
+    const preview = document.querySelector('.image-preview-container');
+    if (preview) preview.remove();
+}
+
+// Send image message
+async function sendImageMessage() {
+    if (!pendingImageFile) {
+        showToast('No image selected', 'error');
+        return;
+    }
+    
+    if (!checkSession()) return;
+    
+    // Show the image in chat
+    addImageToChat(pendingImagePreview, 'sent');
+    
+    const formData = new FormData();
+    formData.append('image', pendingImageFile);
+    formData.append('userId', localStorage.getItem('userId'));
+    formData.append('userName', localStorage.getItem('userName') || 'Member');
+    
+    const existingConversationId = localStorage.getItem('currentConversationId');
+    const isValidObjectId = existingConversationId && /^[0-9a-fA-F]{24}$/.test(existingConversationId);
+    
+    if (isValidObjectId) {
+        formData.append('conversationId', existingConversationId);
+    }
+    
+    const overlay = document.getElementById('processingOverlay');
+    overlay.style.display = 'flex';
+    document.getElementById('processingMsg').textContent = 'Uploading receipt image...';
+    
+    try {
+        const token = getAuthToken();
+        const response = await fetch(`${API_URL}/messages/upload-image`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+        
+        if (response.status === 401) {
+            overlay.style.display = 'none';
+            localStorage.clear();
+            showToast('Session expired. Please login again.', 'error');
+            setTimeout(() => window.location.href = '../index.html', 2000);
+            return;
+        }
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast('Receipt image sent!', 'success');
+            if (result.conversationId) {
+                localStorage.setItem('currentConversationId', result.conversationId);
+            }
+            // Clear preview
+            pendingImageFile = null;
+            pendingImagePreview = null;
+            removeImagePreview();
+        } else {
+            showToast(result.message || 'Failed to send image', 'error');
+            // Remove the image from chat if failed
+            const lastRow = document.querySelector('.msg-row:last-child');
+            if (lastRow && lastRow.querySelector('.image-message')) {
+                lastRow.remove();
+            }
+        }
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        showToast('Error uploading image. Please try again.', 'error');
+    } finally {
+        overlay.style.display = 'none';
+    }
+}
+
+// Add image to chat display
+function addImageToChat(imageUrl, type, isHistory = false) {
+    const chatBody = document.getElementById('chatBody');
+    const row = document.createElement('div');
+    row.className = `msg-row ${type === 'sent' ? 'right' : ''}`;
+    
+    if (type === 'received') {
+        row.innerHTML = `
+            <div class="user-avatar">👤</div>
+            <div class="msg-bubble received image-message" onclick="viewFullImage('${imageUrl}')">
+                <img src="${imageUrl}" alt="Receipt image">
+            </div>
+        `;
+    } else {
+        row.innerHTML = `
+            <div class="msg-bubble sent image-message" onclick="viewFullImage('${imageUrl}')">
+                <img src="${imageUrl}" alt="Receipt image">
+            </div>
+            <div class="avatar-right">👤</div>
+        `;
+    }
+    
+    // Remove preview container if it exists
+    const previewContainer = document.querySelector('.image-preview-container');
+    if (previewContainer) previewContainer.remove();
+    
+    chatBody.appendChild(row);
+    
+    if (!isHistory) {
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+}
+
+// View full image in modal
+function viewFullImage(imageUrl) {
+    const modal = document.createElement('div');
+    modal.className = 'image-viewer-modal';
+    modal.innerHTML = `
+        <span class="close" onclick="this.parentElement.remove()">&times;</span>
+        <img src="${imageUrl}" alt="Full size image">
+    `;
+    modal.onclick = function(e) {
+        if (e.target === modal) modal.remove();
+    };
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+}
+
+// Update sendMessage to handle sending after image
+async function sendMessage() {
+    if (!checkSession()) return;
+    
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    
+    // If there's a pending image, send that instead if no text
+    if (pendingImageFile && !text) {
+        await sendImageMessage();
+        return;
+    }
+    
+    // If there's both text and image, send text first then image
+    if (text && pendingImageFile) {
+        // Send text first
+        await sendTextMessage(text);
+        // Then send image
+        await sendImageMessage();
+        input.value = '';
+        return;
+    }
+    
+    // Just text
+    if (text) {
+        await sendTextMessage(text);
+        input.value = '';
+    }
+}
+
+// Extract the original sendMessage logic to sendTextMessage
+async function sendTextMessage(text) {
+    addMsg(text, 'sent');
+    
+    try {
+        let response;
+        const existingConversationId = localStorage.getItem('currentConversationId');
+        const isValidObjectId = existingConversationId && /^[0-9a-fA-F]{24}$/.test(existingConversationId);
+        
+        if (isValidObjectId) {
+            response = await apiFetch(`${API_URL}/messages/followup/${existingConversationId}`, {
+                method: 'POST',
+                body: JSON.stringify({ message: text })
+            });
+        } else {
+            response = await apiFetch(`${API_URL}/messages/submit`, {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    userId: localStorage.getItem('userId'), 
+                    userName: localStorage.getItem('userName') || 'Member', 
+                    message: text, 
+                    concernType: 'general' 
+                })
+            });
+        }
+        
+        const result = await response.json();
+        
+        if (result.concernId) {
+            currentConversationId = result.concernId;
+            localStorage.setItem('currentConversationId', currentConversationId);
+        }
+        
+        startPollingForResponses();
+        
+    } catch(e) { 
+        console.error('Error sending message:', e);
+        showToast('Error sending message. Please try again.', 'error');
+    }
+}
+
+// Update checkForNewMessages to handle image messages
+async function checkForNewMessages() {
+    if (!checkSession()) return;
+    
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
+    
+    try {
+        const response = await apiFetch(`${API_URL}/messages/user/${userId}`);
+        
+        if (response.ok) {
+            const conversations = await response.json();
+            
+            if (conversations.length > 0) {
+                const latest = conversations[0];
+                
+                if (!currentConversationId && latest._id) {
+                    currentConversationId = latest._id;
+                    localStorage.setItem('currentConversationId', currentConversationId);
+                }
+                
+                if (currentConversationId === latest._id) {
+                    const conversation = latest.conversation || [];
+                    
+                    if (conversation.length > 0) {
+                        const lastMessage = conversation[conversation.length - 1];
+                        const lastMessageId = `${lastMessage.timestamp}_${(lastMessage.message || lastMessage.imageUrl || '')}`;
+                        
+                        if (lastMessage.sender === 'admin') {
+                            const lastShown = localStorage.getItem(`last_shown_${latest._id}`);
+                            
+                            if (lastShown !== lastMessageId) {
+                                showToast(`New message from admin`, 'info');
+                                
+                                // Check if it's an image message
+                                if (lastMessage.imageUrl) {
+                                    addImageToChat(lastMessage.imageUrl, 'received');
+                                } else {
+                                    addMsg(lastMessage.message, 'received');
+                                }
+                                
+                                localStorage.setItem(`last_shown_${latest._id}`, lastMessageId);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking for messages:', error);
+    }
+}
+
+// Update loadConversationHistory to show image messages
+async function loadConversationHistory() {
+    if (!checkSession()) return;
+    
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
+    
+    try {
+        const response = await apiFetch(`${API_URL}/messages/user/${userId}`);
+        
+        if (response.ok) {
+            const conversations = await response.json();
+            
+            if (conversations.length > 0) {
+                const latest = conversations[0];
+                currentConversationId = latest._id;
+                localStorage.setItem('currentConversationId', currentConversationId);
+                
+                const chatBody = document.getElementById('chatBody');
+                chatBody.innerHTML = '';
+                
+                if (latest.conversation && latest.conversation.length > 0) {
+                    latest.conversation.forEach(conv => {
+                        const row = document.createElement('div');
+                        row.className = `msg-row ${conv.sender === 'user' ? 'right' : ''}`;
+                        
+                        // Check if it's an image message
+                        if (conv.imageUrl) {
+                            if (conv.sender === 'admin') {
+                                row.innerHTML = `
+                                    <div class="user-avatar">👤</div>
+                                    <div class="msg-bubble received image-message" onclick="viewFullImage('${conv.imageUrl}')">
+                                        <img src="${conv.imageUrl}" alt="Receipt image">
+                                    </div>
+                                `;
+                            } else {
+                                row.innerHTML = `
+                                    <div class="msg-bubble sent image-message" onclick="viewFullImage('${conv.imageUrl}')">
+                                        <img src="${conv.imageUrl}" alt="Receipt image">
+                                    </div>
+                                    <div class="avatar-right">👤</div>
+                                `;
+                            }
+                        } else {
+                            if (conv.sender === 'admin') {
+                                row.innerHTML = `
+                                    <div class="user-avatar">👤</div>
+                                    <div class="msg-bubble received">${escapeHtml(conv.message)}</div>
+                                `;
+                            } else {
+                                row.innerHTML = `
+                                    <div class="msg-bubble sent">${escapeHtml(conv.message)}</div>
+                                    <div class="avatar-right">👤</div>
+                                `;
+                            }
+                        }
+                        chatBody.appendChild(row);
+                    });
+                    
+                    const lastMessage = latest.conversation[latest.conversation.length - 1];
+                    if (lastMessage) {
+                        const lastMessageId = `${lastMessage.timestamp}_${(lastMessage.message || lastMessage.imageUrl || '')}`;
+                        localStorage.setItem(`last_shown_${latest._id}`, lastMessageId);
+                    }
+                }
+                
+                const quickRepliesDiv = document.createElement('div');
+                quickRepliesDiv.className = 'quick-replies';
+                quickRepliesDiv.id = 'quickReplies';
+                quickRepliesDiv.innerHTML = `
+                    <button class="quick-btn" onclick="sendQuickReply('I want to make a refund')">💰 I want to make a refund</button>
+                    <button class="quick-btn" onclick="sendQuickReply('My payment did not process')">💳 My payment did not process</button>
+                    <button class="quick-btn" onclick="sendQuickReply('I have an inquiry about my reservation')">📅 I have an inquiry about my reservation</button>
+                `;
+                chatBody.appendChild(quickRepliesDiv);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading conversation history:', error);
+    }
+}
+
+// Also update sendQuickReply to be consistent (keep as is, but ensure it works with new structure)
+
 window.submitDynamicReservation = submitDynamicReservation;
 window.submitDynamicReservationPayment = submitDynamicReservationPayment;
 window.onReservationTypeChange = onReservationTypeChange;

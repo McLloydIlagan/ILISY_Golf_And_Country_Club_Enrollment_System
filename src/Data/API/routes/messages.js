@@ -1,9 +1,53 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const Message = require('../models/Message');
 const { authMiddleware } = require('../middleware/auth');
 
-// 4.0 Submit Concerns - Send inquiry > store message data > D4: Messages
+// ============================================
+// CONFIGURE MULTER FOR IMAGE UPLOADS
+// ============================================
+
+// Ensure upload directory exists
+const uploadDir = './uploads/receipts';
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure storage
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+// File filter for images only
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Only image files are allowed (JPEG, PNG, GIF, WEBP)'), false);
+    }
+};
+
+// Configure multer
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: fileFilter
+});
+
+// ============================================
+// 4.0 Submit Concerns - Send inquiry
+// ============================================
+
 router.post('/submit', authMiddleware, async (req, res) => {
     try {
         const { userId, userName, message, concernType } = req.body;
@@ -69,7 +113,95 @@ router.post('/submit', authMiddleware, async (req, res) => {
     }
 });
 
+// ============================================
+// UPLOAD IMAGE (RECEIPT)
+// ============================================
+
+router.post('/upload-image', authMiddleware, upload.single('image'), async (req, res) => {
+    try {
+        const { userId, userName, conversationId } = req.body;
+        
+        // Verify user
+        if (req.user.userId !== userId) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+        
+        if (!req.file) {
+            return res.status(400).json({ message: 'No image uploaded' });
+        }
+        
+        // Construct image URL (adjust for your deployment)
+        const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+        const imageUrl = `${baseUrl}/uploads/receipts/${req.file.filename}`;
+        
+        let message;
+        
+        if (conversationId) {
+            // Add to existing conversation
+            message = await Message.findById(conversationId);
+            if (!message) {
+                // Clean up uploaded file if conversation not found
+                fs.unlinkSync(req.file.path);
+                return res.status(404).json({ message: 'Conversation not found' });
+            }
+            
+            // Verify ownership
+            if (message.userId.toString() !== userId) {
+                fs.unlinkSync(req.file.path);
+                return res.status(403).json({ message: 'Unauthorized' });
+            }
+            
+            message.conversation.push({
+                sender: 'user',
+                message: '📎 Sent a receipt image',
+                imageUrl: imageUrl,
+                timestamp: new Date()
+            });
+            message.status = 'pending';
+            await message.save();
+        } else {
+            // Create new conversation with image
+            message = new Message({
+                userId,
+                userName: userName || 'Member',
+                message: '📎 Sent a receipt image',
+                imageUrl: imageUrl,
+                concernType: 'payment',
+                conversation: [{
+                    sender: 'user',
+                    message: '📎 Sent a receipt image',
+                    imageUrl: imageUrl,
+                    timestamp: new Date()
+                }],
+                status: 'pending'
+            });
+            await message.save();
+        }
+        
+        res.json({
+            message: 'Image uploaded successfully',
+            conversationId: message._id,
+            imageUrl: imageUrl
+        });
+        
+    } catch (error) {
+        console.error('Image upload error:', error);
+        // Clean up uploaded file if error occurs
+        if (req.file && req.file.path) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (e) {
+                console.error('Error deleting file:', e);
+            }
+        }
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ============================================
 // 4.0 Follow up inquiry - ADD TO EXISTING CONVERSATION
+// ============================================
+
 router.post('/followup/:messageId', authMiddleware, async (req, res) => {
     try {
         const { messageId } = req.params;
@@ -113,7 +245,10 @@ router.post('/followup/:messageId', authMiddleware, async (req, res) => {
     }
 });
 
+// ============================================
 // 4.0 Get user's conversations
+// ============================================
+
 router.get('/user/:userId', authMiddleware, async (req, res) => {
     try {
         // Verify the user is requesting their own conversations
@@ -132,7 +267,10 @@ router.get('/user/:userId', authMiddleware, async (req, res) => {
     }
 });
 
+// ============================================
 // Get single conversation by ID
+// ============================================
+
 router.get('/conversation/:messageId', authMiddleware, async (req, res) => {
     try {
         const conversation = await Message.findById(req.params.messageId);

@@ -80,6 +80,9 @@ app.use((err, req, res, next) => {
     });
 });
 
+// Serve static files for uploads
+app.use('/uploads', express.static('uploads'));
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
