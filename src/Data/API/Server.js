@@ -61,6 +61,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/reservation-types', require('./routes/reservationTypes'));
+app.use('/api/users', require('./routes/users'));
 
 // 404 handler for undefined routes
 app.use('*', (req, res) => {
