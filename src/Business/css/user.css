@@ -171,17 +171,79 @@ section { scroll-margin-top: var(--navbar-h); }
     overflow: hidden;
 }
 
+/* Upgraded Membership Features Banner (Carousel Version) */
 .features-bar {
-    background: rgba(255,255,255,0.05);
-    border-top: 1px solid rgba(212,179,106,0.3);
-    border-bottom: 1px solid rgba(212,179,106,0.3);
-    display: flex; justify-content: space-around; padding: 25px 40px;
+    background: linear-gradient(180deg, rgba(13,43,15,0.95) 0%, rgba(13,43,15,0.8) 100%), url('../Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
+    border-top: 2px solid var(--gold);
+    border-bottom: 2px solid var(--gold);
+    padding: 30px 0; /* Removed side padding so it flows off-screen */
+    margin-bottom: 20px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    overflow: hidden; /* Hides the items that slide outside the box */
+    position: relative;
+    white-space: nowrap; /* Forces items into a single horizontal line */
 }
+
+/* The moving track */
+.carousel-track {
+    display: inline-flex;
+    gap: 25px;
+    padding-left: 25px;
+    /* This handles the movement: 25 seconds, constant speed, endless loop */
+    animation: scrollCarousel 25s linear infinite; 
+}
+
+
+@keyframes scrollCarousel {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); } /* Moves exactly half the track width to loop */
+}
+
 .feature-item {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 10px; color: #ccc; font-size: 12px; text-align: center;
+    display: flex; 
+    align-items: center; 
+    gap: 15px; 
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(212, 179, 106, 0.15);
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: #e0e0e0; 
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    width: 320px; /* Fixed width so they don't squish */
+    flex-shrink: 0; /* Prevents shrinking */
+    white-space: normal; /* Allows text to wrap inside the box */
+    pointer-events: none; 
 }
-.feature-item .icon { font-size: 26px; }
+
+.feature-item .icon { 
+    font-size: 26px; 
+    color: var(--gold);
+    background: rgba(212, 179, 106, 0.1);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* Make it responsive */
+@media (max-width: 900px) {
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (max-width: 600px) {
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+    .features-bar {
+        padding: 30px 20px;
+    }
+}
 
 .sub-title {
     font-size: 13px; color: #888;
