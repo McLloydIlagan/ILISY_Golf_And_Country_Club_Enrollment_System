@@ -497,7 +497,25 @@ async function submitMembership(event) {
     const age = parseInt(document.getElementById('memAge').value) || 0;
     const address = document.getElementById('memAddress').value.trim();
     
-    // ========== NEW: Name Validation ==========
+    // ========== FIXED: Get payment details BEFORE using them ==========
+    // Get payment details from the modern checkout form
+    const activeMethod = document.querySelector('#membershipPayment .pm-tab.active');
+    let paymentMethod = 'Card';
+    
+    if (activeMethod) {
+    const methodText = activeMethod.innerText.trim();
+    if (methodText.includes('BDO')) paymentMethod = 'BDO';
+    else if (methodText.includes('Metrobank')) paymentMethod = 'Metrobank';     
+    else if (methodText.includes('BPI')) paymentMethod = 'BPI';
+    else paymentMethod = 'Card';
+    }
+    
+    const accountNumber = document.getElementById('paymentAccount').value.trim();
+    const expiryInput = document.querySelector('#membershipPayment input[placeholder="MM/YY"]');
+    const expiry = expiryInput ? expiryInput.value.trim() : '';
+    const cvc = document.getElementById('cardCvc') ? document.getElementById('cardCvc').value.trim() : '';
+    
+    // ========== Name Validation ==========
     const nameRegex = /^[A-Za-z\s\-']+$/;
     
     if (!firstName) {
@@ -526,7 +544,7 @@ async function submitMembership(event) {
         return;
     }
     
-    // Validate payment details
+    // ========== Payment Validation ==========
     if (!accountNumber) {
         showToast('Please enter your card number', 'error');
         return;
@@ -549,15 +567,21 @@ async function submitMembership(event) {
         return;
     }
     
-    // Validate personal details
-    if (!firstName || !lastName || !email || !phone) {
-        showToast('Please fill in all personal details first', 'error');
+    // ========== Email Validation ==========
+    if (!email) {
+        showToast('Please enter your email address', 'error');
         return;
     }
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         showToast('Please enter a valid email address', 'error');
+        return;
+    }
+    
+    // ========== Phone Validation ==========
+    if (!phone) {
+        showToast('Please enter your phone number', 'error');
         return;
     }
     

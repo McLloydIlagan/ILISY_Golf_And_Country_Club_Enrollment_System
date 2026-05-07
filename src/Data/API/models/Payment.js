@@ -5,9 +5,9 @@ const paymentSchema = new mongoose.Schema({
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     paymentMethod: { 
-        type: String, 
-        enum: ['GCash', 'Maya', 'BPI', 'BDO', 'Cash'],
-        required: true 
+    type: String, 
+    enum: ['GCash', 'Maya', 'BPI', 'BDO', 'Cash', 'Metrobank', 'Card'],
+    required: true 
     },
     accountNumber: { type: String },
     amount: { type: Number, required: true },

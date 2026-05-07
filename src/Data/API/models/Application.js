@@ -19,7 +19,10 @@ const applicationSchema = new mongoose.Schema({
     details: { type: mongoose.Schema.Types.Mixed },
     
     // NEW: Payment fields for admin validation
-    paymentMethod: { type: String, enum: ['GCash', 'Maya', 'BPI', 'BDO', 'Cash'] },
+    paymentMethod: { 
+    type: String, 
+    enum: ['GCash', 'Maya', 'BPI', 'BDO', 'Cash', 'Metrobank', 'Card'] 
+    },
     accountNumber: { type: String },
     referenceNumber: { type: String },
     receiptUrl: { type: String },
