@@ -22,33 +22,35 @@ router.post('/register', [
 
         const { firstName, lastName, email, username, password, phone } = req.body;
 
-        // Normalize email and username to lowercase for consistent checking
+        // Normalize email and username to lowercase
         const normalizedEmail = email.trim().toLowerCase();
         const normalizedUsername = username.trim().toLowerCase();
 
-        // Check for existing user with case-insensitive match
-        const existingUser = await User.findOne({
-            $or: [
-                { email: { $regex: `^${normalizedEmail}$`, $options: 'i' } },
-                { username: { $regex: `^${normalizedUsername}$`, $options: 'i' } }
-            ]
-        });
+        console.log('Checking for existing user with email:', normalizedEmail);
+        console.log('Checking for existing user with username:', normalizedUsername);
 
-        if (existingUser) {
-            // Check which field is duplicate
-            if (existingUser.email.toLowerCase() === normalizedEmail) {
-                return res.status(409).json({
-                    message: 'This email is already registered. Please use a different email or login.',
-                    field: 'email'
-                });
-            }
-            if (existingUser.username.toLowerCase() === normalizedUsername) {
-                return res.status(409).json({
-                    message: 'This username is already taken. Please choose a different username.',
-                    field: 'username'
-                });
-            }
+        // SIMPLIFIED: Use findOne with lowercase comparison
+        // Check email first
+        const existingEmail = await User.findOne({ email: normalizedEmail });
+        if (existingEmail) {
+            console.log('Email already exists:', existingEmail.email);
+            return res.status(409).json({
+                message: 'This email is already registered. Please use a different email or login.',
+                field: 'email'
+            });
         }
+
+        // Check username
+        const existingUsername = await User.findOne({ username: normalizedUsername });
+        if (existingUsername) {
+            console.log('Username already exists:', existingUsername.username);
+            return res.status(409).json({
+                message: 'This username is already taken. Please choose a different username.',
+                field: 'username'
+            });
+        }
+
+        console.log('Creating new user...');
 
         // Create user with normalized email and username
         const user = new User({
@@ -63,6 +65,8 @@ router.post('/register', [
         });
 
         await user.save();
+        
+        console.log('User created successfully:', user._id);
 
         // Return success without exposing sensitive data
         res.status(201).json({
@@ -102,8 +106,8 @@ router.post('/login', async (req, res) => {
         // Query with case-insensitive search
         const user = await User.findOne({
             $or: [
-                { username: { $regex: `^${normalizedInput}$`, $options: 'i' } },
-                { email: { $regex: `^${normalizedInput}$`, $options: 'i' } }
+                { username: normalizedInput },
+                { email: normalizedInput }
             ]
         });
 
@@ -133,7 +137,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Check if email is available (not already registered) - UPDATED
+// Check if email is available (not already registered)
 router.post('/check-email', async (req, res) => {
     try {
         const { email } = req.body;
@@ -144,10 +148,8 @@ router.post('/check-email', async (req, res) => {
 
         const normalizedEmail = email.trim().toLowerCase();
         
-        // Case-insensitive search
-        const existingUser = await User.findOne({
-            email: { $regex: `^${normalizedEmail}$`, $options: 'i' }
-        });
+        // Simple findOne
+        const existingUser = await User.findOne({ email: normalizedEmail });
 
         if (existingUser) {
             return res.json({ 
@@ -166,7 +168,7 @@ router.post('/check-email', async (req, res) => {
     }
 });
 
-// Check if username is available (not already taken) - UPDATED
+// Check if username is available (not already taken)
 router.post('/check-username', async (req, res) => {
     try {
         const { username } = req.body;
@@ -177,10 +179,8 @@ router.post('/check-username', async (req, res) => {
 
         const normalizedUsername = username.trim().toLowerCase();
         
-        // Case-insensitive search
-        const existingUser = await User.findOne({
-            username: { $regex: `^${normalizedUsername}$`, $options: 'i' }
-        });
+        // Simple findOne
+        const existingUser = await User.findOne({ username: normalizedUsername });
 
         if (existingUser) {
             return res.json({ 
