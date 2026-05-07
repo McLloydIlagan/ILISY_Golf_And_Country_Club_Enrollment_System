@@ -56,9 +56,42 @@ router.delete('/users/:userId', async (req, res) => {
 
 router.get('/applications', async (req, res) => {
     try {
+        // Get applications from Application collection
         const applications = await Application.find().sort({ createdAt: -1 });
-        res.json(applications);
+        
+        // Get confirmed reservations from Reservation collection
+        const reservations = await Reservation.find().sort({ createdAt: -1 });
+        
+        // Transform reservations to match application format for display
+        const formattedReservations = reservations.map(res => ({
+            _id: res._id,
+            userId: res.userId,
+            firstName: res.firstName,
+            lastName: res.lastName,
+            email: res.email,
+            phone: res.phone,
+            type: 'reservation',
+            status: res.status,
+            paymentStatus: res.paymentStatus || 'completed',
+            amount: res.amount,
+            details: {
+                date: res.date,
+                timeSlot: res.timeSlot
+            },
+            createdAt: res.createdAt,
+            // Flag to know this came from Reservation collection
+            source: 'reservation'
+        }));
+        
+        // Combine both arrays
+        const allItems = [...applications, ...formattedReservations];
+        
+        // Sort by createdAt descending (newest first)
+        allItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        res.json(allItems);
     } catch (error) {
+        console.error('Error fetching applications:', error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -66,36 +99,96 @@ router.get('/applications', async (req, res) => {
 // Level 3: 2.2.1 - Validate Reservation Details > Confirm > D6
 router.post('/reservations/:appId/approve', async (req, res) => {
     try {
-        const application = await Application.findById(req.params.appId);
-        if (!application) return res.status(404).json({ message: 'Application not found' });
-
-        const conflict = await Reservation.findOne({
-            date: application.details.date,
-            timeSlot: application.details.timeSlot,
-            status: { $in: ['approved', 'confirmed'] }
-        });
-        if (conflict) return res.status(400).json({ message: 'Time slot is no longer available' });
-
-        application.status = 'approved';
-        await application.save();
-
-        res.json({
-            message: 'Reservation approved. Confirmation and payment form sent to client email.',
-            applicationId: application._id
-        });
+        const { appId } = req.params;
+        
+        // Try to find in Application collection first
+        let application = await Application.findById(appId);
+        let isReservationCollection = false;
+        let reservation = null;
+        
+        // If not found, try Reservation collection
+        if (!application) {
+            reservation = await Reservation.findById(appId);
+            if (reservation) {
+                isReservationCollection = true;
+                application = reservation;
+            }
+        }
+        
+        if (!application) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+        
+        if (isReservationCollection) {
+            // Update status in Reservation collection
+            reservation.status = 'confirmed';
+            await reservation.save();
+            
+            res.json({
+                message: 'Reservation confirmed successfully',
+                applicationId: reservation._id
+            });
+        } else {
+            // Original logic for Application collection
+            const conflict = await Reservation.findOne({
+                date: application.details.date,
+                timeSlot: application.details.timeSlot,
+                status: { $in: ['approved', 'confirmed'] }
+            });
+            if (conflict) {
+                return res.status(400).json({ message: 'Time slot is no longer available' });
+            }
+            
+            application.status = 'approved';
+            await application.save();
+            
+            res.json({
+                message: 'Reservation approved. Confirmation sent.',
+                applicationId: application._id
+            });
+        }
     } catch (error) {
+        console.error('Approve error:', error);
         res.status(500).json({ message: error.message });
     }
 });
 
 router.post('/reservations/:appId/reject', async (req, res) => {
     try {
-        const application = await Application.findById(req.params.appId);
-        if (!application) return res.status(404).json({ message: 'Application not found' });
-        application.status = 'rejected';
-        await application.save();
-        res.json({ message: 'Reservation rejected' });
+        const { appId } = req.params;
+        const { rejectionReason } = req.body;
+        
+        // Try Application collection first
+        let application = await Application.findById(appId);
+        let isReservationCollection = false;
+        let reservation = null;
+        
+        if (!application) {
+            reservation = await Reservation.findById(appId);
+            if (reservation) {
+                isReservationCollection = true;
+                application = reservation;
+            }
+        }
+        
+        if (!application) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+        
+        if (isReservationCollection) {
+            reservation.status = 'cancelled';
+            await reservation.save();
+            
+            res.json({ message: 'Reservation cancelled' });
+        } else {
+            application.status = 'rejected';
+            application.adminNotes = rejectionReason || 'Application rejected';
+            await application.save();
+            
+            res.json({ message: 'Reservation rejected' });
+        }
     } catch (error) {
+        console.error('Reject error:', error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -263,10 +356,39 @@ router.get('/pending-applications', async (req, res) => {
 // Get application by ID with full details
 router.get('/application/:appId', async (req, res) => {
     try {
-        const application = await Application.findById(req.params.appId);
+        const { appId } = req.params;
+        
+        // First try to find in Application collection
+        let application = await Application.findById(appId);
+        
+        // If not found, try Reservation collection
+        if (!application) {
+            const reservation = await Reservation.findById(appId);
+            if (reservation) {
+                application = {
+                    _id: reservation._id,
+                    userId: reservation.userId,
+                    firstName: reservation.firstName,
+                    lastName: reservation.lastName,
+                    email: reservation.email,
+                    phone: reservation.phone,
+                    type: 'reservation',
+                    status: reservation.status,
+                    amount: reservation.amount,
+                    details: {
+                        date: reservation.date,
+                        timeSlot: reservation.timeSlot
+                    },
+                    createdAt: reservation.createdAt,
+                    source: 'reservation'
+                };
+            }
+        }
+        
         if (!application) {
             return res.status(404).json({ message: 'Application not found' });
         }
+        
         res.json(application);
     } catch (error) {
         console.error('Error getting application:', error);
