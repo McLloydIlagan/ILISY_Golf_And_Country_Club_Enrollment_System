@@ -22,39 +22,49 @@ router.post('/register', [
 
         const { firstName, lastName, email, username, password, phone } = req.body;
 
-        // Level 3: 1.3.1 - Check account duplication > D1: Registered Accounts
-        const existingUser = await User.findOne({ 
-            $or: [{ email: email.trim().toLowerCase() }, { username: username.trim().toLowerCase() }] 
-        }).collation({ locale: 'en', strength: 2 });
-        
+        // Normalize email and username to lowercase for consistent checking
+        const normalizedEmail = email.trim().toLowerCase();
+        const normalizedUsername = username.trim().toLowerCase();
+
+        // Check for existing user with case-insensitive match
+        const existingUser = await User.findOne({
+            $or: [
+                { email: { $regex: `^${normalizedEmail}$`, $options: 'i' } },
+                { username: { $regex: `^${normalizedUsername}$`, $options: 'i' } }
+            ]
+        });
+
         if (existingUser) {
-            if (existingUser.email.toLowerCase() === email.trim().toLowerCase()) {
-                return res.status(409).json({ 
+            // Check which field is duplicate
+            if (existingUser.email.toLowerCase() === normalizedEmail) {
+                return res.status(409).json({
                     message: 'This email is already registered. Please use a different email or login.',
                     field: 'email'
                 });
             }
-            if (existingUser.username.toLowerCase() === username.trim().toLowerCase()) {
-                return res.status(409).json({ 
+            if (existingUser.username.toLowerCase() === normalizedUsername) {
+                return res.status(409).json({
                     message: 'This username is already taken. Please choose a different username.',
                     field: 'username'
                 });
             }
         }
 
-        // Level 3: 1.3.1 - Create Account > Account data stored > D1: Registered Accounts
+        // Create user with normalized email and username
         const user = new User({
-            firstName,
-            lastName,
-            email,
-            username,
-            password,
-            phone,
-            termsAccepted: true
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            email: normalizedEmail,
+            username: normalizedUsername,
+            password: password,
+            phone: phone.trim(),
+            termsAccepted: true,
+            membershipStatus: 'none'
         });
 
         await user.save();
 
+        // Return success without exposing sensitive data
         res.status(201).json({
             message: 'Account created successfully',
             userId: user._id,
@@ -62,15 +72,18 @@ router.post('/register', [
             email: user.email
         });
     } catch (error) {
-        // Handle MongoDB unique constraint errors
+        console.error('Registration error:', error);
+        
+        // Handle MongoDB duplicate key error (fallback)
         if (error.code === 11000) {
             const field = Object.keys(error.keyPattern)[0];
             const fieldName = field === 'email' ? 'Email' : 'Username';
-            return res.status(409).json({ 
+            return res.status(409).json({
                 message: `${fieldName} already exists in the system`,
                 field: field
             });
         }
+        
         res.status(500).json({ message: error.message });
     }
 });
@@ -86,10 +99,13 @@ router.post('/login', async (req, res) => {
 
         const normalizedInput = username.trim().toLowerCase();
         
-        // Query with collation for case-insensitive search
+        // Query with case-insensitive search
         const user = await User.findOne({
-            $or: [{ username: normalizedInput }, { email: normalizedInput }]
-        }).collation({ locale: 'en', strength: 2 });
+            $or: [
+                { username: { $regex: `^${normalizedInput}$`, $options: 'i' } },
+                { email: { $regex: `^${normalizedInput}$`, $options: 'i' } }
+            ]
+        });
 
         if (!user || !(await user.comparePassword(password))) {
             return res.status(401).json({ message: 'Invalid credentials' });
@@ -112,11 +128,12 @@ router.post('/login', async (req, res) => {
             token
         });
     } catch (error) {
+        console.error('Login error:', error);
         res.status(500).json({ message: error.message });
     }
 });
 
-// Check if email is available (not already registered)
+// Check if email is available (not already registered) - UPDATED
 router.post('/check-email', async (req, res) => {
     try {
         const { email } = req.body;
@@ -126,27 +143,30 @@ router.post('/check-email', async (req, res) => {
         }
 
         const normalizedEmail = email.trim().toLowerCase();
-        console.log('🔍 Checking email in database:', normalizedEmail);
         
-        // Query with collation for case-insensitive search
-        const existingUser = await User.findOne({ email: normalizedEmail }).collation({ locale: 'en', strength: 2 });
-        
-        console.log('📊 Database query result:', existingUser ? 'Found existing user' : 'No user found');
+        // Case-insensitive search
+        const existingUser = await User.findOne({
+            email: { $regex: `^${normalizedEmail}$`, $options: 'i' }
+        });
 
         if (existingUser) {
-            console.log('❌ Email already exists:', existingUser.email);
-            return res.json({ available: false, message: 'Email already registered' });
+            return res.json({ 
+                available: false, 
+                message: 'Email already registered. Please use a different email or login.' 
+            });
         }
 
-        console.log('✅ Email is available');
-        return res.json({ available: true, message: 'Email is available' });
+        return res.json({ 
+            available: true, 
+            message: 'Email is available' 
+        });
     } catch (error) {
-        console.error('❌ Error checking email:', error);
+        console.error('Error checking email:', error);
         res.status(500).json({ available: false, message: error.message });
     }
 });
 
-// Check if username is available (not already taken)
+// Check if username is available (not already taken) - UPDATED
 router.post('/check-username', async (req, res) => {
     try {
         const { username } = req.body;
@@ -156,22 +176,25 @@ router.post('/check-username', async (req, res) => {
         }
 
         const normalizedUsername = username.trim().toLowerCase();
-        console.log('🔍 Checking username in database:', normalizedUsername);
         
-        // Query with collation for case-insensitive search
-        const existingUser = await User.findOne({ username: normalizedUsername }).collation({ locale: 'en', strength: 2 });
-        
-        console.log('📊 Database query result:', existingUser ? 'Found existing user' : 'No user found');
+        // Case-insensitive search
+        const existingUser = await User.findOne({
+            username: { $regex: `^${normalizedUsername}$`, $options: 'i' }
+        });
 
         if (existingUser) {
-            console.log('❌ Username already exists:', existingUser.username);
-            return res.json({ available: false, message: 'Username already taken' });
+            return res.json({ 
+                available: false, 
+                message: 'Username already taken. Please choose a different username.' 
+            });
         }
 
-        console.log('✅ Username is available');
-        return res.json({ available: true, message: 'Username is available' });
+        return res.json({ 
+            available: true, 
+            message: 'Username is available' 
+        });
     } catch (error) {
-        console.error('❌ Error checking username:', error);
+        console.error('Error checking username:', error);
         res.status(500).json({ available: false, message: error.message });
     }
 });

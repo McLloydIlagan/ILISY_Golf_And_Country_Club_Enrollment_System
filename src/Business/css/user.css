@@ -159,11 +159,16 @@ section { scroll-margin-top: var(--navbar-h); }
 /* Chat inside tab */
 .chat-wrap { max-width: 800px; margin: 0 auto; }
 .chat-container {
-    background: white; border-radius: 12px;
+    background: white;
+    border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     border-top: 3px solid var(--gold);
-    display: flex; flex-direction: column;
-    min-height: 500px; overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 550px;
+    max-height: 650px;
+    height: 100%;
+    overflow: hidden;
 }
 
 .features-bar {
@@ -211,9 +216,15 @@ section { scroll-margin-top: var(--navbar-h); }
 .close-modal-btn:hover { color: var(--gold); }
 
 .chat-body {
-    flex: 1; padding: 30px;
-    overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
-    min-height: 350px;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+    max-height: 500px;
 }
 .msg-bubble {
     background: #f0f0f0;
@@ -223,6 +234,7 @@ section { scroll-margin-top: var(--navbar-h); }
     line-height: 1.5;
     max-width: 70%;
     word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 .msg-bubble.sent {
     background: var(--deep-green);
@@ -240,6 +252,7 @@ section { scroll-margin-top: var(--navbar-h); }
     align-items: flex-start;
     gap: 12px;
     margin-bottom: 16px;
+    flex-shrink: 0;
 }
 .msg-row.right {
     justify-content: flex-end;
@@ -274,7 +287,13 @@ section { scroll-margin-top: var(--navbar-h); }
     flex-shrink: 0;
 }
 
-.quick-replies { display: flex; flex-direction: column; gap: 10px; margin-left: 50px; }
+.quick-replies {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 10px;
+}
 .quick-btn {
     background: #e8d9a8; border: none;
     padding: 11px 22px; border-radius: 22px;
@@ -447,6 +466,8 @@ section { scroll-margin-top: var(--navbar-h); }
         transform: translateY(0);
     }
 }
+
+/* Dynamic Reservation Styles */
 .reservation-type-selector {
     margin-bottom: 25px;
 }
@@ -460,15 +481,6 @@ section { scroll-margin-top: var(--navbar-h); }
     font-family: "Georgia", serif;
     background: white;
     cursor: pointer;
-}
-
-.reservation-options {
-    display: none;
-    animation: fadeIn 0.3s ease;
-}
-
-.reservation-options.active {
-    display: block;
 }
 
 .option-group {
@@ -511,61 +523,38 @@ section { scroll-margin-top: var(--navbar-h); }
     color: #666;
 }
 
-.capacity-status {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: bold;
-}
-
-.status-available {
-    background: #28a745;
-    color: white;
-}
-
-.status-full {
-    background: #dc3545;
-    color: white;
-}
-
-.status-maintenance {
-    background: #ffc107;
-    color: #333;
-}
-
-/* Calendar Popup */
-.calendar-popup {
+/* Calendar Popup - FIXED */
+.modal-overlay#dynamicCalendarModal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.8);
+    inset: 0;
+    background: rgba(0,0,0,0.75);
     display: none;
     justify-content: center;
     align-items: center;
     z-index: 10000;
+    backdrop-filter: blur(3px);
 }
 
-.calendar-popup.show {
-    display: flex;
+.modal-overlay#dynamicCalendarModal.show {
+    display: flex !important;
 }
 
-.calendar-popup-content {
+.calendar-popup {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
     background: white;
     border-radius: 12px;
-    width: 450px;
-    max-width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
+    overflow: hidden;
+    margin: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     animation: popupSlideIn 0.3s ease;
 }
 
 @keyframes popupSlideIn {
     from {
         opacity: 0;
-        transform: translateY(-50px);
+        transform: translateY(-30px);
     }
     to {
         opacity: 1;
@@ -580,12 +569,17 @@ section { scroll-margin-top: var(--navbar-h); }
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: sticky;
-    top: 0;
+}
+
+.calendar-popup-header h3 {
+    font-size: 18px;
+    margin: 0;
 }
 
 .calendar-popup-body {
     padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
 }
 
 .calendar-month-nav {
@@ -602,6 +596,18 @@ section { scroll-margin-top: var(--navbar-h); }
     padding: 5px 12px;
     border-radius: 5px;
     cursor: pointer;
+    font-family: "Georgia", serif;
+    transition: background 0.2s;
+}
+
+.calendar-month-nav button:hover {
+    background: var(--deep-green);
+}
+
+.calendar-month-nav span {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--deep-green);
 }
 
 .calendar-grid {
@@ -663,11 +669,24 @@ section { scroll-margin-top: var(--navbar-h); }
     color: #856404;
 }
 
+/* Time Slots */
+#dynamicTimeSlotsContainer {
+    margin-top: 20px;
+}
+
+#dynamicTimeSlotsContainer label {
+    display: block;
+    font-size: 12px;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 8px;
+}
+
 .time-slots {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
-    margin-top: 15px;
+    margin-top: 10px;
 }
 
 .time-slot {
@@ -678,10 +697,13 @@ section { scroll-margin-top: var(--navbar-h); }
     cursor: pointer;
     transition: all 0.2s;
     font-size: 12px;
+    background: white;
 }
 
 .time-slot:hover:not(.full) {
     background: var(--sage);
+    border-color: var(--olive);
+    transform: translateY(-2px);
 }
 
 .time-slot.selected {
@@ -694,55 +716,10 @@ section { scroll-margin-top: var(--navbar-h); }
     background: #f8d7da;
     color: #721c24;
     cursor: not-allowed;
+    text-decoration: line-through;
 }
 
-/* QR Code */
-.qr-code {
-    text-align: center;
-    padding: 20px;
-    background: white;
-    border-radius: 8px;
-    margin-top: 15px;
-    border: 1px solid #ddd;
-}
-
-.qr-code canvas {
-    margin: 10px auto;
-}
-
-.booking-summary {
-    background: var(--sage);
-    padding: 15px;
-    border-radius: 8px;
-    margin: 15px 0;
-}
-
-.booking-summary p {
-    margin: 8px 0;
-    font-size: 13px;
-}
-
-.btn-submit-reservation {
-    background: var(--olive);
-    color: white;
-    border: none;
-    padding: 14px;
-    width: 100%;
-    border-radius: 6px;
-    font-size: 16px;
-    cursor: pointer;
-    margin-top: 15px;
-}
-
-.btn-submit-reservation:hover {
-    background: var(--deep-green);
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
+/* Membership Badge */
 .membership-badge {
     background: var(--olive);
     color: white;
@@ -761,41 +738,46 @@ section { scroll-margin-top: var(--navbar-h); }
     background: #6c757d;
 }
 
-.modal-overlay.show {
-    display: flex !important;
-}
-
-/* Calendar popup visibility */
-.calendar-popup {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.8);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-}
-
-.calendar-popup.show {
-    display: flex !important;
-}
-
-/* Fix for the calendar modal inside overlay */
-#dynamicCalendarModal.show {
-    display: flex !important;
-}
-
-/* Ensure calendar popup content is visible */
-.calendar-popup-content {
-    background: white;
-    border-radius: 12px;
-    width: 450px;
-    max-width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-    animation: popupSlideIn 0.3s ease;
-    display: block !important;
+/* Responsive */
+@media (max-width: 768px) {
+    .tab-bar {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .tab-btn {
+        width: 80%;
+    }
+    
+    .form-grid-4, .form-grid-3 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .payment-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .features-bar {
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .calendar-popup {
+        max-width: 95%;
+        margin: 20px;
+    }
+    
+    .time-slots {
+        grid-template-columns: 1fr;
+    }
+    
+    .hero-content h1 {
+        font-size: 40px;
+    }
+    
+    .hero-content {
+        padding: 0 20px;
+    }
 }
