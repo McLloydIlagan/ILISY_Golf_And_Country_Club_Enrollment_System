@@ -120,6 +120,387 @@ async function loadDashboardStats() {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// Admin Dynamic Calendar Functions
+// ──────────────────────────────────────────────────────────────────
+
+let adminCurrentMonth = new Date();
+let adminReservationsData = [];
+
+async function loadAdminCalendar() {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const year = adminCurrentMonth.getFullYear();
+        const month = adminCurrentMonth.getMonth() + 1;
+        
+        const response = await fetch(`${API_URL}/admin/reservations/calendar?year=${year}&month=${month}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        if (response.ok) {
+            adminCalendarData = await response.json();
+        }
+    } catch (error) {
+        console.error('Error loading calendar:', error);
+        adminCalendarData = [];
+    }
+    
+    renderAdminCalendar();
+}
+
+function renderAdminCalendar() {
+    const year = adminCurrentMonth.getFullYear();
+    const month = adminCurrentMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    // Update header
+    const monthYearSpan = document.getElementById('adminCalendarMonthYear');
+    if (monthYearSpan) {
+        monthYearSpan.textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(adminCurrentMonth);
+    }
+    
+    const grid = document.getElementById('adminCalGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    // Add weekday headers
+    const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    weekdays.forEach(day => {
+        grid.innerHTML += `<div style="font-size:10px;color:#888;text-align:center;font-weight:bold;">${day}</div>`;
+    });
+    
+    // Add empty cells for days before first day of month
+    for (let i = 0; i < firstDay; i++) {
+        grid.innerHTML += `<div class="res-day empty"></div>`;
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const totalSlots = 10; // Default capacity per day
+    
+    for (let d = 1; d <= daysInMonth; d++) {
+        const cellDate = new Date(year, month, d);
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const isToday = cellDate.toDateString() === today.toDateString();
+        
+        // Count reservations for this date
+        const dayReservations = adminCalendarData.filter(res => {
+            const resDate = new Date(res.date);
+            return resDate.getFullYear() === year && 
+                   resDate.getMonth() === month && 
+                   resDate.getDate() === d;
+        });
+        
+        const bookedCount = dayReservations.length;
+        let statusClass = 'available';
+        
+        if (bookedCount === 0) {
+            statusClass = 'available';
+        } else if (bookedCount >= totalSlots) {
+            statusClass = 'booked';
+        } else {
+            statusClass = 'partial';
+        }
+        
+        const todayClass = isToday ? 'today' : '';
+        
+        grid.innerHTML += `
+            <div class="res-day ${statusClass} ${todayClass}" 
+                 data-date="${dateKey}"
+                 data-booked="${bookedCount}"
+                 onclick="openAdminDayDetails('${dateKey}')">
+                ${d}
+            </div>
+        `;
+    }
+}
+
+function changeAdminMonth(delta) {
+    adminCurrentMonth.setMonth(adminCurrentMonth.getMonth() + delta);
+    loadAdminCalendar();
+}
+
+async function openAdminDayDetails(dateKey) {
+    const [year, month, day] = dateKey.split('-');
+    const dateObj = new Date(year, month - 1, day);
+    const formattedDate = dateObj.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    // Update modal header
+    const modalDate = document.getElementById('resDetailDate');
+    if (modalDate) modalDate.textContent = formattedDate;
+    
+    const token = getAuthToken();
+    if (!token) return;
+    
+    const modalBody = document.querySelector('#resDetailModal .res-detail-body');
+    if (!modalBody) return;
+    
+    // Show loading
+    modalBody.innerHTML = `
+        <div style="text-align:center; padding:20px;">
+            <div class="loading-spinner" style="display:inline-block;"></div> Loading reservations...
+        </div>
+        <div style="text-align:right; margin-top:16px;">
+            <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
+        </div>
+    `;
+    
+    try {
+        const response = await fetch(`${API_URL}/admin/reservations/by-date/${dateKey}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        if (response.ok) {
+            const reservations = await response.json();
+            
+            if (reservations.length === 0) {
+                modalBody.innerHTML = `
+                    <div style="text-align:center; padding:40px; color:#888;">
+                        No reservations for this day.
+                    </div>
+                    <div style="text-align:right; margin-top:16px;">
+                        <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Build detailed reservations list
+            let slotsHtml = `
+                <div class="res-detail-header-info" style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">
+                    <strong>Total Reservations: ${reservations.length}</strong>
+                </div>
+            `;
+            
+            reservations.forEach((res, index) => {
+                // Parse reservation details
+                const reservationType = res.reservationType || res.type || 'N/A';
+                const details = res.details || {};
+                const options = res.options || {};
+                
+                // Build options text
+                let optionsText = '';
+                if (options.holes) optionsText += `<span class="detail-badge">🏌️ ${options.holes}</span>`;
+                if (options.ballBucket) optionsText += `<span class="detail-badge">⚾ ${options.ballBucket}</span>`;
+                if (options.duration) optionsText += `<span class="detail-badge">⏱️ ${options.duration}</span>`;
+                if (options.roomType) optionsText += `<span class="detail-badge">🏨 ${options.roomType}</span>`;
+                if (options.diningType) optionsText += `<span class="detail-badge">🍽️ ${options.diningType}</span>`;
+                if (options.treatmentType) optionsText += `<span class="detail-badge">💆 ${options.treatmentType}</span>`;
+                if (options.lessonType) optionsText += `<span class="detail-badge">📚 ${options.lessonType}</span>`;
+                if (options.eventType) optionsText += `<span class="detail-badge">🎉 ${options.eventType}</span>`;
+                
+                // Build availability status
+                const statusClass = res.status === 'confirmed' ? 'status-confirmed' : 'status-pending';
+                const statusText = res.status === 'confirmed' ? '✓ Confirmed' : '⏳ Pending';
+                const paymentStatusClass = res.paymentStatus === 'completed' ? 'payment-completed' : 'payment-pending';
+                const paymentStatusText = res.paymentStatus === 'completed' ? 'Paid' : 'Unpaid';
+                
+                slotsHtml += `
+                    <div class="reservation-detail-card" style="background: ${index % 2 === 0 ? '#f9f9f9' : 'white'}; border: 1px solid #eee; border-radius: 8px; margin-bottom: 12px; padding: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div class="res-slot-time" style="background: var(--olive); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">
+                                🕐 ${escapeHtml(res.timeSlot || 'N/A')}
+                            </div>
+                            <div>
+                                <span class="status-badge ${statusClass}" style="margin-right: 8px;">${statusText}</span>
+                                <span class="status-badge ${paymentStatusClass}">💰 ${paymentStatusText}</span>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;">
+                            <div>
+                                <strong>👤 Guest:</strong> ${escapeHtml(res.firstName || '')} ${escapeHtml(res.lastName || '')}
+                            </div>
+                            <div>
+                                <strong>📞 Phone:</strong> ${escapeHtml(res.phone || 'N/A')}
+                            </div>
+                            <div>
+                                <strong>📧 Email:</strong> ${escapeHtml(res.email || 'N/A')}
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;">
+                            <div>
+                                <strong>🏷️ Reservation Type:</strong> 
+                                <span class="detail-badge" style="background: var(--sage); padding: 2px 8px; border-radius: 4px;">
+                                    ${escapeHtml(reservationType)}
+                                </span>
+                            </div>
+                            <div>
+                                <strong>💰 Amount:</strong> 
+                                <strong style="color: var(--olive);">₱${(res.amount || 0).toLocaleString()}</strong>
+                            </div>
+                            ${res.isMember ? '<div><strong>⭐ Member Discount:</strong> <span style="color: #28a745;">20% OFF Applied</span></div>' : ''}
+                        </div>
+                        
+                        ${optionsText ? `
+                        <div style="margin-bottom: 8px;">
+                            <strong>📋 Options Selected:</strong>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px;">
+                                ${optionsText}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${res.specialRequests ? `
+                        <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 6px;">
+                            <strong>📝 Special Requests:</strong> ${escapeHtml(res.specialRequests)}
+                        </div>
+                        ` : ''}
+                        
+                        <div style="margin-top: 10px; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 8px;">
+                            <span>🆔 Booking ID: ${escapeHtml(res._id || res.bookingId || 'N/A')}</span>
+                            ${res.createdAt ? `<span style="margin-left: 15px;">📅 Booked: ${new Date(res.createdAt).toLocaleString()}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            slotsHtml += `
+                <div style="text-align:right; margin-top: 16px;">
+                    <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
+                </div>
+            `;
+            
+            modalBody.innerHTML = slotsHtml;
+        } else {
+            modalBody.innerHTML = `
+                <div style="text-align:center; padding:40px; color:#dc3545;">
+                    Failed to load reservations.
+                </div>
+                <div style="text-align:right; margin-top:16px;">
+                    <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading day reservations:', error);
+        modalBody.innerHTML = `
+            <div style="text-align:center; padding:40px; color:#dc3545;">
+                Error loading reservations.
+            </div>
+            <div style="text-align:right; margin-top:16px;">
+                <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
+            </div>
+        `;
+    }
+    
+    // Show modal
+    const modal = document.getElementById('resDetailModal');
+    if (modal) modal.classList.add('show');
+}
+
+async function loadDayReservations(dateKey) {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    const modalBody = document.querySelector('#resDetailModal .res-detail-body');
+    if (!modalBody) return;
+    
+    // Show loading
+    modalBody.innerHTML = `
+        <div style="text-align:center; padding:20px;">
+            <div class="loading-spinner" style="display:inline-block;"></div> Loading reservations...
+        </div>
+        <div style="text-align:right; margin-top:16px;">
+            <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
+        </div>
+    `;
+    
+    try {
+        const response = await fetch(`${API_URL}/admin/reservations/by-date/${dateKey}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        if (response.ok) {
+            const reservations = await response.json();
+            
+            if (reservations.length === 0) {
+                modalBody.innerHTML = `
+                    <div style="text-align:center; padding:40px; color:#888;">
+                        No reservations for this day.
+                    </div>
+                    <div style="text-align:right; margin-top:16px;">
+                        <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Build reservations list
+            let slotsHtml = '';
+            reservations.forEach(res => {
+                const statusClass = res.status === 'confirmed' ? 'status-confirmed' : 'status-pending';
+                const statusText = res.status === 'confirmed' ? 'Confirmed' : 'Pending';
+                slotsHtml += `
+                    <div class="res-slot-row">
+                        <span class="res-slot-time">${escapeHtml(res.timeSlot || 'N/A')}</span>
+                        <span class="res-slot-name">${escapeHtml(res.firstName)} ${escapeHtml(res.lastName)}</span>
+                        <span class="res-slot-contact" style="font-size:11px; color:#666;">${escapeHtml(res.phone || '')}</span>
+                        <span class="res-slot-status" style="margin-left:auto;">
+                            <span class="status-badge ${statusClass}">
+                                ${statusText}
+                            </span>
+                        </span>
+                    </div>
+                `;
+            });
+            
+            modalBody.innerHTML = `
+                <div class="res-detail-select">
+                    <span>Reservations for this day: ${reservations.length}</span>
+                </div>
+                ${slotsHtml}
+                <div style="text-align:right; margin-top:16px;">
+                    <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
+                </div>
+            `;
+        } else {
+            modalBody.innerHTML = `
+                <div style="text-align:center; padding:40px; color:#dc3545;">
+                    Failed to load reservations.
+                </div>
+                <div style="text-align:right; margin-top:16px;">
+                    <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading day reservations:', error);
+        modalBody.innerHTML = `
+            <div style="text-align:center; padding:40px; color:#dc3545;">
+                Error loading reservations.
+            </div>
+            <div style="text-align:right; margin-top:16px;">
+                <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
+            </div>
+        `;
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────
 // Users Management
 // ──────────────────────────────────────────────────────────────────
 
@@ -441,6 +822,7 @@ async function approveReservation(appId) {
         if (response.ok) {
             showToast('Reservation approved!', 'success');
             loadReservations();
+            loadAdminCalendar();
         } else {
             const error = await response.json();
             showToast(error.message || 'Approval failed', 'error');
@@ -469,6 +851,7 @@ async function rejectReservation(appId) {
         if (response.ok) {
             showToast('Reservation rejected', 'success');
             loadReservations();
+            loadAdminCalendar();
         } else {
             const error = await response.json();
             showToast(error.message || 'Rejection failed', 'error');
@@ -779,32 +1162,6 @@ async function deleteRecord(messageId) {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Calendar Functions
-// ──────────────────────────────────────────────────────────────────
-
-function buildAdminCal() {
-    const grid = document.getElementById('adminCal');
-    if (!grid) return;
-    grid.innerHTML = '';
-    const bookedDays = [8, 22];
-    const partialDays = [5, 10, 17];
-    ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].forEach(d => {
-        grid.innerHTML += `<div style="font-size:10px;color:#888;text-align:center;font-weight:bold;">${d}</div>`;
-    });
-    for (let d = 1; d <= 28; d++) {
-        let cls = bookedDays.includes(d) ? 'booked' : partialDays.includes(d) ? 'partial' : '';
-        grid.innerHTML += `<div class="res-day ${cls}" onclick="openResDetail(${d})">${d}</div>`;
-    }
-}
-
-function openResDetail(day) {
-    const modalDate = document.getElementById('resDetailDate');
-    if (modalDate) modalDate.textContent = `February ${day}, 2026`;
-    const modal = document.getElementById('resDetailModal');
-    if (modal) modal.classList.add('show');
-}
-
-// ──────────────────────────────────────────────────────────────────
 // Modal Functions
 // ──────────────────────────────────────────────────────────────────
 
@@ -832,41 +1189,8 @@ function removeRow(btn) {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Event Listeners & Initialization
+// Payment Verification Modal Functions
 // ──────────────────────────────────────────────────────────────────
-
-document.addEventListener('DOMContentLoaded', () => {
-    if (!checkSession()) return;
-    
-    buildAdminCal();
-    
-    loadDashboardStats();
-    loadUsers();
-    loadPayments();
-    loadMessages();
-    loadReservations();
-    loadCustomerServiceRecords();
-    loadPendingApplications();
-    
-    startAdminMessagePolling();
-    
-    document.querySelectorAll('.modal-overlay').forEach(o => {
-        o.addEventListener('click', e => {
-            if (e.target === o) o.classList.remove('show');
-        });
-    });
-    
-    const msgInput = document.getElementById('adminMsgInput');
-    if (msgInput) {
-        msgInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') { e.preventDefault(); adminSendMsg(); }
-        });
-    }
-    
-    window.addEventListener('beforeunload', () => {
-        stopAdminMessagePolling();
-    });
-});
 
 let currentValidateApplication = null;
 
@@ -1022,7 +1346,6 @@ async function confirmVerifyPayment() {
     const token = getAuthToken();
     const notes = document.getElementById('adminNotesTextarea')?.value || '';
     
-    // Show loading on buttons
     const verifyBtn = document.querySelector('.btn-verify');
     const originalText = verifyBtn.innerHTML;
     verifyBtn.innerHTML = '⏳ Processing...';
@@ -1048,11 +1371,11 @@ async function confirmVerifyPayment() {
         if (response.ok) {
             showToast(`✅ ${currentValidateApplication.type === 'membership' ? 'Membership' : 'Reservation'} verified and approved!`, 'success');
             closeValidateModal();
-            // Refresh the page data
             loadPendingApplications();
             loadDashboardStats();
-            if (typeof loadReservations === 'function') loadReservations();
-            if (typeof loadUsers === 'function') loadUsers();
+            loadReservations();
+            loadUsers();
+            loadAdminCalendar();
         } else {
             showToast(result.message || 'Verification failed', 'error');
         }
@@ -1102,6 +1425,7 @@ async function confirmRejectPayment() {
             showToast(`❌ Application rejected`, 'success');
             closeValidateModal();
             loadPendingApplications();
+            loadAdminCalendar();
         } else {
             showToast(result.message || 'Rejection failed', 'error');
         }
@@ -1114,7 +1438,6 @@ async function confirmRejectPayment() {
     }
 }
 
-// Add this to load pending applications for the admin dashboard
 async function loadPendingApplications() {
     const token = getAuthToken();
     if (!token) return;
@@ -1139,42 +1462,11 @@ async function loadPendingApplications() {
 }
 
 function updatePendingApplicationsTable(applications) {
-    // Find or create a table for pending applications
-    let tableContainer = document.getElementById('pendingAppsContainer');
-    
-    if (!tableContainer) {
-        // Create a new section in the dashboard or payments page
-        const dashboardPage = document.getElementById('page-dashboard');
-        if (dashboardPage) {
-            const newSection = document.createElement('div');
-            newSection.className = 'table-section';
-            newSection.id = 'pendingAppsContainer';
-            newSection.innerHTML = `
-                <h3>⏳ Pending Payment Verifications</h3>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th>Name</th>
-                            <th>Payment Method</th>
-                            <th>Reference #</th>
-                            <th>Amount</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pendingAppsTableBody"></tbody>
-                </table>
-            `;
-            dashboardPage.querySelector('.page-body').insertBefore(newSection, dashboardPage.querySelector('.dashboard-grid'));
-            tableContainer = newSection;
-        }
-    }
-    
     const tbody = document.getElementById('pendingAppsTableBody');
     if (!tbody) return;
     
     if (applications.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No pending applications</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No pending applications</td></tr>';
         return;
     }
     
@@ -1182,9 +1474,11 @@ function updatePendingApplicationsTable(applications) {
         <tr>
             <td><span class="badge-pending">${app.type === 'membership' ? '📋 Membership' : '📅 Reservation'}</span></td>
             <td>${escapeHtml(app.firstName)} ${escapeHtml(app.lastName)}</td>
+            <td>${escapeHtml(app.email)}</td>
             <td>${escapeHtml(app.paymentMethod)}</td>
             <td><strong>${escapeHtml(app.referenceNumber)}</strong></td>
             <td>₱${(app.amount || 0).toLocaleString()}</td>
+            <td>${new Date(app.createdAt).toLocaleDateString()}</td>
             <td>
                 <button class="btn-verify" onclick="openValidateModal('${app._id}')">
                     🔍 Validate Payment
@@ -1294,7 +1588,7 @@ async function updateTimeSlotField(typeId, slotIndex, field, value) {
             showToast('Time slot updated', 'success');
         } else {
             showToast('Update failed', 'error');
-            loadReservationTypes(); // Reload to revert
+            loadReservationTypes();
         }
     } catch (error) {
         console.error('Error updating time slot:', error);
@@ -1307,13 +1601,16 @@ async function toggleTimeSlotAvailability(typeId, slotIndex) {
     if (!token) return;
     
     try {
+        const slot = document.querySelector(`.time-slot-item[data-slot-index="${slotIndex}"] .status-toggle`);
+        const newStatus = slot ? !slot.classList.contains('active') : false;
+        
         const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}/time-slots/${slotIndex}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ isAvailable: false })
+            body: JSON.stringify({ isAvailable: newStatus })
         });
         
         if (response.ok) {
@@ -1535,6 +1832,46 @@ async function deleteReservationType(typeId) {
     }
 }
 
+// ──────────────────────────────────────────────────────────────────
+// Event Listeners & Initialization
+// ──────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (!checkSession()) return;
+    
+    // Initialize admin calendar (dynamic)
+    adminCurrentMonth = new Date();
+    loadAdminCalendar();
+    
+    // Load all data
+    loadDashboardStats();
+    loadUsers();
+    loadPayments();
+    loadMessages();
+    loadReservations();
+    loadCustomerServiceRecords();
+    loadPendingApplications();
+    
+    startAdminMessagePolling();
+    
+    document.querySelectorAll('.modal-overlay').forEach(o => {
+        o.addEventListener('click', e => {
+            if (e.target === o) o.classList.remove('show');
+        });
+    });
+    
+    const msgInput = document.getElementById('adminMsgInput');
+    if (msgInput) {
+        msgInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); adminSendMsg(); }
+        });
+    }
+    
+    window.addEventListener('beforeunload', () => {
+        stopAdminMessagePolling();
+    });
+});
+
 // Make functions global
 window.showPage = showPage;
 window.handleLogout = handleLogout;
@@ -1551,7 +1888,6 @@ window.adminSendMsg = adminSendMsg;
 window.selectContact = selectContact;
 window.filterTable = filterTable;
 window.removeRow = removeRow;
-window.openResDetail = openResDetail;
 window.loadPayments = loadPayments;
 window.loadUsers = loadUsers;
 window.loadDashboardStats = loadDashboardStats;
@@ -1561,3 +1897,23 @@ window.loadCustomerServiceRecords = loadCustomerServiceRecords;
 window.viewConversation = viewConversation;
 window.addNote = addNote;
 window.deleteRecord = deleteRecord;
+window.openValidateModal = openValidateModal;
+window.confirmVerifyPayment = confirmVerifyPayment;
+window.confirmRejectPayment = confirmRejectPayment;
+window.closeValidateModal = closeValidateModal;
+window.loadPendingApplications = loadPendingApplications;
+window.loadReservationTypes = loadReservationTypes;
+window.openAddReservationModal = openAddReservationModal;
+window.closeReservationModal = closeReservationModal;
+window.saveReservationType = saveReservationType;
+window.openEditTypeModal = openEditTypeModal;
+window.openAddTimeSlotModal = openAddTimeSlotModal;
+window.closeTimeSlotModal = closeTimeSlotModal;
+window.addTimeSlot = addTimeSlot;
+window.deleteReservationType = deleteReservationType;
+window.toggleReservationStatus = toggleReservationStatus;
+window.updateTimeSlotField = updateTimeSlotField;
+window.toggleTimeSlotAvailability = toggleTimeSlotAvailability;
+window.deleteTimeSlot = deleteTimeSlot;
+window.changeAdminMonth = changeAdminMonth;
+window.openAdminDayDetails = openAdminDayDetails;

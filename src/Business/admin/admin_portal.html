@@ -102,39 +102,44 @@
 </div>
 
     <!-- ─── RESERVATIONS ──────────────────────── -->
-    <div class="page" id="page-reservations">
-        <div class="topbar">
-            <h1>Reservations</h1>
-            <div style="display:flex;align-items:center;gap:20px;">
-                <button class="refresh-btn" onclick="loadReservations()">🔄 Refresh</button>
-                <div class="admin-info">
-                    <div class="admin-avatar">👤</div>
-                    <div class="admin-text">admin <span>Admin</span></div>
-                </div>
-            </div>
-        </div>
-        <div class="page-body">
-            <div class="res-calendar">
-                <div class="res-cal-header">February 2026</div>
-                <div class="res-cal-grid" id="adminCal"></div>
-                <div class="legend-row">
-                    <div class="leg"><div class="leg-box" style="background:var(--booked)"></div>Fullybooked</div>
-                    <div class="leg"><div class="leg-box" style="background:var(--gold)"></div>Partially booked</div>
-                    <div class="leg"><div class="leg-box" style="background:#d8cfd8"></div>Available</div>
-                </div>
-            </div>
-
-            <div class="table-section">
-                <h3>Reservation Applications</h3>
-                <table class="data-table">
-                    <thead><tr><th>Name</th><th>Date</th><th>Time</th><th>Actions</th></tr></thead>
-                    <tbody id="reservationAppTbody">
-                        <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
-                    </tbody>
-                </table>
+<div class="page" id="page-reservations">
+    <div class="topbar">
+        <h1>Reservations</h1>
+        <div style="display:flex;align-items:center;gap:20px;">
+            <button class="refresh-btn" onclick="loadReservations()">🔄 Refresh</button>
+            <div class="admin-info">
+                <div class="admin-avatar">👤</div>
+                <div class="admin-text">admin <span>Admin</span></div>
             </div>
         </div>
     </div>
+    <div class="page-body">
+        <!-- Same calendar style as user portal -->
+        <div class="res-calendar">
+            <div class="res-cal-header">
+                <button class="cal-nav-btn" onclick="changeAdminMonth(-1)">◀</button>
+                <span id="adminCalendarMonthYear">Loading...</span>
+                <button class="cal-nav-btn" onclick="changeAdminMonth(1)">▶</button>
+            </div>
+            <div class="res-cal-grid" id="adminCalGrid"></div>
+            <div class="legend-row">
+                <div class="leg"><div class="leg-box" style="background:#28a745"></div>Available</div>
+                <div class="leg"><div class="leg-box" style="background:var(--gold)"></div>Partial</div>
+                <div class="leg"><div class="leg-box" style="background:var(--booked)"></div>Full</div>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <h3>Reservation Applications</h3>
+            <table class="data-table">
+                <thead><tr><th>Name</th><th>Date</th><th>Time</th><th>Actions</th></tr></thead>
+                <tbody id="reservationAppTbody">
+                    <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
     <!-- ─── REGISTERED ACCOUNTS ───────────────── -->
     <div class="page" id="page-accounts">
@@ -317,9 +322,9 @@
 
 <!-- Admin Reservation Detail Modal -->
 <div class="modal-overlay" id="resDetailModal">
-    <div class="res-detail-modal">
+    <div class="res-detail-modal" style="width: 550px; max-width: 90%;">
         <div class="res-detail-header" id="resDetailDate">February 1, 2026</div>
-        <div class="res-detail-body">
+        <div class="res-detail-body" style="max-height: 70vh; overflow-y: auto; padding: 20px;">
             <div class="res-detail-select">
                 <span>Reservation Details</span>
                 <select>
