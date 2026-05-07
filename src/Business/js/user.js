@@ -834,10 +834,16 @@ window.addEventListener('scroll', () => {
 document.addEventListener('DOMContentLoaded', () => {
     if (!checkSession()) return;
     
+    // Display username in navbar
+    displayUserName();
+    
     renderCalendars();
     loadConversationHistory();
     startPollingForResponses();
     loadReservationTypes();
+    
+    // Start membership status polling
+    startMembershipStatusPolling();
     
     document.querySelectorAll('.modal-overlay').forEach(o => {
         o.addEventListener('click', e => {
@@ -854,6 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.addEventListener('beforeunload', () => {
         if (pollingInterval) clearInterval(pollingInterval);
+        stopMembershipStatusPolling();
     });
 });
 
@@ -1541,9 +1548,251 @@ function submitDynamicReservation() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+let membershipCheckInterval = null;
+let currentMembershipStatus = null;
 
+// Add this function to check membership status
+async function checkMembershipStatus() {
+    if (!checkSession()) return;
+    
+    const token = getAuthToken();
+    const userId = localStorage.getItem('userId');
+    
+    if (!userId) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/users/${userId}/membership-status`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        if (response.ok) {
+            const data = await response.json();
+            const newStatus = data.membershipStatus;
+            const previousStatus = currentMembershipStatus;
+            currentMembershipStatus = newStatus;
+            
+            // Update localStorage
+            localStorage.setItem('membershipStatus', newStatus);
+            
+            // Update the username display (will add/remove glow)
+            displayUserName();
+            
+            // Check if status changed to active (just got approved)
+            if (previousStatus !== 'active' && newStatus === 'active') {
+                showMembershipApprovedNotification();
+                hideMembershipTab();
+            }
+            
+            // If membership was revoked (active -> expired/none)
+            if (previousStatus === 'active' && newStatus !== 'active') {
+                showToast('Your membership has been revoked. Please contact admin.', 'error');
+                showMembershipTab();
+                displayUserName(); // Refresh to remove glow
+            }
+            
+            updateMembershipUI(newStatus);
+        }
+    } catch (error) {
+        console.error('Error checking membership status:', error);
+    }
+}
 
+// Show membership approved notification
+function showMembershipApprovedNotification() {
+    // Create custom modal popup
+    const modalHtml = `
+        <div class="modal-overlay show" id="membershipApprovedModal" style="display:flex;">
+            <div class="popup-card" style="max-width: 450px; background: linear-gradient(135deg, #0d2b0f 0%, #1a4a1a 100%);">
+                <div style="font-size: 64px; text-align: center;">🎉⛳</div>
+                <hr style="border-color: var(--gold); margin: 15px 0;">
+                <h3 style="color: var(--gold); font-size: 24px; text-align: center;">Membership Approved!</h3>
+                <p style="color: white; text-align: center; margin: 15px 0; font-size: 16px;">
+                    Congratulations! Your membership has been approved.<br>
+                    You now get <strong style="color: var(--gold);">20% discount</strong> on all reservations!
+                </p>
+                <div style="text-align: center;">
+                    <button class="popup-close" onclick="closeMembershipApprovedModal()" style="background: var(--gold); color: #0d2b0f; padding: 10px 30px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                        Continue to Portal
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('membershipApprovedModal');
+    if (existingModal) existingModal.remove();
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Play sound (optional - requires user interaction first)
+    // showToast('🎉 Congratulations! Your membership has been approved!', 'success');
+    
+    // Close after 5 seconds if not clicked
+    setTimeout(() => {
+        const modal = document.getElementById('membershipApprovedModal');
+        if (modal && modal.style.display === 'flex') {
+            modal.style.display = 'none';
+            modal.remove();
+        }
+    }, 8000);
+}
 
+function closeMembershipApprovedModal() {
+    const modal = document.getElementById('membershipApprovedModal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.remove();
+    }
+    showToast('Welcome to the ILISY Golf Club family! 🏌️', 'success');
+}
+
+// Hide the membership tab for active members
+function hideMembershipTab() {
+    const membershipTab = document.querySelector('.tab-btn[onclick*="membership"]');
+    if (membershipTab) {
+        membershipTab.style.display = 'none';
+    }
+    
+    // Also hide the membership tab content if it's active
+    const membershipContent = document.getElementById('tab-membership');
+    if (membershipContent && membershipContent.classList.contains('active')) {
+        // Switch to another tab (e.g., reservation)
+        const reservationTab = document.querySelector('.tab-btn[onclick*="reservation"]');
+        if (reservationTab) {
+            reservationTab.click();
+        }
+    }
+}
+
+// Show the membership tab (for non-members)
+function showMembershipTab() {
+    const membershipTab = document.querySelector('.tab-btn[onclick*="membership"]');
+    if (membershipTab) {
+        membershipTab.style.display = 'flex';
+    }
+}
+
+// Update UI based on membership status
+function updateMembershipUI(status) {
+    const membershipTab = document.querySelector('.tab-btn[onclick*="membership"]');
+    const membershipHero = document.querySelector('.membership-hero-bar');
+    
+    if (status === 'active') {
+        if (membershipTab) membershipTab.style.display = 'none';
+        
+        // Add member badge to header
+        addMemberBadge();
+        
+        // Show member welcome message in reservation tab
+        showMemberWelcomeMessage();
+    } else {
+        if (membershipTab) membershipTab.style.display = 'flex';
+    }
+}
+
+// Add member badge to portal header
+function addMemberBadge() {
+    const portalHeader = document.querySelector('.portal-header');
+    if (portalHeader && !document.querySelector('.member-badge-header')) {
+        const badgeHtml = `
+            <div class="member-badge-header" style="
+                display: inline-block;
+                background: linear-gradient(135deg, var(--gold), #f1d592);
+                color: var(--deep-green);
+                padding: 5px 15px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: bold;
+                margin-top: 10px;
+            ">
+                ⭐ ACTIVE MEMBER - 20% DISCOUNT ⭐
+            </div>
+        `;
+        portalHeader.insertAdjacentHTML('beforeend', badgeHtml);
+    }
+}
+
+// Show member welcome message in reservation tab
+function showMemberWelcomeMessage() {
+    const reservationCard = document.querySelector('#tab-reservation .reservation-card');
+    if (reservationCard && !document.querySelector('.member-welcome')) {
+        const welcomeHtml = `
+            <div class="member-welcome" style="
+                background: linear-gradient(135deg, var(--gold), #f1d592);
+                color: var(--deep-green);
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                text-align: center;
+            ">
+                <strong>🏌️ Welcome, Member!</strong> You get 20% off on all reservations!
+            </div>
+        `;
+        reservationCard.insertAdjacentHTML('afterbegin', welcomeHtml);
+    }
+}
+
+// Start polling for membership status changes
+function startMembershipStatusPolling() {
+    if (membershipCheckInterval) clearInterval(membershipCheckInterval);
+    
+    // Check immediately
+    checkMembershipStatus();
+    
+    // Then check every 30 seconds
+    membershipCheckInterval = setInterval(() => {
+        checkMembershipStatus();
+    }, 30000);
+}
+
+function stopMembershipStatusPolling() {
+    if (membershipCheckInterval) {
+        clearInterval(membershipCheckInterval);
+        membershipCheckInterval = null;
+    }
+}
+
+function displayUserName() {
+    const userNameSpan = document.getElementById('userNameDisplay');
+    if (!userNameSpan) return;
+    
+    const firstName = localStorage.getItem('firstName');
+    const lastName = localStorage.getItem('lastName');
+    const username = localStorage.getItem('userName');
+    const membershipStatus = localStorage.getItem('membershipStatus');
+    
+    // Use first name if available, otherwise username
+    let displayName = '';
+    if (firstName && lastName) {
+        displayName = `${firstName} ${lastName}`;
+    } else if (firstName) {
+        displayName = firstName;
+    } else {
+        displayName = username || 'Member';
+    }
+    
+    userNameSpan.textContent = displayName;
+    
+    // Add member class and glow if membership is active
+    if (membershipStatus === 'active') {
+        userNameSpan.classList.add('member');
+        
+        // Add a small badge next to the name
+        const badge = document.createElement('span');
+        badge.className = 'member-badge';
+        badge.textContent = '⭐ MEMBER';
+        userNameSpan.appendChild(badge);
+    } else {
+        userNameSpan.classList.remove('member');
+    }
+}
 
 
 window.submitDynamicReservation = submitDynamicReservation;

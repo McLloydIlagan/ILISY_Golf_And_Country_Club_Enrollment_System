@@ -643,7 +643,10 @@ async function loadUsers() {
                     <td>
                         <button class="btn-edit" onclick="editUser('${user._id}')">edit</button>
                         <button class="btn-remove" onclick="showRemoveModal('${user._id}')">remove</button>
-                    </td>
+                        ${user.membershipStatus === 'active' ? 
+                            `<button class="btn-revoke" onclick="revokeMembership('${user._id}')" style="background: #9c403d; color: white; padding: 4px 12px; border: none; border-radius: 3px; cursor: pointer; margin-left: 5px;">Revoke</button>` 
+                            : ''}
+                     </td>
                 `;
             });
         }
@@ -2303,7 +2306,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPendingApplications();
     
     startAdminMessagePolling();
-    
+    startMembershipStatusPolling();
     document.querySelectorAll('.modal-overlay').forEach(o => {
         o.addEventListener('click', e => {
             if (e.target === o) o.classList.remove('show');
@@ -2318,7 +2321,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     window.addEventListener('beforeunload', () => {
-        stopAdminMessagePolling();
+    if (pollingInterval) clearInterval(pollingInterval);
+    stopMembershipStatusPolling();
     });
 });
 
@@ -2463,6 +2467,45 @@ function populateTableTypeFilter() {
     // Restore previous selection if possible
     if (currentValue && filterSelect.querySelector(`option[value="${currentValue}"]`)) {
         filterSelect.value = currentValue;
+    }
+}
+
+async function revokeMembership(userId) {
+    const reason = prompt('Enter reason for revoking membership (optional):');
+    
+    const token = getAuthToken();
+    if (!token) return;
+    
+    // Show loading
+    showToast('Revoking membership...', 'info');
+    
+    try {
+        const response = await fetch(`${API_URL}/admin/users/${userId}/revoke-membership`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ reason: reason || 'No reason provided' })
+        });
+        
+        if (response.status === 401) {
+            handleLogout();
+            return;
+        }
+        
+        if (response.ok) {
+            const result = await response.json();
+            showToast(`Membership revoked successfully! Previous status: ${result.previousStatus}`, 'success');
+            loadUsers(); // Refresh the users table
+            loadDashboardStats(); // Update dashboard stats
+        } else {
+            const error = await response.json();
+            showToast(error.message || 'Revoke failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error revoking membership:', error);
+        showToast('Error revoking membership', 'error');
     }
 }
 

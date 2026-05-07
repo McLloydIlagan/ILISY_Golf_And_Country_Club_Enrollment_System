@@ -865,6 +865,8 @@
                 localStorage.setItem('userId', data.id);
                 localStorage.setItem('userName', data.username);
                 localStorage.setItem('userEmail', data.email);
+                localStorage.setItem('firstName', data.firstName || '');
+                localStorage.setItem('lastName', data.lastName || '');
                 localStorage.setItem('isAdmin', data.isAdmin);
                 localStorage.setItem('membershipStatus', data.membershipStatus);
                 localStorage.setItem('loginTime', Date.now());

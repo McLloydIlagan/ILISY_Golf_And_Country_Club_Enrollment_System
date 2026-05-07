@@ -15,7 +15,10 @@
     <div class="nav-links">
         <a onclick="scrollToSection('home')" class="active" id="nav-home">Home</a>
         <a onclick="scrollToSection('portal')" id="nav-portal">My Portal</a>
-        <a href="../index.html" class="logout-btn" onclick="handleLogout()">Logout</a>
+        <div class="user-info" id="userInfo">
+            <span class="user-name" id="userNameDisplay"></span>
+            <a href="../index.html" class="logout-btn" onclick="handleLogout()">Logout</a>
+        </div>
     </div>
 </nav>
 
