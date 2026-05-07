@@ -497,22 +497,34 @@ async function submitMembership(event) {
     const age = parseInt(document.getElementById('memAge').value) || 0;
     const address = document.getElementById('memAddress').value.trim();
     
-    // Get payment details from the modern checkout form
-    const activeMethod = document.querySelector('#membershipPayment .pm-tab.active');
-    let paymentMethod = 'Card';
+    // ========== NEW: Name Validation ==========
+    const nameRegex = /^[A-Za-z\s\-']+$/;
     
-    if (activeMethod) {
-        const methodText = activeMethod.innerText.trim();
-        if (methodText.includes('BDO')) paymentMethod = 'BDO';
-        else if (methodText.includes('Metrobank')) paymentMethod = 'Metrobank';
-        else if (methodText.includes('BPI')) paymentMethod = 'BPI';
-        else paymentMethod = 'Card';
+    if (!firstName) {
+        showToast('Please enter your first name.', 'error');
+        return;
+    }
+    if (!nameRegex.test(firstName)) {
+        showToast('First name contains invalid characters. Use letters, spaces, hyphens, or apostrophes only.', 'error');
+        return;
+    }
+    if (firstName.length < 1) {
+        showToast('First name must have at least 1 character.', 'error');
+        return;
     }
     
-    const accountNumber = document.getElementById('paymentAccount').value.trim();
-    const expiryInput = document.querySelector('#membershipPayment input[placeholder="MM/YY"]');
-    const expiry = expiryInput ? expiryInput.value.trim() : '';
-    const cvc = document.getElementById('cardCvc') ? document.getElementById('cardCvc').value.trim() : '';
+    if (!lastName) {
+        showToast('Please enter your last name.', 'error');
+        return;
+    }
+    if (!nameRegex.test(lastName)) {
+        showToast('Last name contains invalid characters. Use letters, spaces, hyphens, or apostrophes only.', 'error');
+        return;
+    }
+    if (lastName.length < 1) {
+        showToast('Last name must have at least 1 character.', 'error');
+        return;
+    }
     
     // Validate payment details
     if (!accountNumber) {
@@ -844,6 +856,52 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Start membership status polling
     startMembershipStatusPolling();
+    
+    // ========== NEW: Membership Form Name Validation ==========
+    const memFirstName = document.getElementById('memFirstName');
+    const memLastName = document.getElementById('memLastName');
+    
+    // Name validation function
+    function validateMemberName(input, errorSpanId, fieldName) {
+        const nameValue = input.value.trim();
+        const nameRegex = /^[A-Za-z\s\-']*$/; // letters, spaces, hyphens, apostrophes
+        const errorSpan = document.getElementById(errorSpanId);
+        
+        if (!errorSpan) return false;
+        
+        if (nameValue && !nameRegex.test(nameValue)) {
+            errorSpan.textContent = '✗ Only letters, spaces, hyphens, and apostrophes allowed';
+            errorSpan.style.color = '#ff9999';
+            input.style.border = '1px solid #ff9999';
+            return false;
+        } else if (nameValue && nameValue.length < 1) {
+            errorSpan.textContent = `✗ ${fieldName} must have at least 1 character`;
+            errorSpan.style.color = '#ff9999';
+            input.style.border = '1px solid #ff9999';
+            return false;
+        } else if (nameValue && nameValue.length > 0) {
+            errorSpan.textContent = '✓ Valid';
+            errorSpan.style.color = '#90EE90';
+            input.style.border = '1px solid #90EE90';
+            return true;
+        } else {
+            errorSpan.textContent = '';
+            input.style.border = '';
+            return false;
+        }
+    }
+    
+    if (memFirstName) {
+        memFirstName.addEventListener('input', () => {
+            validateMemberName(memFirstName, 'memFirstNameError', 'First name');
+        });
+    }
+    
+    if (memLastName) {
+        memLastName.addEventListener('input', () => {
+            validateMemberName(memLastName, 'memLastNameError', 'Last name');
+        });
+    }
     
     document.querySelectorAll('.modal-overlay').forEach(o => {
         o.addEventListener('click', e => {

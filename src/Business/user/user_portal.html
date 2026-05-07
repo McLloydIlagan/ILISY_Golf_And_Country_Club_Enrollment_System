@@ -100,10 +100,18 @@
                 
                 <div id="memError" style="background: #9c403d; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 13px;"></div>
                 
-                <div class="form-grid-2">
-                    <div class="form-group"><label>First Name</label><input type="text" id="memFirstName"></div>
-                    <div class="form-group"><label>Last Name</label><input type="text" id="memLastName"></div>
+               <div class="form-grid-2">
+                <div class="form-group">
+                    <label>First Name *</label>
+                    <input type="text" id="memFirstName">
+                    <span class="error-msg" id="memFirstNameError" style="font-size: 10px; display: block; margin-top: 3px;"></span>
                 </div>
+                <div class="form-group">
+                    <label>Last Name *</label>
+                    <input type="text" id="memLastName">
+                    <span class="error-msg" id="memLastNameError" style="font-size: 10px; display: block; margin-top: 3px;"></span>
+                </div>
+            </div>
                 
                 <div class="form-grid-3">
                     <div class="form-group"><label>Gender</label>
