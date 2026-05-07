@@ -1386,3 +1386,61 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
     color: white;
 }
 
+.reset-filter-btn {
+    background: var(--sage);
+    color: #333;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: "Georgia", serif;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.reset-filter-btn:hover {
+    background: var(--sage-dark);
+    transform: translateY(-1px);
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.pagination-btn {
+    background: var(--olive);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: "Georgia", serif;
+    font-size: 12px;
+    transition: all 0.2s;
+    min-width: 40px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: var(--deep-green);
+    transform: translateY(-1px);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-btn.active {
+    background: var(--gold);
+    color: var(--deep-green);
+    font-weight: bold;
+}
+
+.pagination-dots {
+    padding: 6px 8px;
+    color: #666;
+}

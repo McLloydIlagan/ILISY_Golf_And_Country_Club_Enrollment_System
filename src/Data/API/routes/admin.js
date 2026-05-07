@@ -495,7 +495,7 @@ router.post('/applications/:appId/reject', async (req, res) => {
 
 router.get('/reservations/calendar', async (req, res) => {
     try {
-        const { year, month } = req.query;
+        const { year, month, filter } = req.query;
         const targetDate = new Date();
         
         let startDate, endDate;
@@ -509,13 +509,37 @@ router.get('/reservations/calendar', async (req, res) => {
             endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
         }
         
-        const reservations = await Reservation.find({
+        // Build query
+        let query = {
             date: { $gte: startDate, $lte: endDate },
             status: { $in: ['confirmed', 'approved'] }
-        }).select('date timeSlot firstName lastName status');
+        };
         
-        res.json(reservations);
+        // Add type filter if specified
+        if (filter && filter !== 'all') {
+            if (filter === 'membership') {
+                // For membership, we need to check Application collection
+                // For now, return empty for membership in calendar
+                return res.json([]);
+            } else if (filter === 'reservation') {
+                query.reservationType = { $in: ['golf', 'tee time', null, undefined] };
+            } else {
+                query.reservationType = filter;
+            }
+        }
+        
+        const reservations = await Reservation.find(query)
+            .select('date timeSlot firstName lastName status reservationType type category');
+        
+        // Add type info to each reservation
+        const enrichedReservations = reservations.map(res => ({
+            ...res.toObject(),
+            displayType: res.reservationType || res.type || 'golf'
+        }));
+        
+        res.json(enrichedReservations);
     } catch (error) {
+        console.error('Calendar error:', error);
         res.status(500).json({ message: error.message });
     }
 });

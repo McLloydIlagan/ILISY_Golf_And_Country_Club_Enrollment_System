@@ -125,16 +125,23 @@ async function loadDashboardStats() {
 
 let adminCurrentMonth = new Date();
 let adminReservationsData = [];
+let adminCalendarData = [];
+let currentCalendarFilter = 'all';
 
 async function loadAdminCalendar() {
     const token = getAuthToken();
     if (!token) return;
     
+    // Get the selected filter
+    const filterSelect = document.getElementById('calendarTypeFilter');
+    currentCalendarFilter = filterSelect ? filterSelect.value : 'all';
+    
     try {
         const year = adminCurrentMonth.getFullYear();
         const month = adminCurrentMonth.getMonth() + 1;
         
-        const response = await fetch(`${API_URL}/admin/reservations/calendar?year=${year}&month=${month}`, {
+        // Pass the filter to the backend
+        const response = await fetch(`${API_URL}/admin/reservations/calendar?year=${year}&month=${month}&filter=${currentCalendarFilter}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -145,6 +152,7 @@ async function loadAdminCalendar() {
         
         if (response.ok) {
             adminCalendarData = await response.json();
+            console.log('Calendar data loaded:', adminCalendarData.length, 'filter:', currentCalendarFilter);
         }
     } catch (error) {
         console.error('Error loading calendar:', error);
@@ -190,13 +198,36 @@ function renderAdminCalendar() {
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const isToday = cellDate.toDateString() === today.toDateString();
         
-        // Count reservations for this date
-        const dayReservations = adminCalendarData.filter(res => {
-            const resDate = new Date(res.date);
-            return resDate.getFullYear() === year && 
-                   resDate.getMonth() === month && 
-                   resDate.getDate() === d;
-        });
+        // Filter reservations based on selected type
+        let dayReservations = [];
+        
+        if (currentCalendarFilter === 'all') {
+            // Show all reservations
+            dayReservations = adminCalendarData.filter(res => {
+                const resDate = new Date(res.date);
+                return resDate.getFullYear() === year && 
+                       resDate.getMonth() === month && 
+                       resDate.getDate() === d;
+            });
+        } else {
+            // Filter by specific type
+            dayReservations = adminCalendarData.filter(res => {
+                const resDate = new Date(res.date);
+                const matchesDate = resDate.getFullYear() === year && 
+                                    resDate.getMonth() === month && 
+                                    resDate.getDate() === d;
+                if (!matchesDate) return false;
+                
+                // Check reservation type
+                const reservationType = res.reservationType || res.type || res.category || '';
+                return reservationType.toLowerCase() === currentCalendarFilter.toLowerCase() ||
+                       (currentCalendarFilter === 'reservation' && (reservationType === 'golf' || reservationType === 'tee time')) ||
+                       (currentCalendarFilter === 'accommodation' && reservationType === 'accommodation') ||
+                       (currentCalendarFilter === 'amenities' && reservationType === 'amenities') ||
+                       (currentCalendarFilter === 'events' && reservationType === 'events') ||
+                       (currentCalendarFilter === 'premium' && reservationType === 'premium');
+            });
+        }
         
         const bookedCount = dayReservations.length;
         let statusClass = 'available';
@@ -211,12 +242,23 @@ function renderAdminCalendar() {
         
         const todayClass = isToday ? 'today' : '';
         
+        // Add tooltip with reservation info
+        let tooltipInfo = '';
+        if (bookedCount > 0) {
+            const types = [...new Set(dayReservations.map(r => r.reservationType || r.type || 'Reservation'))];
+            tooltipInfo = `data-info="${bookedCount} booking${bookedCount !== 1 ? 's' : ''} (${types.join(', ')})"`;
+        } else {
+            tooltipInfo = `data-info="No bookings"`;
+        }
+        
         grid.innerHTML += `
             <div class="res-day ${statusClass} ${todayClass}" 
                  data-date="${dateKey}"
                  data-booked="${bookedCount}"
+                 ${tooltipInfo}
                  onclick="openAdminDayDetails('${dateKey}')">
                 ${d}
+                ${bookedCount > 0 ? `<span style="font-size:8px; position:absolute; bottom:2px; right:2px;">${bookedCount}</span>` : ''}
             </div>
         `;
     }
@@ -247,6 +289,9 @@ async function openAdminDayDetails(dateKey) {
     const modalBody = document.querySelector('#resDetailModal .res-detail-body');
     if (!modalBody) return;
     
+    // Get current filter to pass to API
+    const currentFilter = document.getElementById('calendarTypeFilter')?.value || 'all';
+    
     // Show loading
     modalBody.innerHTML = `
         <div style="text-align:center; padding:20px;">
@@ -258,7 +303,7 @@ async function openAdminDayDetails(dateKey) {
     `;
     
     try {
-        const response = await fetch(`${API_URL}/admin/reservations/by-date/${dateKey}`, {
+        const response = await fetch(`${API_URL}/admin/reservations/by-date/${dateKey}?filter=${currentFilter}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -268,12 +313,21 @@ async function openAdminDayDetails(dateKey) {
         }
         
         if (response.ok) {
-            const reservations = await response.json();
+            let reservations = await response.json();
+            
+            // Apply client-side filter if needed
+            if (currentFilter !== 'all' && currentFilter !== 'membership') {
+                reservations = reservations.filter(res => {
+                    const resType = (res.reservationType || res.type || 'golf').toLowerCase();
+                    return resType === currentFilter.toLowerCase() ||
+                           (currentFilter === 'reservation' && (resType === 'golf' || resType === 'tee time'));
+                });
+            }
             
             if (reservations.length === 0) {
                 modalBody.innerHTML = `
                     <div style="text-align:center; padding:40px; color:#888;">
-                        No reservations for this day.
+                        No ${currentFilter !== 'all' ? currentFilter : ''} reservations for this day.
                     </div>
                     <div style="text-align:right; margin-top:16px;">
                         <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
@@ -282,35 +336,17 @@ async function openAdminDayDetails(dateKey) {
                 return;
             }
             
-            // Build detailed reservations list
+            // Build detailed reservations list (same as before)
             let slotsHtml = `
                 <div class="res-detail-header-info" style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">
-                    <strong>Total Reservations: ${reservations.length}</strong>
+                    <strong>Total ${currentFilter !== 'all' ? currentFilter + ' ' : ''}Reservations: ${reservations.length}</strong>
                 </div>
             `;
             
             reservations.forEach((res, index) => {
-                // Parse reservation details
                 const reservationType = res.reservationType || res.type || 'N/A';
-                const details = res.details || {};
-                const options = res.options || {};
-                
-                // Build options text
-                let optionsText = '';
-                if (options.holes) optionsText += `<span class="detail-badge">🏌️ ${options.holes}</span>`;
-                if (options.ballBucket) optionsText += `<span class="detail-badge">⚾ ${options.ballBucket}</span>`;
-                if (options.duration) optionsText += `<span class="detail-badge">⏱️ ${options.duration}</span>`;
-                if (options.roomType) optionsText += `<span class="detail-badge">🏨 ${options.roomType}</span>`;
-                if (options.diningType) optionsText += `<span class="detail-badge">🍽️ ${options.diningType}</span>`;
-                if (options.treatmentType) optionsText += `<span class="detail-badge">💆 ${options.treatmentType}</span>`;
-                if (options.lessonType) optionsText += `<span class="detail-badge">📚 ${options.lessonType}</span>`;
-                if (options.eventType) optionsText += `<span class="detail-badge">🎉 ${options.eventType}</span>`;
-                
-                // Build availability status
                 const statusClass = res.status === 'confirmed' ? 'status-confirmed' : 'status-pending';
                 const statusText = res.status === 'confirmed' ? '✓ Confirmed' : '⏳ Pending';
-                const paymentStatusClass = res.paymentStatus === 'completed' ? 'payment-completed' : 'payment-pending';
-                const paymentStatusText = res.paymentStatus === 'completed' ? 'Paid' : 'Unpaid';
                 
                 slotsHtml += `
                     <div class="reservation-detail-card" style="background: ${index % 2 === 0 ? '#f9f9f9' : 'white'}; border: 1px solid #eee; border-radius: 8px; margin-bottom: 12px; padding: 15px;">
@@ -319,55 +355,17 @@ async function openAdminDayDetails(dateKey) {
                                 🕐 ${escapeHtml(res.timeSlot || 'N/A')}
                             </div>
                             <div>
-                                <span class="status-badge ${statusClass}" style="margin-right: 8px;">${statusText}</span>
-                                <span class="status-badge ${paymentStatusClass}">💰 ${paymentStatusText}</span>
+                                <span class="status-badge ${statusClass}">${statusText}</span>
                             </div>
                         </div>
-                        
                         <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;">
-                            <div>
-                                <strong>👤 Guest:</strong> ${escapeHtml(res.firstName || '')} ${escapeHtml(res.lastName || '')}
-                            </div>
-                            <div>
-                                <strong>📞 Phone:</strong> ${escapeHtml(res.phone || 'N/A')}
-                            </div>
-                            <div>
-                                <strong>📧 Email:</strong> ${escapeHtml(res.email || 'N/A')}
-                            </div>
+                            <div><strong>👤 Guest:</strong> ${escapeHtml(res.firstName || '')} ${escapeHtml(res.lastName || '')}</div>
+                            <div><strong>📞 Phone:</strong> ${escapeHtml(res.phone || 'N/A')}</div>
+                            <div><strong>📧 Email:</strong> ${escapeHtml(res.email || 'N/A')}</div>
                         </div>
-                        
-                        <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;">
-                            <div>
-                                <strong>🏷️ Reservation Type:</strong> 
-                                <span class="detail-badge" style="background: var(--sage); padding: 2px 8px; border-radius: 4px;">
-                                    ${escapeHtml(reservationType)}
-                                </span>
-                            </div>
-                            <div>
-                                <strong>💰 Amount:</strong> 
-                                <strong style="color: var(--olive);">₱${(res.amount || 0).toLocaleString()}</strong>
-                            </div>
-                            ${res.isMember ? '<div><strong>⭐ Member Discount:</strong> <span style="color: #28a745;">20% OFF Applied</span></div>' : ''}
-                        </div>
-                        
-                        ${optionsText ? `
-                        <div style="margin-bottom: 8px;">
-                            <strong>📋 Options Selected:</strong>
-                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px;">
-                                ${optionsText}
-                            </div>
-                        </div>
-                        ` : ''}
-                        
-                        ${res.specialRequests ? `
-                        <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 6px;">
-                            <strong>📝 Special Requests:</strong> ${escapeHtml(res.specialRequests)}
-                        </div>
-                        ` : ''}
-                        
-                        <div style="margin-top: 10px; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 8px;">
-                            <span>🆔 Booking ID: ${escapeHtml(res._id || res.bookingId || 'N/A')}</span>
-                            ${res.createdAt ? `<span style="margin-left: 15px;">📅 Booked: ${new Date(res.createdAt).toLocaleString()}</span>` : ''}
+                        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                            <div><strong>🏷️ Type:</strong> <span class="detail-badge">${escapeHtml(reservationType)}</span></div>
+                            <div><strong>💰 Amount:</strong> <strong>₱${(res.amount || 0).toLocaleString()}</strong></div>
                         </div>
                     </div>
                 `;
@@ -761,10 +759,7 @@ async function processRefund() {
 // Reservations Management
 // ──────────────────────────────────────────────────────────────────
 
-let allReservations = [];
-let filteredReservations = [];
-let currentReservationPage = 1;
-const reservationsPerPage = 10;
+
 
 async function loadReservations() {
     const token = getAuthToken();
@@ -802,14 +797,23 @@ async function loadReservations() {
     }
 }
 
+// Add these variables at the top with other variables
+let allReservations = [];
+let filteredReservations = [];
+let currentReservationPage = 1;
+const reservationsPerPage = 10;
+
+// Update the filterReservationsTable function
 function filterReservationsTable() {
     const searchInput = document.getElementById('reservationSearchInput');
     const statusFilter = document.getElementById('reservationStatusFilter');
+    const typeFilter = document.getElementById('reservationTypeFilter');
     
     const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
     const statusFilterValue = statusFilter ? statusFilter.value : 'all';
+    const typeFilterValue = typeFilter ? typeFilter.value : 'all';
     
-    console.log('Filtering reservations. Total:', allReservations.length); // Debug log
+    console.log('Filtering reservations. Total:', allReservations.length);
     
     filteredReservations = allReservations.filter(app => {
         // Search filter (name, email, phone)
@@ -826,13 +830,49 @@ function filterReservationsTable() {
             matchesStatus = app.status === statusFilterValue;
         }
         
-        return matchesSearch && matchesStatus;
+        // Type filter
+        let matchesType = true;
+        if (typeFilterValue !== 'all') {
+            matchesType = app.type === typeFilterValue;
+        }
+        
+        return matchesSearch && matchesStatus && matchesType;
     });
     
-    console.log('Filtered reservations:', filteredReservations.length); // Debug log
+    console.log('Filtered reservations:', filteredReservations.length);
     
     currentReservationPage = 1;
     renderReservationsTable();
+    updateResultsCount();
+}
+
+// Add reset filters function
+function resetReservationFilters() {
+    const searchInput = document.getElementById('reservationSearchInput');
+    const statusFilter = document.getElementById('reservationStatusFilter');
+    const typeFilter = document.getElementById('reservationTypeFilter');
+    
+    if (searchInput) searchInput.value = '';
+    if (statusFilter) statusFilter.value = 'all';
+    if (typeFilter) typeFilter.value = 'all';
+    
+    filterReservationsTable();
+}
+
+// Add function to update results count
+function updateResultsCount() {
+    const countDiv = document.getElementById('resultsCount');
+    if (countDiv) {
+        const total = filteredReservations.length;
+        const start = (currentReservationPage - 1) * reservationsPerPage + 1;
+        const end = Math.min(currentReservationPage * reservationsPerPage, total);
+        
+        if (total > 0) {
+            countDiv.innerHTML = `Showing ${start} - ${end} of ${total} reservation${total !== 1 ? 's' : ''}`;
+        } else {
+            countDiv.innerHTML = 'No reservations found';
+        }
+    }
 }
 
 function renderReservationsTable() {
@@ -846,12 +886,13 @@ function renderReservationsTable() {
     const endIndex = startIndex + reservationsPerPage;
     const pageReservations = filteredReservations.slice(startIndex, endIndex);
     
-    console.log('Rendering reservations:', pageReservations.length); // Debug log
+    console.log('Rendering reservations:', pageReservations.length);
     
     if (pageReservations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No reservation applications found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px;">📋 No reservation applications found</td></tr>';
         const paginationDiv = document.getElementById('reservationPagination');
         if (paginationDiv) paginationDiv.innerHTML = '';
+        updateResultsCount();
         return;
     }
     
@@ -869,6 +910,9 @@ function renderReservationsTable() {
         } else if (app.status === 'rejected') {
             statusClass = 'status-rejected';
             statusText = '✗ Rejected';
+        } else if (app.status === 'cancelled') {
+            statusClass = 'status-rejected';
+            statusText = '❌ Cancelled';
         } else if (app.status === 'processing') {
             statusClass = 'status-pending';
             statusText = '⏳ Processing';
@@ -891,11 +935,12 @@ function renderReservationsTable() {
                 <td><strong>₱${(app.amount || 0).toLocaleString()}</strong></td>
                 <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                 <td>
-                    ${app.status === 'pending' ? `
-                        <button class="action-btn btn-approve" onclick="approveReservation('${app._id}')">Approve</button>
+                    ${app.status === 'pending' || app.status === 'processing' ? `
+                        <button class="action-btn btn-approve" onclick="approveReservation('${app._id}')" style="margin-right: 5px;">Approve</button>
                         <button class="btn-remove" onclick="rejectReservation('${app._id}')">Reject</button>
+                        <br>
                     ` : ''}
-                    <button class="btn-view-details" onclick="viewReservationDetails('${app._id}')" style="background: var(--sage-dark); color:#333; padding:4px 12px; border:none; border-radius:3px; font-size:12px; cursor:pointer;">Details</button>
+                    <button class="btn-view-details" onclick="viewReservationDetails('${app._id}')" style="background: var(--sage-dark); color:#333; padding:4px 12px; border:none; border-radius:3px; font-size:12px; cursor:pointer; margin-top: 5px;">📋 Details</button>
                 </td>
             </tr>
         `;
@@ -903,6 +948,7 @@ function renderReservationsTable() {
     
     // Render pagination
     renderReservationPagination();
+    updateResultsCount();
 }
 
 function renderReservationPagination() {
@@ -934,6 +980,14 @@ function renderReservationPagination() {
     paginationHtml += `<button class="pagination-btn" onclick="changeReservationPage(${currentReservationPage + 1})" ${currentReservationPage === totalPages ? 'disabled' : ''}>Next ▶</button>`;
     
     paginationDiv.innerHTML = paginationHtml;
+}
+
+// Add change page function
+function changeReservationPage(page) {
+    const totalPages = Math.ceil(filteredReservations.length / reservationsPerPage);
+    if (page < 1 || page > totalPages) return;
+    currentReservationPage = page;
+    renderReservationsTable();
 }
 
 function changeReservationPage(page) {
@@ -970,13 +1024,19 @@ async function viewReservationDetails(appId) {
         if (response.ok) {
             const app = await response.json();
             
+            // Determine if this is from Reservation collection or Application collection
+            const isFromReservation = app.source === 'reservation' || !app.paymentMethod;
+            
+            // Create a unique ID for this modal to avoid conflicts
+            const modalId = `reservationDetailModal_${Date.now()}`;
+            
             // Create a modal to show details
             const modalHtml = `
-                <div class="modal-overlay show" id="reservationDetailModal" style="display:flex;">
-                    <div class="validate-modal" style="max-width: 500px;">
+                <div class="modal-overlay show" id="${modalId}" style="display:flex;">
+                    <div class="validate-modal" style="max-width: 550px;">
                         <div class="validate-modal-header">
-                            <h3>📋 Reservation Details</h3>
-                            <button class="close-modal-btn" onclick="closeModal('reservationDetailModal')">&times;</button>
+                            <h3>📋 ${app.type === 'membership' ? 'Membership' : 'Reservation'} Details</h3>
+                            <button class="close-modal-btn" data-modal-id="${modalId}">&times;</button>
                         </div>
                         <div class="validate-modal-body">
                             <div class="app-detail-section">
@@ -986,39 +1046,57 @@ async function viewReservationDetails(appId) {
                                 <div class="detail-row"><span class="detail-label">Phone:</span><span class="detail-value">${escapeHtml(app.phone)}</span></div>
                             </div>
                             <div class="app-detail-section">
-                                <h4>📅 Reservation Details</h4>
-                                <div class="detail-row"><span class="detail-label">Date:</span><span class="detail-value">${app.details?.date ? new Date(app.details.date).toLocaleDateString() : 'N/A'}</span></div>
-                                <div class="detail-row"><span class="detail-label">Time Slot:</span><span class="detail-value">${escapeHtml(app.details?.timeSlot || 'N/A')}</span></div>
-                                <div class="detail-row"><span class="detail-label">Type:</span><span class="detail-value">${app.type === 'membership' ? 'Membership' : 'Reservation'}</span></div>
+                                <h4>📅 ${app.type === 'membership' ? 'Membership' : 'Reservation'} Details</h4>
+                                ${app.details?.date ? `
+                                <div class="detail-row"><span class="detail-label">Date:</span><span class="detail-value">${new Date(app.details.date).toLocaleDateString()}</span></div>
+                                ` : ''}
+                                ${app.details?.timeSlot ? `
+                                <div class="detail-row"><span class="detail-label">Time Slot:</span><span class="detail-value">${escapeHtml(app.details.timeSlot)}</span></div>
+                                ` : ''}
+                                <div class="detail-row"><span class="detail-label">Type:</span><span class="detail-value">${app.type === 'membership' ? '🏌️ Membership' : '📅 Reservation'}</span></div>
                                 <div class="detail-row"><span class="detail-label">Amount:</span><span class="detail-value"><strong>₱${(app.amount || 0).toLocaleString()}</strong></span></div>
-                                <div class="detail-row"><span class="detail-label">Status:</span><span class="detail-value"><span class="status-badge ${app.status === 'pending' ? 'status-pending' : 'status-confirmed'}">${app.status}</span></span></div>
+                                <div class="detail-row"><span class="detail-label">Status:</span><span class="detail-value"><span class="status-badge ${app.status === 'pending' ? 'status-pending' : app.status === 'rejected' ? 'status-rejected' : 'status-confirmed'}">${app.status || 'N/A'}</span></span></div>
                             </div>
+                            ${!isFromReservation ? `
                             <div class="app-detail-section">
                                 <h4>💰 Payment Information</h4>
                                 <div class="detail-row"><span class="detail-label">Method:</span><span class="detail-value">${escapeHtml(app.paymentMethod || 'N/A')}</span></div>
                                 <div class="detail-row"><span class="detail-label">Account #:</span><span class="detail-value">${escapeHtml(app.accountNumber || 'N/A')}</span></div>
                                 <div class="detail-row"><span class="detail-label">Reference #:</span><span class="detail-value highlight">${escapeHtml(app.referenceNumber || 'N/A')}</span></div>
                             </div>
+                            ` : ''}
                             <div class="modal-action-buttons" style="margin-top: 20px;">
-                                <button class="btn-verify" onclick="approveReservation('${app._id}'); closeModal('reservationDetailModal');">✓ Approve</button>
-                                <button class="btn-reject-modal" onclick="rejectReservation('${app._id}'); closeModal('reservationDetailModal');">✗ Reject</button>
+                                ${app.status === 'pending' || app.status === 'rejected' ? `
+                                    <button class="btn-verify" onclick="approveReservation('${app._id}'); closeModalById('${modalId}');">✓ Approve</button>
+                                    <button class="btn-reject-modal" onclick="rejectReservation('${app._id}'); closeModalById('${modalId}');">✗ Reject</button>
+                                ` : `
+                                    <button class="btn-cancel-modal" onclick="closeModalById('${modalId}')" style="width: 100%;">Close</button>
+                                `}
                             </div>
                         </div>
                     </div>
                 </div>
             `;
             
-            // Remove existing modal if any
-            const existingModal = document.getElementById('reservationDetailModal');
+            // Remove existing modal with same ID if any
+            const existingModal = document.getElementById(modalId);
             if (existingModal) existingModal.remove();
             
             // Add modal to body
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             
+            // Add event listener to the close button
+            const closeBtn = document.querySelector(`[data-modal-id="${modalId}"]`);
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    closeModalById(modalId);
+                });
+            }
+            
             // Add click outside to close
-            const modal = document.getElementById('reservationDetailModal');
+            const modal = document.getElementById(modalId);
             modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeModal('reservationDetailModal');
+                if (e.target === modal) closeModalById(modalId);
             });
         }
     } catch (error) {
@@ -1026,6 +1104,22 @@ async function viewReservationDetails(appId) {
         showToast('Error loading details', 'error');
     }
 }
+
+// Add this helper function to close modals by ID
+function closeModalById(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+        // Remove the modal from DOM after animation
+        setTimeout(() => {
+            if (modal && modal.parentNode) {
+                modal.remove();
+            }
+        }, 300);
+    }
+}
+
 
 async function approveReservation(appId) {
     const token = getAuthToken();

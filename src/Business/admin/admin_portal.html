@@ -106,17 +106,6 @@
     <div class="topbar">
         <h1>Reservations</h1>
         <div style="display:flex;align-items:center;gap:20px;">
-            <div class="search-bar">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="reservationSearchInput" placeholder="Search by name, email, phone..." oninput="filterReservationsTable()">
-            </div>
-            <select id="reservationStatusFilter" onchange="filterReservationsTable()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd;">
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="rejected">Rejected</option>
-            </select>
             <button class="refresh-btn" onclick="loadReservations()">🔄 Refresh</button>
             <div class="admin-info">
                 <div class="admin-avatar">👤</div>
@@ -125,13 +114,33 @@
         </div>
     </div>
     <div class="page-body">
-        <!-- Same calendar style as user portal -->
+        <!-- Calendar Section with Filter -->
         <div class="res-calendar">
             <div class="res-cal-header">
                 <button class="cal-nav-btn" onclick="changeAdminMonth(-1)">◀</button>
                 <span id="adminCalendarMonthYear">Loading...</span>
                 <button class="cal-nav-btn" onclick="changeAdminMonth(1)">▶</button>
             </div>
+            
+            <!-- Calendar Type Filter -->
+            <div style="padding: 10px 20px; background: var(--sage); border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label style="font-size: 12px; font-weight: bold; color: #333;">📅 Show:</label>
+                    <select id="calendarTypeFilter" onchange="loadAdminCalendar()" style="padding: 6px 12px; border-radius: 5px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif; font-size: 12px;">
+                        <option value="all">📌 All Reservations</option>
+                        <option value="membership">🏌️ Membership</option>
+                        <option value="reservation">📅 Tee Time / Golf</option>
+                        <option value="accommodation">🏨 Accommodation</option>
+                        <option value="amenities">🍽️ Amenities</option>
+                        <option value="events">🎉 Events</option>
+                        <option value="premium">✨ Premium</option>
+                    </select>
+                </div>
+                <div style="font-size: 11px; color: #555;">
+                    <span>🟢 Available &nbsp;|&nbsp; 🟡 Partial &nbsp;|&nbsp; 🔴 Full</span>
+                </div>
+            </div>
+            
             <div class="res-cal-grid" id="adminCalGrid"></div>
             <div class="legend-row">
                 <div class="leg"><div class="leg-box" style="background:#28a745"></div>Available</div>
@@ -141,24 +150,63 @@
         </div>
 
         <div class="table-section">
-            <h3>Reservation Applications</h3>
-            <table class="data-table">
-                <thead>
-                    <tr>    
-                        <th>Name</th>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Type</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="reservationAppTbody">
-                    <tr><td colspan="7" style="text-align:center;">Loading...</td></tr>
-                </tbody>
-            </table>
-            <div id="reservationPagination" class="pagination-container" style="margin-top: 15px; display: flex; justify-content: center; gap: 8px;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <h3 style="margin: 0;">Reservation Applications</h3>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <!-- Search Input -->
+                    <div class="search-bar" style="background: white; border: 1px solid #ddd;">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="reservationSearchInput" placeholder="Search by name, email, phone..." oninput="filterReservationsTable()" style="width: 220px;">
+                    </div>
+                    
+                    <!-- Filter Dropdown -->
+                    <select id="reservationStatusFilter" onchange="filterReservationsTable()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif;">
+                        <option value="all">📋 All Status</option>
+                        <option value="pending">⏳ Pending</option>
+                        <option value="approved">✓ Approved</option>
+                        <option value="confirmed">✓ Confirmed</option>
+                        <option value="rejected">✗ Rejected</option>
+                        <option value="cancelled">❌ Cancelled</option>
+                    </select>
+                    
+                    <!-- Type Filter -->
+                    <select id="reservationTypeFilter" onchange="filterReservationsTable()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif;">
+                        <option value="all">📌 All Types</option>
+                        <option value="reservation">📅 Reservation</option>
+                        <option value="membership">🏌️ Membership</option>
+                    </select>
+                    
+                    <!-- Reset Button -->
+                    <button class="reset-filter-btn" onclick="resetReservationFilters()" style="background: var(--sage); color: #333; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-family: 'Georgia', serif;">
+                        🔄 Reset Filters
+                    </button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reservationAppTbody">
+                        <tr><td colspan="7" style="text-align:center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div id="reservationPagination" class="pagination-container" style="margin-top: 20px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;"></div>
+            
+            <!-- Results Count -->
+            <div id="resultsCount" style="text-align: center; margin-top: 15px; font-size: 12px; color: #666;"></div>
         </div>
     </div>
 </div>
