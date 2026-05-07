@@ -121,7 +121,7 @@ function saveCurrentPage(pageId) {
 
 function loadLastVisitedPage() {
     const lastPage = localStorage.getItem('adminCurrentPage');
-    const validPages = ['dashboard', 'reservations', 'accounts', 'payments', 'messages', 'customerservice', 'manage_reservations'];
+    const validPages = ['dashboard', 'reservations', 'accounts', 'payments', 'messages', 'manage_reservations'];
     
     if (lastPage && validPages.includes(lastPage) && document.getElementById(`page-${lastPage}`)) {
         console.log('Restoring page:', lastPage);
@@ -252,7 +252,7 @@ function showPage(id) {
     const page = document.getElementById('page-' + id);
     if (page) page.classList.add('active');
     
-    const map = { dashboard: 0, reservations: 1, accounts: 2, payments: 3, messages: 4, customerservice: 5, manage_reservations: 6 };
+    const map = { dashboard: 0, reservations: 1, accounts: 2, payments: 3, messages: 4, manage_reservations: 5 };
     const items = document.querySelectorAll('.nav-item');
     if (map[id] !== undefined && items[map[id]]) {
         items[map[id]].classList.add('active');
@@ -269,7 +269,6 @@ function showPage(id) {
         startAdminMessagePolling();
     }
     else if (id === 'reservations') loadReservations();
-    else if (id === 'customerservice') loadCustomerServiceRecords();
     else if (id === 'manage_reservations') loadReservationTypes();
     
     restoreScrollPosition(id);

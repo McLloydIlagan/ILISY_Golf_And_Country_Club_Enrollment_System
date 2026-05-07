@@ -21,14 +21,12 @@
     <div class="nav-item" onclick="showPage('reservations')">Reservations</div>
     <div class="nav-item" onclick="showPage('accounts')">Registered Accounts</div>
     <div class="nav-item" onclick="showPage('payments')">Payments</div>
-    <div class="nav-item" onclick="showPage('messages')">Messages</div>
+    <div class="nav-item" onclick="showPage('messages')">Customer Service</div>
     <div class="nav-item" onclick="showPage('manage_reservations')">Manage Reservations</div>
 
     <div class="sidebar-spacer"></div>
-    <div class="sidebar-divider"></div>
-    <div class="nav-item customer-svc" onclick="showPage('customerservice')">Customer Service</div>
-    <div class="sidebar-divider"></div>
-    <div class="nav-item logout" onclick="handleLogout()">Log out</div>
+<div class="sidebar-divider"></div>
+<div class="nav-item logout" onclick="handleLogout()">Log out</div>
 </aside>
 
 
@@ -88,16 +86,7 @@
                     <div class="bar-group"><div class="bar red" style="height:50px"></div><div class="bar green" style="height:45px"></div></div>
                 </div>
             </div>
-            <div class="side-cards">
-                <div class="mini-card">
-                    <h4>Reservation Application</h4>
-                    <button class="see-more-btn" onclick="showPage('reservations')">See more</button>
-                </div>
-                <div class="mini-card">
-                    <h4>Refund Application</h4>
-                    <button class="see-more-btn" onclick="showPage('payments')">See more</button>
-                </div>
-            </div>
+            
         </div>
     </div>
 </div>
@@ -291,28 +280,7 @@
         </div>
     </div>
 
-    <!-- ─── CUSTOMER SERVICE ───────────────────── -->
-    <div class="page" id="page-customerservice">
-        <div class="topbar">
-            <h1>Customer Service Records</h1>
-            <div style="display:flex;align-items:center;gap:20px;">
-                <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search" oninput="filterTable('csTbody', this.value)"></div>
-                <button class="refresh-btn" onclick="loadCustomerServiceRecords()">🔄 Refresh</button>
-                <div class="admin-info">
-                    <div class="admin-avatar">👤</div>
-                    <div class="admin-text">admin <span>Admin</span></div>
-                </div>
-            </div>
-        </div>
-        <div class="page-body">
-            <table class="data-table">
-                <thead><tr><th>First Name</th><th>Last Name</th><th>Concerns</th><th>Conversation</th><th>Resolution</th><th>Actions</th></tr></thead>
-                <tbody id="csTbody">
-                    <tr><td colspan="6" style="text-align:center;">Loading...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+
     <!-- ─── MANAGE RESERVATIONS ───────────────────── -->
     <div class="page" id="page-manage_reservations">
         <div class="topbar">
