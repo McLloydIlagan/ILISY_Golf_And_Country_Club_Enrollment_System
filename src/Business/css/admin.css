@@ -1333,3 +1333,56 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
     border-radius: 6px;
     margin-bottom: 15px;
 }
+
+.pagination-btn {
+    background: var(--olive);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: "Georgia", serif;
+    font-size: 12px;
+    transition: all 0.2s;
+    min-width: 40px;
+}
+.pagination-btn:hover:not(:disabled) {
+    background: var(--deep-green);
+    transform: translateY(-1px);
+}
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.pagination-btn.active {
+    background: var(--gold);
+    color: var(--deep-green);
+    font-weight: bold;
+}
+.pagination-dots {
+    padding: 6px 8px;
+    color: #666;
+}
+
+/* View Details Button */
+.btn-view-details {
+    background: var(--sage-dark);
+    color: #333;
+    padding: 4px 12px;
+    border: none;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: "Georgia", serif;
+    transition: background 0.2s;
+}
+.btn-view-details:hover {
+    background: var(--sage);
+}
+
+/* Status Badge for Rejected */
+.status-rejected {
+    background: #dc3545;
+    color: white;
+}
+
