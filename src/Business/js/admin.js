@@ -167,10 +167,8 @@ function scrollToBottom() {
     }
 }
 
-
 // View full image in modal (for admin)
 function viewFullImage(imageUrl) {
-    // Create modal element
     const modal = document.createElement('div');
     modal.className = 'image-viewer-modal';
     modal.style.cssText = `
@@ -208,14 +206,12 @@ function viewFullImage(imageUrl) {
         ">
     `;
     
-    // Close when clicking on the background
     modal.addEventListener('click', function(e) {
         if (e.target === modal) {
             modal.remove();
         }
     });
     
-    // Close with escape key
     const closeHandler = function(e) {
         if (e.key === 'Escape') {
             modal.remove();
@@ -224,7 +220,6 @@ function viewFullImage(imageUrl) {
     };
     document.addEventListener('keydown', closeHandler);
     
-    // Close button
     const closeBtn = modal.querySelector('.image-viewer-close');
     closeBtn.addEventListener('click', function() {
         modal.remove();
@@ -258,10 +253,13 @@ function showPage(id) {
         items[map[id]].classList.add('active');
     }
     
-    // Stop polling unless we're switching to messages
     if (id !== 'messages') stopAdminMessagePolling();
 
-    if (id === 'dashboard') loadDashboardStats();
+    if (id === 'dashboard') {
+        loadDashboardStats();
+        loadFinancialReport();
+        loadMonthlySummary();
+    }
     else if (id === 'accounts') loadUsers();
     else if (id === 'payments') loadPayments();
     else if (id === 'messages') {
@@ -300,6 +298,169 @@ async function loadDashboardStats() {
         }
     } catch (error) {
         console.error('Error loading dashboard:', error);
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Dynamic Financial Report
+// ──────────────────────────────────────────────────────────────────
+
+async function loadFinancialReport() {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await apiFetch(`${API_URL}/admin/payments`);
+        
+        if (response.ok) {
+            const payments = await response.json();
+            
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            const months = [];
+            const membershipData = [];
+            const reservationData = [];
+            
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date(currentYear, currentMonth - i, 1);
+                const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+                months.push(monthName);
+                
+                let membershipTotal = 0;
+                let reservationTotal = 0;
+                
+                payments.forEach(payment => {
+                    const paymentDate = new Date(payment.createdAt);
+                    if (payment.paymentStatus === 'completed' &&
+                        paymentDate.getMonth() === date.getMonth() && 
+                        paymentDate.getFullYear() === date.getFullYear()) {
+                        if (payment.transactionType === 'membership') {
+                            membershipTotal += payment.amount;
+                        } else if (payment.transactionType === 'reservation') {
+                            reservationTotal += payment.amount;
+                        }
+                    }
+                });
+                
+                membershipData.push(membershipTotal);
+                reservationData.push(reservationTotal);
+            }
+            
+            renderFinancialChart(months, membershipData, reservationData);
+            
+            const totalIncome = payments
+                .filter(p => p.paymentStatus === 'completed')
+                .reduce((sum, p) => sum + p.amount, 0);
+            
+            const incomeElement = document.querySelector('.stat-card.highlighted .stat-num');
+            if (incomeElement) {
+                incomeElement.textContent = `₱${totalIncome.toLocaleString()}`;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading financial report:', error);
+        const chartContainer = document.getElementById('financialChart');
+        if (chartContainer) {
+            chartContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;">❌ Failed to load financial data</div>';
+        }
+    }
+}
+
+function renderFinancialChart(months, membershipData, reservationData) {
+    const chartContainer = document.getElementById('financialChart');
+    if (!chartContainer) return;
+    
+    const maxValue = Math.max(...membershipData, ...reservationData, 1000);
+    const maxHeight = 150;
+    
+    let barsHtml = '';
+    
+    for (let i = 0; i < months.length; i++) {
+        const membershipHeight = (membershipData[i] / maxValue) * maxHeight;
+        const reservationHeight = (reservationData[i] / maxValue) * maxHeight;
+        
+        barsHtml += `
+            <div class="bar-group" style="flex-direction: column; align-items: center; flex: 1;">
+                <div style="display: flex; gap: 8px; align-items: flex-end; height: ${maxHeight}px;">
+                    <div class="bar red" style="height: ${Math.max(membershipHeight, 5)}px; width: 35px; background: var(--booked); border-radius: 4px 4px 0 0;" title="Membership: ₱${membershipData[i].toLocaleString()}"></div>
+                    <div class="bar green" style="height: ${Math.max(reservationHeight, 5)}px; width: 35px; background: var(--olive); border-radius: 4px 4px 0 0;" title="Reservation: ₱${reservationData[i].toLocaleString()}"></div>
+                </div>
+                <div style="font-size: 11px; margin-top: 8px; color: #666; text-align: center;">${months[i]}</div>
+            </div>
+        `;
+    }
+    
+    const totalMembership = membershipData.reduce((a, b) => a + b, 0);
+    const totalReservation = reservationData.reduce((a, b) => a + b, 0);
+    const grandTotal = totalMembership + totalReservation;
+    
+    chartContainer.innerHTML = `
+        <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 15px;">
+            <div style="font-size: 12px;">
+                <span style="display: inline-block; width: 12px; height: 12px; background: var(--booked); border-radius: 2px; margin-right: 5px;"></span>
+                Membership Revenue
+            </div>
+            <div style="font-size: 12px;">
+                <span style="display: inline-block; width: 12px; height: 12px; background: var(--olive); border-radius: 2px; margin-right: 5px;"></span>
+                Reservation Revenue
+            </div>
+        </div>
+        <div class="chart-bars" style="display: flex; justify-content: space-around; align-items: flex-end; gap: 20px; padding: 10px; min-height: 200px;">
+            ${barsHtml}
+        </div>
+        <div style="margin-top: 20px; text-align: center; font-size: 13px; color: #555; padding-top: 15px; border-top: 1px solid #ddd;">
+            Total Revenue (Last 6 Months): <strong style="color: var(--deep-green);">₱${grandTotal.toLocaleString()}</strong>
+        </div>
+    `;
+}
+
+async function loadMonthlySummary() {
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        const response = await apiFetch(`${API_URL}/admin/payments`);
+        
+        if (response.ok) {
+            const payments = await response.json();
+            const completedPayments = payments.filter(p => p.paymentStatus === 'completed');
+            
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            let currentMonthIncome = 0;
+            let previousMonthIncome = 0;
+            let percentageChange = 0;
+            
+            completedPayments.forEach(payment => {
+                const paymentDate = new Date(payment.createdAt);
+                if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+                    currentMonthIncome += payment.amount;
+                } else if (paymentDate.getMonth() === currentMonth - 1 && paymentDate.getFullYear() === currentYear) {
+                    previousMonthIncome += payment.amount;
+                } else if (currentMonth === 0 && paymentDate.getMonth() === 11 && paymentDate.getFullYear() === currentYear - 1) {
+                    previousMonthIncome += payment.amount;
+                }
+            });
+            
+            if (previousMonthIncome > 0) {
+                percentageChange = ((currentMonthIncome - previousMonthIncome) / previousMonthIncome) * 100;
+            }
+            
+            const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const chartHeader = document.getElementById('financialReportTitle');
+            if (chartHeader) {
+                chartHeader.innerHTML = `${monthName} Financial Report 
+                    <span style="font-size: 11px; color: ${percentageChange >= 0 ? '#4caf50' : '#dc3545'}; margin-left: 10px;">
+                        ${percentageChange >= 0 ? '↑' : '↓'} ${Math.abs(percentageChange).toFixed(1)}% vs last month
+                    </span>`;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading monthly summary:', error);
     }
 }
 
@@ -700,7 +861,7 @@ async function loadUsers() {
                         ${user.membershipStatus === 'active' ? 
                             `<button class="btn-revoke" onclick="revokeMembership('${user._id}')" style="background: #9c403d; color: white; padding: 4px 12px; border: none; border-radius: 3px; cursor: pointer; margin-left: 5px;">Revoke</button>` 
                             : ''}
-                     </td>
+                    </td>
                 `;
             });
         }
@@ -1053,7 +1214,7 @@ function renderReservationsTable() {
     const pageReservations = filteredReservations.slice(startIndex, endIndex);
     
     if (pageReservations.length === 0) {
-        tbody.innerHTML = '</table><td colspan="7" style="text-align:center; padding: 40px;">📋 No reservation applications found</td><tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px;">📋 No reservation applications found</td></tr>';
         const paginationDiv = document.getElementById('reservationPagination');
         if (paginationDiv) paginationDiv.innerHTML = '';
         updateResultsCount();
@@ -1090,7 +1251,7 @@ function renderReservationsTable() {
                 <td>
                     <strong>${escapeHtml(app.firstName)} ${escapeHtml(app.lastName)}</strong><br>
                     <small style="color:#666;">${escapeHtml(app.email || '')}</small>
-                 </td>
+                </td>
                 <td>${displayDate}</td>
                 <td>${escapeHtml(displayTime)}</td>
                 <td><span class="badge" style="background:var(--sage);">${displayType}</span></td>
@@ -1103,8 +1264,8 @@ function renderReservationsTable() {
                         <br>
                     ` : ''}
                     <button class="btn-view-details" onclick="viewReservationDetails('${app._id}')" style="background: var(--sage-dark); color:#333; padding:4px 12px; border:none; border-radius:3px; font-size:12px; cursor:pointer; margin-top: 5px;">📋 Details</button>
-                 </td>
-             </tr>
+                </td>
+            </tr>
         `;
     }).join('');
     
@@ -1435,7 +1596,6 @@ async function checkAdminStatus() {
     }
     
     try {
-        // Try to fetch dashboard as a test
         const response = await apiFetch(`${API_URL}/admin/dashboard`);
         if (response.ok) {
             console.log('✅ Admin access verified!');
@@ -1489,9 +1649,7 @@ async function refreshCurrentConversation() {
                         const row = document.createElement('div');
                         row.className = `msg-row-wrap ${conv.sender === 'admin' ? 'sent' : ''}`;
                         
-                        // CHECK IF THIS IS AN IMAGE MESSAGE
                         if (conv.imageUrl) {
-                            // Image message
                             if (conv.sender === 'user') {
                                 row.innerHTML = `
                                     <div class="chat-avatar">👤</div>
@@ -1508,7 +1666,6 @@ async function refreshCurrentConversation() {
                                 `;
                             }
                         } else {
-                            // Regular text message
                             if (conv.sender === 'user') {
                                 row.innerHTML = `
                                     <div class="chat-avatar">👤</div>
@@ -1524,7 +1681,6 @@ async function refreshCurrentConversation() {
                         msgBody.appendChild(row);
                     });
                 } else {
-                    // Check if the main message has an imageUrl
                     if (updatedMessage.imageUrl) {
                         const row = document.createElement('div');
                         row.className = 'msg-row-wrap';
@@ -1610,7 +1766,6 @@ async function adminSendMsg() {
     sendBtn.disabled = true;
     
     try {
-        // CHANGED: Use apiFetch instead of regular fetch
         const response = await apiFetch(`${API_URL}/admin/messages/${currentMessage._id}/respond`, {
             method: 'POST',
             body: JSON.stringify({ response: text })
@@ -1671,67 +1826,6 @@ function stopAdminMessagePolling() {
         clearInterval(adminPollingInterval);
         adminPollingInterval = null;
     }
-}
-
-async function loadCustomerServiceRecords() {
-    const token = getAuthToken();
-    if (!token) return;
-    
-    try {
-        const response = await fetch(`${API_URL}/admin/messages`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-            const messages = await response.json();
-            const resolved = messages.filter(m => m.status === 'resolved');
-            const tbody = document.getElementById('csTbody');
-            if (tbody) {
-                tbody.innerHTML = '';
-                
-                if (resolved.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No resolved records found</td></tr>';
-                    return;
-                }
-                
-                resolved.forEach(msg => {
-                    const nameParts = (msg.userName || 'User User').split(' ');
-                    const firstName = nameParts[0] || '';
-                    const lastName = nameParts.slice(1).join(' ') || '';
-                    const row = tbody.insertRow();
-                    row.innerHTML = `
-                        <td>${escapeHtml(firstName)}</td>
-                        <td>${escapeHtml(lastName)}</td>
-                        <td>${escapeHtml(msg.concernType || 'general')}</td>
-                        <td><button class="btn-view" onclick="viewConversation('${msg._id}')">view</button></td>
-                        <td>${msg.resolution ? escapeHtml(msg.resolution.substring(0, 50)) : 'N/A'}</td>
-                        <td>
-                            <button class="btn-add" onclick="addNote('${msg._id}')">add</button>
-                            <button class="btn-remove" onclick="deleteRecord('${msg._id}')">remove</button>
-                         </td>
-                    `;
-                });
-            }
-        }
-    } catch (error) {
-        console.error('Error loading customer service records:', error);
-    }
-}
-
-function viewConversation(messageId) {
-    showToast('Conversation transcript feature coming soon', 'success');
-}
-
-function addNote(messageId) {
-    const note = prompt('Add a note to this record:');
-    if (note) {
-        showToast('Note added successfully', 'success');
-    }
-}
-
-async function deleteRecord(messageId) {
-    showToast('Record deleted', 'success');
-    loadCustomerServiceRecords();
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -2415,7 +2509,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userId = localStorage.getItem('userId');
     const loginTime = localStorage.getItem('loginTime');
     
-    // Check session
     if (!token || !userId) {
         showToast('Session expired. Please login again.', 'error');
         setTimeout(() => {
@@ -2436,7 +2529,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // Verify admin status before proceeding
     const isAdmin = await checkAdminStatus();
     if (!isAdmin) {
         console.error('❌ User is not an admin or token is invalid');
@@ -2474,6 +2566,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('beforeunload', () => {
         if (adminPollingInterval) clearInterval(adminPollingInterval);
     });
+    
+    loadFinancialReport();
+    loadMonthlySummary();
     
     loadLastVisitedPage();
 });
@@ -2623,10 +2718,6 @@ window.loadUsers = loadUsers;
 window.loadDashboardStats = loadDashboardStats;
 window.loadReservations = loadReservations;
 window.loadMessages = loadMessages;
-window.loadCustomerServiceRecords = loadCustomerServiceRecords;
-window.viewConversation = viewConversation;
-window.addNote = addNote;
-window.deleteRecord = deleteRecord;
 window.openValidateModal = openValidateModal;
 window.confirmVerifyPayment = confirmVerifyPayment;
 window.confirmRejectPayment = confirmRejectPayment;

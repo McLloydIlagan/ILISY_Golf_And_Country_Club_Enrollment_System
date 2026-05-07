@@ -1720,3 +1720,54 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
         opacity: 1;
     }
 }
+
+/* Dynamic Financial Chart Styles */
+.chart-container {
+    min-height: 250px;
+}
+
+.bar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.bar-group .bar {
+    transition: height 0.5s ease;
+    cursor: pointer;
+}
+
+.bar-group .bar:hover {
+    opacity: 0.8;
+}
+
+.chart-bars {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    gap: 15px;
+    padding: 0 10px;
+    margin-top: 10px;
+}
+
+/* Tooltip for bars */
+.bar {
+    position: relative;
+}
+
+.bar:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--deep-green);
+    color: var(--gold);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    white-space: nowrap;
+    z-index: 10;
+    margin-bottom: 5px;
+}
