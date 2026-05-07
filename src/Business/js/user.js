@@ -480,11 +480,15 @@ function showReservationPaymentForm() {
 // Membership Functions
 // ──────────────────────────────────────────────────────────────────
 
-async function submitMembership() {
+async function submitMembership(event) {
+    if (event) event.preventDefault();
+    
+    // Check session
     if (!checkSession()) return;
     
     const token = getAuthToken();
     
+    // Get personal details from the form
     const firstName = document.getElementById('memFirstName').value.trim();
     const lastName = document.getElementById('memLastName').value.trim();
     const email = document.getElementById('memEmail').value.trim();
@@ -493,56 +497,103 @@ async function submitMembership() {
     const age = parseInt(document.getElementById('memAge').value) || 0;
     const address = document.getElementById('memAddress').value.trim();
     
-    // Get payment details
-    const paymentMethod = document.querySelector('#membershipPayment .method-btn.active')?.textContent || 'GCash';
+    // Get payment details from the modern checkout form
+    const activeMethod = document.querySelector('#membershipPayment .pm-tab.active');
+    let paymentMethod = 'Card';
+    
+    if (activeMethod) {
+        const methodText = activeMethod.innerText.trim();
+        if (methodText.includes('BDO')) paymentMethod = 'BDO';
+        else if (methodText.includes('Metrobank')) paymentMethod = 'Metrobank';
+        else if (methodText.includes('BPI')) paymentMethod = 'BPI';
+        else paymentMethod = 'Card';
+    }
+    
     const accountNumber = document.getElementById('paymentAccount').value.trim();
-    const referenceNumber = document.getElementById('referenceNumber').value.trim();
+    const expiryInput = document.querySelector('#membershipPayment input[placeholder="MM/YY"]');
+    const expiry = expiryInput ? expiryInput.value.trim() : '';
+    const cvc = document.getElementById('cardCvc') ? document.getElementById('cardCvc').value.trim() : '';
     
-    if (!firstName || !lastName || !email || !phone) { 
-        alert('Please fill all required fields (First Name, Last Name, Email, Phone)'); 
-        return; 
-    }
-    
+    // Validate payment details
     if (!accountNumber) {
-        alert('Please enter your account number');
+        showToast('Please enter your card number', 'error');
         return;
     }
     
-    if (!referenceNumber) {
-        alert('Please enter the reference/transaction ID from your payment');
+    // Clean card number (remove spaces)
+    const cleanCard = accountNumber.replace(/\s+/g, '');
+    if (!/^\d{16}$/.test(cleanCard)) {
+        showToast('Please enter a valid 16-digit card number', 'error');
         return;
     }
+    
+    if (!expiry || !/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) {
+        showToast('Please enter valid expiration date (MM/YY)', 'error');
+        return;
+    }
+    
+    if (!cvc || !/^\d{3,4}$/.test(cvc)) {
+        showToast('Please enter valid CVV code', 'error');
+        return;
+    }
+    
+    // Validate personal details
+    if (!firstName || !lastName || !email || !phone) {
+        showToast('Please fill in all personal details first', 'error');
+        return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showToast('Please enter a valid email address', 'error');
+        return;
+    }
+    
+    const cleanPhone = phone.replace(/[\s-]/g, '');
+    const phoneRegex = /^(09\d{9}|\+639\d{9})$/;
+    if (!phoneRegex.test(cleanPhone)) {
+        showToast('Please enter a valid 11-digit mobile number', 'error');
+        return;
+    }
+    
+    // Generate a reference number
+    const referenceNumber = `MEM-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
     
     const data = {
         userId: localStorage.getItem('userId'),
         firstName: firstName,
         lastName: lastName,
         email: email,
-        phone: phone,
+        phone: cleanPhone,
         gender: gender,
         age: age,
         address: address,
         paymentMethod: paymentMethod,
-        accountNumber: accountNumber,
+        accountNumber: cleanCard,
         referenceNumber: referenceNumber,
-        amount: 1000000
+        amount: 1000000,
+        cardExpiry: expiry,
+        cardCvc: cvc
     };
+    
+    console.log('📤 Submitting membership application:', data);
     
     const overlay = document.getElementById('processingOverlay');
     overlay.style.display = 'flex';
-    document.getElementById('processingMsg').textContent = 'Submitting your application...';
+    document.getElementById('processingMsg').textContent = 'Submitting your membership application...';
     
     try {
-        const response = await fetch(`${API_URL}/membership/apply`, { 
-            method: 'POST', 
+        const response = await fetch(`${API_URL}/membership/apply`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
-            }, 
-            body: JSON.stringify(data) 
+            },
+            body: JSON.stringify(data)
         });
         
         const result = await response.json();
+        console.log('📥 Server response:', response.status, result);
         
         if (response.status === 401) {
             overlay.style.display = 'none';
@@ -552,34 +603,32 @@ async function submitMembership() {
             return;
         }
         
-        if (response.ok) { 
-            currentMembershipApplicationId = result.applicationId;
+        if (response.ok) {
             overlay.style.display = 'none';
-            showToast('Application submitted! Admin will verify your payment.', 'success');
-            document.getElementById('successMsg').innerHTML = 'Your membership application has been submitted.<br><br>Admin will verify your payment and activate your membership within 24-48 hours.<br><br>Application ID: ' + result.applicationId;
-            document.getElementById('successPopup').style.display = 'flex';
+            showToast('✅ Membership application submitted! Admin will verify your payment.', 'success');
+            console.log('✅ Application saved with ID:', result.applicationId);
+            
+            // Update receipt popup
+            document.getElementById('receiptTracking').textContent = referenceNumber;
+            document.getElementById('receiptName').textContent = firstName + ' ' + lastName;
+            
+            // Hide payment form and show receipt
+            document.getElementById('membershipPayment').style.display = 'none';
+            document.getElementById('receiptPopup').style.display = 'flex';
             
             // Reset form
-            document.getElementById('membershipPayment').style.display = 'none';
             document.getElementById('paymentAccount').value = '';
-            document.getElementById('referenceNumber').value = '';
+            if (expiryInput) expiryInput.value = '';
+            document.getElementById('cardCvc').value = '';
             
-            // Reset personal details form (optional)
-            document.getElementById('memFirstName').value = '';
-            document.getElementById('memLastName').value = '';
-            document.getElementById('memEmail').value = '';
-            document.getElementById('memPhone').value = '';
-            document.getElementById('memGender').value = '';
-            document.getElementById('memAge').value = '';
-            document.getElementById('memAddress').value = '';
         } else {
             overlay.style.display = 'none';
-            alert(result.message || 'Application failed');
+            showToast(result.message || 'Application failed', 'error');
         }
-    } catch(e) { 
+    } catch (error) {
         overlay.style.display = 'none';
-        console.error('Error:', e);
-        alert('Connection error: ' + e.message); 
+        console.error('❌ Error:', error);
+        showToast('Connection error: ' + error.message, 'error');
     }
 }
 
@@ -600,10 +649,9 @@ function proceedToMembershipPayment() {
         if (errorDiv) {
             errorDiv.textContent = '⚠ ' + msg;
             errorDiv.style.display = 'block';
-            // Hide error after 5 seconds
-            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000); 
+            setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
         } else {
-            alert(msg); // Fallback if HTML div is missing
+            alert(msg);
         }
     };
 
@@ -612,33 +660,38 @@ function proceedToMembershipPayment() {
         return showError('Please fill out all required personal details.');
     }
 
-    // 3. Validate Age (Must be a valid number)
+    // 3. Validate Age
     if (isNaN(age) || parseInt(age) < 1) {
         return showError('Please enter a valid age.');
     }
 
-    // 4. Validate Email Format using Regex
+    // 4. Validate Email Format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         return showError('Please enter a valid email address (e.g., name@gmail.com).');
     }
 
-    // 5. Validate Phone Number (Philippine Format)
-    // Remove spaces or dashes just in case the user typed "0912 345 6789"
+    // 5. Validate Phone Number
     const cleanPhone = phone.replace(/[\s-]/g, '');
-    
-    // Checks for exactly 11 digits starting with "09", OR "+639" followed by 9 digits
     const phoneRegex = /^(09\d{9}|\+639\d{9})$/;
-    
     if (!phoneRegex.test(cleanPhone)) {
         return showError('Please enter a valid 11-digit mobile number (e.g., 09123456789).');
     }
 
-    // 6. If all validation passes, hide errors and show the popup!
+    // 6. If all validation passes, hide errors and show the modern payment form
     if (errorDiv) errorDiv.style.display = 'none';
     
-    // Trigger your popup
-    document.getElementById('membershipPopup').style.display = 'flex';
+    // Hide the personal details form
+    const personalDetailsCard = document.querySelector('#tab-membership .section-card');
+    if (personalDetailsCard) {
+        personalDetailsCard.style.display = 'none';
+    }
+    
+    // Show the modern payment form
+    document.getElementById('membershipPayment').style.display = 'block';
+    
+    // Scroll to the payment form
+    document.getElementById('membershipPayment').scrollIntoView({ behavior: 'smooth' });
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -1223,81 +1276,77 @@ function showPaymentSection() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/// Submits the Membership Payment with STRICT formatting checks
-function submitMembership(event) {
-    const btn = event ? event.target : document.querySelector('#membershipPayment .btn-pay-now');
-    const activeMethod = document.querySelector('#membershipPayment .pm-tab.active').innerText.trim();
-    const accountInput = document.getElementById('paymentAccount').value.trim();
 
-    // 1. Validate Card Payments
-    if (activeMethod.includes('Card')) {
-        // Find Expiration and CVC
-        const expiryInput = document.querySelector('#membershipPayment input[placeholder="MM/YY"]');
-        const expiry = expiryInput ? expiryInput.value.trim() : '';
-        const cvc = document.getElementById('cardCvc') ? document.getElementById('cardCvc').value.trim() : '';
-
-        // Clean spaces from card number (e.g., "1234 5678" becomes "12345678")
-        const cleanCard = accountInput.replace(/\s+/g, '');
-        
-        if (!/^\d{16}$/.test(cleanCard)) {
-            return showPaymentError(btn, "Invalid Card: Must be exactly 16 digits.");
-        }
-        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) {
-            return showPaymentError(btn, "Invalid Expiration: Use MM/YY format (e.g., 12/26).");
-        }
-        if (!/^\d{3,4}$/.test(cvc)) {
-            return showPaymentError(btn, "Invalid CVC: Must be 3 or 4 digits.");
-        }
-    } 
-    // 2. Validate GCash / Maya Payments
-    else {
-        const reference = document.getElementById('referenceNumber').value.trim();
-        
-        // Clean spaces or dashes from the phone number just in case the user typed them
-        const cleanPhone = accountInput.replace(/[\s-]/g, '');
-        
-        if (!/^(09\d{9}|\+639\d{9})$/.test(cleanPhone)) {
-            return showPaymentError(btn, `Invalid ${activeMethod}: Must be a valid 11-digit mobile number.`);
-        }
-        if (reference.length < 6) {
-            return showPaymentError(btn, "Invalid Reference ID: Please enter the exact transaction ID.");
-        }
-    }
-
-    // If everything is strictly correct, process it!
-    processPaymentAndShowReceipt('memFirstName', 'memLastName', 'membershipPayment');
-}
 
 // Generates a high-quality .png image of the receipt using html2canvas
 function downloadReceiptImage() {
-    // Target the specific box we want to take a picture of
+    // Target the receipt content area
     const captureArea = document.getElementById('receiptImageArea');
-    const tracking = document.getElementById('receiptTracking').textContent;
-
-    // Use the library to render the HTML into a virtual Canvas
+    if (!captureArea) {
+        // If no specific area, capture the whole popup content
+        const receiptContent = document.querySelector('#receiptPopup .popup-card');
+        if (receiptContent) {
+            html2canvas(receiptContent, {
+                scale: 2,
+                backgroundColor: "#ffffff",
+                logging: false
+            }).then(canvas => {
+                const imgData = canvas.toDataURL("image/png");
+                const link = document.createElement('a');
+                link.download = `ILISY_Receipt_${Date.now()}.png`;
+                link.href = imgData;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }).catch(error => {
+                console.error('Error generating receipt:', error);
+                showToast('Error generating receipt', 'error');
+            });
+        }
+        return;
+    }
+    
     html2canvas(captureArea, {
-        scale: 2, // Multiplies the resolution by 2 so the text isn't blurry
-        backgroundColor: "#ffffff", // Ensures a solid white background
-        logging: false // Keeps your developer console clean
+        scale: 2,
+        backgroundColor: "#ffffff",
+        logging: false
     }).then(canvas => {
-        // Convert that canvas into a PNG data URL
         const imgData = canvas.toDataURL("image/png");
-        
-        // Create a hidden link and force the browser to download it
         const link = document.createElement('a');
-        link.download = `ILISY_Receipt_${tracking}.png`;
+        link.download = `ILISY_Receipt_${Date.now()}.png`;
         link.href = imgData;
-        
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        showToast('Receipt downloaded successfully!', 'success');
+    }).catch(error => {
+        console.error('Error generating receipt:', error);
+        showToast('Error generating receipt', 'error');
     });
 }
 
 // 4. Closes everything and resets the page
 function closeReceiptAndReset() {
     document.getElementById('receiptPopup').style.display = 'none';
-    window.location.reload(); // Refreshes the page to clear the form
+    // Reset the membership form to show personal details again
+    const personalDetailsCard = document.querySelector('#tab-membership .section-card');
+    if (personalDetailsCard) {
+        personalDetailsCard.style.display = 'block';
+    }
+    document.getElementById('membershipPayment').style.display = 'none';
+    // Clear form fields
+    document.getElementById('memFirstName').value = '';
+    document.getElementById('memLastName').value = '';
+    document.getElementById('memEmail').value = '';
+    document.getElementById('memPhone').value = '';
+    document.getElementById('memGender').value = '';
+    document.getElementById('memAge').value = '';
+    document.getElementById('memAddress').value = '';
+    document.getElementById('paymentAccount').value = '';
+    const expiryInput = document.querySelector('#membershipPayment input[placeholder="MM/YY"]');
+    if (expiryInput) expiryInput.value = '';
+    const cvcInput = document.getElementById('cardCvc');
+    if (cvcInput) cvcInput.value = '';
 }
 
 // Auto-formats the Card Number to add spaces every 4 digits
@@ -1380,31 +1429,7 @@ function pickMethod(btn) {
     if (userAccountInput) userAccountInput.value = "";
 }
 
-// Submits the Payment with STRICT formatting checks for ALL tabs
-function submitMembership(event) {
-    const btn = event ? event.target : document.querySelector('#membershipPayment .btn-pay-now');
-    const accountInput = document.getElementById('paymentAccount').value.trim();
-    const expiryInput = document.querySelector('#membershipPayment input[placeholder="MM/YY"]');
-    const expiry = expiryInput ? expiryInput.value.trim() : '';
-    const cvc = document.getElementById('cardCvc') ? document.getElementById('cardCvc').value.trim() : '';
-    
-    // Clean spaces to check true length
-    const cleanCard = accountInput.replace(/\s+/g, '');
-    
-    // Since all tabs use the card format, we run the same strict checks
-    if (!/^\d{16}$/.test(cleanCard)) {
-        return showPaymentError(btn, "Invalid Card: Must be exactly 16 digits.");
-    }
-    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) {
-        return showPaymentError(btn, "Invalid Expiration: Use MM/DD format.");
-    }
-    if (!/^\d{3,4}$/.test(cvc)) {
-        return showPaymentError(btn, "Invalid CVC: Must be 3 or 4 digits.");
-    }
 
-    // Process the payment and show receipt
-    processPaymentAndShowReceipt('memFirstName', 'memLastName', 'membershipPayment');
-}
 
 // Smart helper to show errors right above the pay button without ugly alerts
 function showPaymentError(buttonElement, message) {
@@ -1464,27 +1489,7 @@ function submitDynamicReservationPayment(event) {
     processPaymentAndShowReceipt('resFirstName', 'resLastName', 'reservationPayment');
 }
 
-// Universal function to trigger the processing screen and receipt popup
-function processPaymentAndShowReceipt(firstNameId, lastNameId, paymentSectionId) {
-    document.getElementById('processingOverlay').style.display = 'flex';
 
-    setTimeout(() => {
-        document.getElementById('processingOverlay').style.display = 'none';
-        
-        // Generate Tracking Number
-        const trackingNum = 'TRK-' + Math.floor(Math.random() * 900000 + 100000);
-        document.getElementById('receiptTracking').textContent = trackingNum;
-        
-        // Grab Name
-        const fName = document.getElementById(firstNameId).value;
-        const lName = document.getElementById(lastNameId).value;
-        document.getElementById('receiptName').textContent = fName + ' ' + lName;
-
-        // Swap Screens
-        document.getElementById(paymentSectionId).style.display = 'none';
-        document.getElementById('receiptPopup').style.display = 'flex';
-    }, 2000);
-}
 
 // Validates the Reservation Personal Details before showing payment
 function submitDynamicReservation() {

@@ -1740,7 +1740,7 @@ function renderValidateModalContent(app) {
                 <span class="detail-value">${escapeHtml(app.accountNumber || 'N/A')}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Reference Number:</span>
+                <span class="detail-label">Transact Ref:</span>
                 <span class="detail-value highlight">
                     <div class="ref-number">${escapeHtml(app.referenceNumber || 'N/A')}</div>
                 </span>
