@@ -287,15 +287,43 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0,0,0,0.06);
     min-height: 500px;
-    max-height: calc(100vh - 180px); /* Add max height constraint */
+    max-height: calc(100vh - 180px);
 }
 
 .msg-sidebar {
     background: #7a6e7a;
     display: flex; 
     flex-direction: column;
-    overflow-y: auto; /* Allow sidebar to scroll if needed */
+    overflow-y: auto;  /* THIS ENABLES SCROLLING */
+    overflow-x: hidden;
+    height: 100%;
     max-height: calc(100vh - 180px);
+}
+
+/* Custom scrollbar for sidebar */
+.msg-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.msg-sidebar::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.2);
+    border-radius: 3px;
+}
+
+.msg-sidebar::-webkit-scrollbar-thumb {
+    background: var(--gold);
+    border-radius: 3px;
+}
+
+.msg-sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--gold-light);
+}
+
+/* Ensure contacts list can scroll */
+.msg-contacts-list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
 }
 
 .msg-contact {
@@ -306,15 +334,19 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
     display: flex; 
     align-items: center; 
     gap: 12px;
+    flex-shrink: 0; /* Prevent contacts from shrinking */
 }
+
 .msg-contact:hover, 
 .msg-contact.active { 
     background: rgba(255,255,255,0.12); 
 }
+
 .msg-contact-name { 
     font-size: 14px; 
     color: white; 
 }
+
 .msg-contact-dot {
     width: 10px; 
     height: 10px; 
@@ -322,9 +354,12 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
     background: #888; 
     flex-shrink: 0;
 }
+
 .msg-contact-dot.online { 
     background: #e05555; 
+    animation: pulse 1.5s infinite;
 }
+
 .contact-avatar {
     width: 32px; 
     height: 32px; 
@@ -337,12 +372,19 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
     flex-shrink: 0;
 }
 
+/* Add pulse animation for pending messages */
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
 .msg-window { 
     background: var(--sage); 
     display: flex; 
     flex-direction: column;
     height: 100%;
-    min-height: 0; /* Important for flex children */
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -351,7 +393,7 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
     color: white;
     padding: 16px 25px; 
     font-size: 15px;
-    flex-shrink: 0; /* Prevent header from shrinking */
+    flex-shrink: 0;
 }
 
 .msg-body {
@@ -360,9 +402,9 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
     display: flex;
     flex-direction: column;
     gap: 14px;
-    overflow-y: auto; /* This enables scrolling */
-    min-height: 0; /* Critical: allows flex child to scroll */
-    max-height: 100%; /* Ensure it doesn't overflow parent */
+    overflow-y: auto;
+    min-height: 0;
+    max-height: 100%;
 }
 
 .msg-body::-webkit-scrollbar {
@@ -407,7 +449,7 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
     display: flex; 
     gap: 10px; 
     align-items: flex-end;
-    flex-shrink: 0; /* Prevent rows from shrinking */
+    flex-shrink: 0;
 }
 
 .msg-row-wrap.sent { 
@@ -433,7 +475,7 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
     display: flex; 
     align-items: center; 
     gap: 14px;
-    flex-shrink: 0; /* Prevent footer from shrinking */
+    flex-shrink: 0;
 }
 
 .msg-footer-icon { 

@@ -5,9 +5,65 @@ const API_URL = 'https://ilisy-golf-and-country-club-enrollment.onrender.com/api
 // ──────────────────────────────────────────────────────────────────
 
 let tableReservationTypes = [];
+let lastMessageIds = new Map();
+let notifiedMessageIds = new Map();
+let audioContextAllowed = false;
 
 function getAuthToken() {
-    return localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken');
+    console.log('🔑 Getting auth token:', token ? 'Token exists (length: ' + token.length + ')' : 'No token');
+    return token;
+}
+
+async function apiFetch(url, options = {}) {
+    const token = getAuthToken();
+    
+    if (!token) {
+        console.error('❌ No auth token found!');
+        showToast('Session expired. Please login again.', 'error');
+        setTimeout(() => {
+            window.location.href = '../index.html';
+        }, 1500);
+        throw new Error('No auth token');
+    }
+    
+    console.log(`📡 API Request: ${options.method || 'GET'} ${url}`);
+    
+    const defaultOptions = {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    };
+    
+    const mergedOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+            ...defaultOptions.headers,
+            ...options.headers
+        }
+    };
+    
+    try {
+        const response = await fetch(url, mergedOptions);
+        console.log(`📡 Response status: ${response.status} for ${url}`);
+        
+        if (response.status === 401 || response.status === 403) {
+            console.error(`❌ Auth failed with status ${response.status}`);
+            localStorage.clear();
+            showToast('Session expired. Please login again.', 'error');
+            setTimeout(() => {
+                window.location.href = '../index.html';
+            }, 1500);
+            throw new Error('Unauthorized');
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('❌ API fetch error:', error);
+        throw error;
+    }
 }
 
 function checkSession() {
@@ -65,9 +121,13 @@ function saveCurrentPage(pageId) {
 
 function loadLastVisitedPage() {
     const lastPage = localStorage.getItem('adminCurrentPage');
-    if (lastPage && document.getElementById(`page-${lastPage}`)) {
+    const validPages = ['dashboard', 'reservations', 'accounts', 'payments', 'messages', 'customerservice', 'manage_reservations'];
+    
+    if (lastPage && validPages.includes(lastPage) && document.getElementById(`page-${lastPage}`)) {
+        console.log('Restoring page:', lastPage);
         showPage(lastPage);
     } else {
+        console.log('No saved page, showing dashboard');
         showPage('dashboard');
     }
 }
@@ -98,6 +158,15 @@ function escapeHtml(text) {
     });
 }
 
+function scrollToBottom() {
+    const msgBody = document.getElementById('msgBody');
+    if (msgBody) {
+        setTimeout(() => {
+            msgBody.scrollTop = msgBody.scrollHeight;
+        }, 100);
+    }
+}
+
 // ──────────────────────────────────────────────────────────────────
 // Navigation
 // ──────────────────────────────────────────────────────────────────
@@ -122,10 +191,16 @@ function showPage(id) {
         items[map[id]].classList.add('active');
     }
     
+    // Stop polling unless we're switching to messages
+    if (id !== 'messages') stopAdminMessagePolling();
+
     if (id === 'dashboard') loadDashboardStats();
     else if (id === 'accounts') loadUsers();
     else if (id === 'payments') loadPayments();
-    else if (id === 'messages') loadMessages();
+    else if (id === 'messages') {
+        loadMessages();
+        startAdminMessagePolling();
+    }
     else if (id === 'reservations') loadReservations();
     else if (id === 'customerservice') loadCustomerServiceRecords();
     else if (id === 'manage_reservations') loadReservationTypes();
@@ -146,19 +221,8 @@ window.addEventListener('beforeunload', () => {
 // ──────────────────────────────────────────────────────────────────
 
 async function loadDashboardStats() {
-    const token = getAuthToken();
-    if (!token) return;
-    
     try {
-        const response = await fetch(`${API_URL}/admin/dashboard`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.status === 401) {
-            handleLogout();
-            return;
-        }
-        
+        const response = await apiFetch(`${API_URL}/admin/dashboard`);
         if (response.ok) {
             const stats = await response.json();
             const statNumbers = document.querySelectorAll('.stat-card .stat-num');
@@ -542,18 +606,8 @@ async function openAdminDayDetails(dateKey) {
 // ──────────────────────────────────────────────────────────────────
 
 async function loadUsers() {
-    const token = getAuthToken();
-    if (!token) return;
-    
     try {
-        const response = await fetch(`${API_URL}/admin/users`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.status === 401) {
-            handleLogout();
-            return;
-        }
+        const response = await apiFetch(`${API_URL}/admin/users`);
         
         if (response.ok) {
             const users = await response.json();
@@ -580,7 +634,7 @@ async function loadUsers() {
                         ${user.membershipStatus === 'active' ? 
                             `<button class="btn-revoke" onclick="revokeMembership('${user._id}')" style="background: #9c403d; color: white; padding: 4px 12px; border: none; border-radius: 3px; cursor: pointer; margin-left: 5px;">Revoke</button>` 
                             : ''}
-                    </td>
+                     </td>
                 `;
             });
         }
@@ -933,7 +987,7 @@ function renderReservationsTable() {
     const pageReservations = filteredReservations.slice(startIndex, endIndex);
     
     if (pageReservations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px;">📋 No reservation applications found</td></tr>';
+        tbody.innerHTML = '</table><td colspan="7" style="text-align:center; padding: 40px;">📋 No reservation applications found</td><tr>';
         const paginationDiv = document.getElementById('reservationPagination');
         if (paginationDiv) paginationDiv.innerHTML = '';
         updateResultsCount();
@@ -970,7 +1024,7 @@ function renderReservationsTable() {
                 <td>
                     <strong>${escapeHtml(app.firstName)} ${escapeHtml(app.lastName)}</strong><br>
                     <small style="color:#666;">${escapeHtml(app.email || '')}</small>
-                </td>
+                 </td>
                 <td>${displayDate}</td>
                 <td>${escapeHtml(displayTime)}</td>
                 <td><span class="badge" style="background:var(--sage);">${displayType}</span></td>
@@ -983,8 +1037,8 @@ function renderReservationsTable() {
                         <br>
                     ` : ''}
                     <button class="btn-view-details" onclick="viewReservationDetails('${app._id}')" style="background: var(--sage-dark); color:#333; padding:4px 12px; border:none; border-radius:3px; font-size:12px; cursor:pointer; margin-top: 5px;">📋 Details</button>
-                </td>
-            </tr>
+                 </td>
+             </tr>
         `;
     }).join('');
     
@@ -1193,118 +1247,15 @@ async function rejectReservation(appId) {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Messages / Customer Service with Auto-Refresh (NO SPAM)
+// Messages / Customer Service with Auto-Refresh
 // ──────────────────────────────────────────────────────────────────
 
 let adminPollingInterval = null;
 let currentMessage = null;
 let currentUserId = null;
 
-// Enable audio on first user interaction
-document.addEventListener('click', function enableAudio() {
-    audioContextAllowed = true;
-    document.removeEventListener('click', enableAudio);
-}, { once: true });
-
-async function loadMessages() {
-    const token = getAuthToken();
-    if (!token) return;
-    
-    try {
-        const response = await fetch(`${API_URL}/admin/messages`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.status === 401) {
-            handleLogout();
-            return;
-        }
-        
-        if (response.ok) {
-            const messages = await response.json();
-            const msgSidebar = document.getElementById('msgSidebar');
-            if (msgSidebar) {
-                const currentActiveUserId = document.querySelector('.msg-contact.active')?.getAttribute('data-user-id');
-                
-                msgSidebar.innerHTML = '';
-                
-                if (messages.length === 0) {
-                    msgSidebar.innerHTML = '<div style="padding:20px; text-align:center; color:#ccc;">No messages found</div>';
-                    return;
-                }
-                
-                // Group messages by userId
-                const uniqueUsers = new Map();
-                messages.forEach(msg => {
-                    if (!uniqueUsers.has(msg.userId) || new Date(msg.createdAt) > new Date(uniqueUsers.get(msg.userId).createdAt)) {
-                        uniqueUsers.set(msg.userId, msg);
-                    }
-                });
-                
-                let newActiveContact = null;
-                
-                uniqueUsers.forEach(msg => {
-                    const contactDiv = document.createElement('div');
-                    contactDiv.className = 'msg-contact';
-                    contactDiv.setAttribute('data-user-id', msg.userId);
-                    contactDiv.setAttribute('data-conversation-id', msg._id);
-                    contactDiv.onclick = () => selectContact(contactDiv, msg);
-                    
-                    // Check if there are new messages (same logic as user.js)
-                    const isPending = msg.status === 'pending';
-                    
-                    contactDiv.innerHTML = `
-                        <div class="contact-avatar">👤</div>
-                        <div>
-                            <div class="msg-contact-name">${escapeHtml(msg.userName || 'User')}</div>
-                            <div style="font-size:11px;color:#ccc;">${escapeHtml(msg.concernType || 'general')}</div>
-                        </div>
-                        <div class="msg-contact-dot ${isPending ? 'online' : ''}" style="margin-left:auto;"></div>
-                    `;
-                    msgSidebar.appendChild(contactDiv);
-                    
-                    if (currentActiveUserId === msg.userId) {
-                        newActiveContact = contactDiv;
-                    }
-                });
-                
-                // Re-select previously active conversation if it exists
-                if (newActiveContact && currentMessage) {
-                    newActiveContact.classList.add('active');
-                    await refreshCurrentConversation();
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error loading messages:', error);
-    }
-}
-
-function updateSeenMessages(userId, conversation) {
-    if (!conversation) return;
-    
-    const userMessages = conversation.filter(c => c.sender === 'user');
-    if (userMessages.length > 0) {
-        const lastMessage = userMessages[userMessages.length - 1];
-        const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message}`;
-        lastMessageIds.set(userId, lastMessageId);
-        
-        userMessages.forEach(msg => {
-            const msgId = `${msg.timestamp}_${msg.message}`;
-            if (notifiedMessageIds.has(msgId)) {
-                notifiedMessageIds.delete(msgId);
-            }
-        });
-    }
-}
-
 function playNotificationSound() {
     try {
-        // Simple beep using Audio
-        const audio = new Audio();
-        // Use a simple data URI beep (no external file needed)
-        const beep = "data:audio/wav;base64,U3RlYWx0aCBpcyBhIGJlZXAuLi4=";
-        // Just create a simple oscillator as fallback
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (AudioContext) {
             const audioContext = new AudioContext();
@@ -1330,23 +1281,120 @@ function playNotificationSound() {
     }
 }
 
+async function loadMessages() {
+    console.log('📩 Loading messages...');
+    
+    const token = getAuthToken();
+    if (!token) {
+        console.error('❌ Cannot load messages: No auth token');
+        return;
+    }
+    
+    try {
+        const response = await apiFetch(`${API_URL}/admin/messages`);
+        
+        if (response.ok) {
+            const messages = await response.json();
+            console.log(`✅ Loaded ${messages.length} messages`);
+            
+            const msgSidebar = document.getElementById('msgSidebar');
+            if (msgSidebar) {
+                const currentActiveUserId = document.querySelector('.msg-contact.active')?.getAttribute('data-user-id');
+                
+                msgSidebar.innerHTML = '';
+                
+                if (messages.length === 0) {
+                    msgSidebar.innerHTML = '<div style="padding:20px; text-align:center; color:#ccc;">No messages found</div>';
+                    return;
+                }
+                
+                const uniqueUsers = new Map();
+                messages.forEach(msg => {
+                    if (!uniqueUsers.has(msg.userId) || new Date(msg.createdAt) > new Date(uniqueUsers.get(msg.userId).createdAt)) {
+                        uniqueUsers.set(msg.userId, msg);
+                    }
+                });
+                
+                let newActiveContact = null;
+                
+                uniqueUsers.forEach(msg => {
+                    const contactDiv = document.createElement('div');
+                    contactDiv.className = 'msg-contact';
+                    contactDiv.setAttribute('data-user-id', msg.userId);
+                    contactDiv.setAttribute('data-conversation-id', msg._id);
+                    contactDiv.onclick = () => selectContact(contactDiv, msg);
+                    
+                    const isPending = msg.status === 'pending';
+                    
+                    contactDiv.innerHTML = `
+                        <div class="contact-avatar">👤</div>
+                        <div>
+                            <div class="msg-contact-name">${escapeHtml(msg.userName || 'User')}</div>
+                            <div style="font-size:11px;color:#ccc;">${escapeHtml(msg.concernType || 'general')}</div>
+                        </div>
+                        <div class="msg-contact-dot ${isPending ? 'online' : ''}" style="margin-left:auto;"></div>
+                    `;
+                    msgSidebar.appendChild(contactDiv);
+                    
+                    if (currentActiveUserId === msg.userId) {
+                        newActiveContact = contactDiv;
+                    }
+                });
+                
+                if (newActiveContact && currentMessage) {
+                    newActiveContact.classList.add('active');
+                    await refreshCurrentConversation();
+                }
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error loading messages:', error);
+    }
+}
+
+async function checkAdminStatus() {
+    console.log('🔍 Checking admin status...');
+    
+    const token = localStorage.getItem('authToken');
+    const userId = localStorage.getItem('userId');
+    const isAdmin = localStorage.getItem('isAdmin');
+    
+    console.log('  Token:', token ? `Present (${token.substring(0, 20)}...)` : 'MISSING');
+    console.log('  UserId:', userId);
+    console.log('  isAdmin from localStorage:', isAdmin);
+    
+    if (!token) {
+        console.error('❌ No token found! User needs to login again.');
+        return false;
+    }
+    
+    try {
+        // Try to fetch dashboard as a test
+        const response = await apiFetch(`${API_URL}/admin/dashboard`);
+        if (response.ok) {
+            console.log('✅ Admin access verified!');
+            return true;
+        } else {
+            console.error('❌ Admin access FAILED with status:', response.status);
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Admin check error:', error);
+        return false;
+    }
+}
+
 async function refreshCurrentConversation() {
     if (!currentMessage) return;
     
-    const token = getAuthToken();
-    if (!token) return;
-    
     try {
-        const response = await fetch(`${API_URL}/admin/messages`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await apiFetch(`${API_URL}/admin/messages`);
         
         if (response.ok) {
             const messages = await response.json();
             const updatedMessage = messages.find(m => m.userId === currentUserId);
             
             if (updatedMessage) {
-                // Check for new messages from admin (we sent) or user
                 const conversation = updatedMessage.conversation || [];
                 
                 if (conversation.length > 0) {
@@ -1354,9 +1402,7 @@ async function refreshCurrentConversation() {
                     const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message}`;
                     const lastShown = localStorage.getItem(`admin_last_shown_${updatedMessage._id}`);
                     
-                    // If last message is from user and we haven't shown it yet
                     if (lastMessage.sender === 'user' && lastShown !== lastMessageId) {
-                        // Play sound and show toast only for new user messages (not during initial load)
                         if (lastShown) {
                             playNotificationSound();
                             showToast(`📩 New message from ${escapeHtml(updatedMessage.userName)}: "${lastMessage.message.substring(0, 50)}..."`, 'info');
@@ -1394,7 +1440,7 @@ async function refreshCurrentConversation() {
                 }
                 
                 if (wasAutoScrolling) {
-                    msgBody.scrollTop = msgBody.scrollHeight;
+                    scrollToBottom();
                 }
             }
         }
@@ -1434,9 +1480,9 @@ function selectContact(element, message) {
     } else {
         msgBody.innerHTML = `<div class="chat-bubble bubble-received">${escapeHtml(message.message || 'No message')}</div>`;
     }
-    msgBody.scrollTop = msgBody.scrollHeight;
     
-    // Mark as read by updating localStorage
+    scrollToBottom();
+    
     if (message.conversation && message.conversation.length > 0) {
         const lastMessage = message.conversation[message.conversation.length - 1];
         if (lastMessage.sender === 'user') {
@@ -1445,7 +1491,6 @@ function selectContact(element, message) {
         }
     }
     
-    // Remove the pending dot
     const dot = element.querySelector('.msg-contact-dot');
     if (dot) dot.classList.remove('online');
 }
@@ -1491,7 +1536,7 @@ async function adminSendMsg() {
             `;
             msgBody.appendChild(row);
             input.value = '';
-            msgBody.scrollTop = msgBody.scrollHeight;
+            scrollToBottom();
             
             if (!currentMessage.conversation) currentMessage.conversation = [];
             currentMessage.conversation.push({ sender: 'admin', message: text, timestamp: new Date() });
@@ -1499,7 +1544,6 @@ async function adminSendMsg() {
             
             showToast('Response sent', 'success');
             
-            // Update last shown to our own message
             const lastMessageId = `${new Date().getTime()}_${text}`;
             localStorage.setItem(`admin_last_shown_${currentMessage._id}`, lastMessageId);
             
@@ -1556,7 +1600,7 @@ async function loadCustomerServiceRecords() {
                 tbody.innerHTML = '';
                 
                 if (resolved.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No resolved records found</tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No resolved records found</td></tr>';
                     return;
                 }
                 
@@ -1574,7 +1618,7 @@ async function loadCustomerServiceRecords() {
                         <td>
                             <button class="btn-add" onclick="addNote('${msg._id}')">add</button>
                             <button class="btn-remove" onclick="deleteRecord('${msg._id}')">remove</button>
-                        </td>
+                         </td>
                     `;
                 });
             }
@@ -2274,13 +2318,52 @@ async function deleteReservationType(typeId) {
 // Event Listeners & Initialization
 // ──────────────────────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
-    if (!checkSession()) return;
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Admin portal loading...');
+    
+    const token = getAuthToken();
+    const userId = localStorage.getItem('userId');
+    const loginTime = localStorage.getItem('loginTime');
+    
+    // Check session
+    if (!token || !userId) {
+        showToast('Session expired. Please login again.', 'error');
+        setTimeout(() => {
+            window.location.href = '../index.html';
+        }, 1500);
+        return;
+    }
+    
+    if (loginTime) {
+        const hoursSinceLogin = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
+        if (hoursSinceLogin >= 24) {
+            localStorage.clear();
+            showToast('Session expired. Please login again.', 'error');
+            setTimeout(() => {
+                window.location.href = '../index.html';
+            }, 1500);
+            return;
+        }
+    }
+    
+    // Verify admin status before proceeding
+    const isAdmin = await checkAdminStatus();
+    if (!isAdmin) {
+        console.error('❌ User is not an admin or token is invalid');
+        showToast('Admin access required. Redirecting...', 'error');
+        setTimeout(() => {
+            window.location.href = '../index.html';
+        }, 2000);
+        return;
+    }
     
     adminCurrentMonth = new Date();
     
     loadReservationTypesForFilters().then(() => {
-        loadAdminCalendar();
+        const lastPage = localStorage.getItem('adminCurrentPage');
+        if (lastPage === 'reservations') {
+            loadAdminCalendar();
+        }
     });
     
     startAdminMessagePolling();
@@ -2306,18 +2389,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadReservationTypesForFilters() {
-    const token = getAuthToken();
-    if (!token) return;
-    
     try {
-        const response = await fetch(`${API_URL}/reservation-types/admin/all`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.status === 401) {
-            handleLogout();
-            return;
-        }
+        const response = await apiFetch(`${API_URL}/reservation-types/admin/all`);
         
         if (response.ok) {
             const types = await response.json();
@@ -2329,6 +2402,23 @@ async function loadReservationTypesForFilters() {
         }
     } catch (error) {
         console.error('Error loading reservation types for filters:', error);
+    }
+}
+
+async function verifyAdminAccess() {
+    try {
+        const response = await apiFetch(`${API_URL}/admin/dashboard`);
+        if (!response.ok) {
+            throw new Error('Not authorized');
+        }
+        return true;
+    } catch (error) {
+        console.error('Admin verification failed:', error);
+        showToast('You do not have admin access. Redirecting...', 'error');
+        setTimeout(() => {
+            window.location.href = '../index.html';
+        }, 2000);
+        return false;
     }
 }
 
@@ -2468,3 +2558,4 @@ window.deleteTimeSlot = deleteTimeSlot;
 window.changeAdminMonth = changeAdminMonth;
 window.openAdminDayDetails = openAdminDayDetails;
 window.revokeMembership = revokeMembership;
+window.scrollToBottom = scrollToBottom;

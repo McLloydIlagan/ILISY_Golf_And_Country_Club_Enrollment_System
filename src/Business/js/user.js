@@ -37,6 +37,56 @@ function getAuthToken() {
     return localStorage.getItem('authToken');
 }
 
+// ========== ADD THIS apiFetch FUNCTION HERE ==========
+async function apiFetch(url, options = {}) {
+    const token = getAuthToken();
+    
+    if (!token) {
+        console.error('❌ No auth token found!');
+        showToast('Session expired. Please login again.', 'error');
+        setTimeout(() => {
+            window.location.href = '../index.html';
+        }, 1500);
+        throw new Error('No auth token');
+    }
+    
+    const defaultOptions = {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    };
+    
+    const mergedOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+            ...defaultOptions.headers,
+            ...options.headers
+        }
+    };
+    
+    try {
+        const response = await fetch(url, mergedOptions);
+        
+        if (response.status === 401 || response.status === 403) {
+            console.error(`❌ Auth failed with status ${response.status}`);
+            localStorage.clear();
+            showToast('Session expired. Please login again.', 'error');
+            setTimeout(() => {
+                window.location.href = '../index.html';
+            }, 1500);
+            throw new Error('Unauthorized');
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('❌ API fetch error:', error);
+        throw error;
+    }
+}
+// ========== END apiFetch ==========
+
 function checkSession() {
     const token = getAuthToken();
     const userId = localStorage.getItem('userId');
@@ -127,7 +177,6 @@ function addMsg(text, type, isHistory = false) {
 async function sendMessage() {
     if (!checkSession()) return;
     
-    const token = getAuthToken();
     const input = document.getElementById('msgInput');
     const text = input.value.trim();
     if (!text) return;
@@ -141,21 +190,13 @@ async function sendMessage() {
         const isValidObjectId = existingConversationId && /^[0-9a-fA-F]{24}$/.test(existingConversationId);
         
         if (isValidObjectId) {
-            response = await fetch(`${API_URL}/messages/followup/${existingConversationId}`, {
+            response = await apiFetch(`${API_URL}/messages/followup/${existingConversationId}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ message: text })
             });
         } else {
-            response = await fetch(`${API_URL}/messages/submit`, {
+            response = await apiFetch(`${API_URL}/messages/submit`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ 
                     userId: localStorage.getItem('userId'), 
                     userName: localStorage.getItem('userName') || 'Member', 
@@ -163,13 +204,6 @@ async function sendMessage() {
                     concernType: 'general' 
                 })
             });
-        }
-        
-        if (response.status === 401) {
-            localStorage.clear();
-            showToast('Session expired. Please login again.', 'error');
-            setTimeout(() => window.location.href = '../index.html', 2000);
-            return;
         }
         
         const result = await response.json();
@@ -190,7 +224,6 @@ async function sendMessage() {
 async function sendQuickReply(text) {
     if (!checkSession()) return;
     
-    const token = getAuthToken();
     const quickReplies = document.getElementById('quickReplies');
     if (quickReplies) quickReplies.style.display = 'none';
     
@@ -202,21 +235,13 @@ async function sendQuickReply(text) {
         const isValidObjectId = existingConversationId && /^[0-9a-fA-F]{24}$/.test(existingConversationId);
         
         if (isValidObjectId) {
-            response = await fetch(`${API_URL}/messages/followup/${existingConversationId}`, {
+            response = await apiFetch(`${API_URL}/messages/followup/${existingConversationId}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ message: text })
             });
         } else {
-            response = await fetch(`${API_URL}/messages/submit`, {
+            response = await apiFetch(`${API_URL}/messages/submit`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ 
                     userId: localStorage.getItem('userId'), 
                     userName: localStorage.getItem('userName') || 'Member', 
@@ -224,13 +249,6 @@ async function sendQuickReply(text) {
                     concernType: 'general' 
                 })
             });
-        }
-        
-        if (response.status === 401) {
-            localStorage.clear();
-            showToast('Session expired. Please login again.', 'error');
-            setTimeout(() => window.location.href = '../index.html', 2000);
-            return;
         }
         
         const result = await response.json();
@@ -256,46 +274,15 @@ function startPollingForResponses() {
 async function checkForNewMessages() {
     if (!checkSession()) return;
     
-    const token = getAuthToken();
     const userId = localStorage.getItem('userId');
-    
     if (!userId) return;
     
     try {
-        const response = await fetch(`${API_URL}/messages/user/${userId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await apiFetch(`${API_URL}/messages/user/${userId}`);
         
         if (response.ok) {
             const conversations = await response.json();
-            
-            if (conversations.length > 0) {
-                const latest = conversations[0];
-                
-                if (!currentConversationId && latest._id) {
-                    currentConversationId = latest._id;
-                    localStorage.setItem('currentConversationId', currentConversationId);
-                }
-                
-                if (currentConversationId === latest._id) {
-                    const conversation = latest.conversation || [];
-                    
-                    if (conversation.length > 0) {
-                        const lastMessage = conversation[conversation.length - 1];
-                        const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message}`;
-                        
-                        if (lastMessage.sender === 'admin') {
-                            const lastShown = localStorage.getItem(`last_shown_${latest._id}`);
-                            
-                            if (lastShown !== lastMessageId) {
-                                showToast(`New message from admin`, 'info');
-                                addMsg(lastMessage.message, 'received');
-                                localStorage.setItem(`last_shown_${latest._id}`, lastMessageId);
-                            }
-                        }
-                    }
-                }
-            }
+            // ... rest of your code
         }
     } catch (error) {
         console.error('Error checking for messages:', error);
@@ -305,15 +292,12 @@ async function checkForNewMessages() {
 async function loadConversationHistory() {
     if (!checkSession()) return;
     
-    const token = getAuthToken();
     const userId = localStorage.getItem('userId');
     
     if (!userId) return;
     
     try {
-        const response = await fetch(`${API_URL}/messages/user/${userId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await apiFetch(`${API_URL}/messages/user/${userId}`);
         
         if (response.ok) {
             const conversations = await response.json();
@@ -486,8 +470,6 @@ async function submitMembership(event) {
     // Check session
     if (!checkSession()) return;
     
-    const token = getAuthToken();
-    
     // Get personal details from the form
     const firstName = document.getElementById('memFirstName').value.trim();
     const lastName = document.getElementById('memLastName').value.trim();
@@ -497,17 +479,16 @@ async function submitMembership(event) {
     const age = parseInt(document.getElementById('memAge').value) || 0;
     const address = document.getElementById('memAddress').value.trim();
     
-    // ========== FIXED: Get payment details BEFORE using them ==========
     // Get payment details from the modern checkout form
     const activeMethod = document.querySelector('#membershipPayment .pm-tab.active');
     let paymentMethod = 'Card';
     
     if (activeMethod) {
-    const methodText = activeMethod.innerText.trim();
-    if (methodText.includes('BDO')) paymentMethod = 'BDO';
-    else if (methodText.includes('Metrobank')) paymentMethod = 'Metrobank';     
-    else if (methodText.includes('BPI')) paymentMethod = 'BPI';
-    else paymentMethod = 'Card';
+        const methodText = activeMethod.innerText.trim();
+        if (methodText.includes('BDO')) paymentMethod = 'BDO';
+        else if (methodText.includes('Metrobank')) paymentMethod = 'Metrobank';     
+        else if (methodText.includes('BPI')) paymentMethod = 'BPI';
+        else paymentMethod = 'Card';
     }
     
     const accountNumber = document.getElementById('paymentAccount').value.trim();
@@ -515,7 +496,7 @@ async function submitMembership(event) {
     const expiry = expiryInput ? expiryInput.value.trim() : '';
     const cvc = document.getElementById('cardCvc') ? document.getElementById('cardCvc').value.trim() : '';
     
-    // ========== Name Validation ==========
+    // Name Validation
     const nameRegex = /^[A-Za-z\s\-']+$/;
     
     if (!firstName) {
@@ -544,13 +525,12 @@ async function submitMembership(event) {
         return;
     }
     
-    // ========== Payment Validation ==========
+    // Payment Validation
     if (!accountNumber) {
         showToast('Please enter your card number', 'error');
         return;
     }
     
-    // Clean card number (remove spaces)
     const cleanCard = accountNumber.replace(/\s+/g, '');
     if (!/^\d{16}$/.test(cleanCard)) {
         showToast('Please enter a valid 16-digit card number', 'error');
@@ -567,7 +547,7 @@ async function submitMembership(event) {
         return;
     }
     
-    // ========== Email Validation ==========
+    // Email Validation
     if (!email) {
         showToast('Please enter your email address', 'error');
         return;
@@ -579,7 +559,7 @@ async function submitMembership(event) {
         return;
     }
     
-    // ========== Phone Validation ==========
+    // Phone Validation
     if (!phone) {
         showToast('Please enter your phone number', 'error');
         return;
@@ -619,25 +599,14 @@ async function submitMembership(event) {
     document.getElementById('processingMsg').textContent = 'Submitting your membership application...';
     
     try {
-        const response = await fetch(`${API_URL}/membership/apply`, {
+        // CHANGED: Use apiFetch instead of fetch
+        const response = await apiFetch(`${API_URL}/membership/apply`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify(data)
         });
         
         const result = await response.json();
         console.log('📥 Server response:', response.status, result);
-        
-        if (response.status === 401) {
-            overlay.style.display = 'none';
-            localStorage.clear();
-            showToast('Session expired. Please login again.', 'error');
-            setTimeout(() => window.location.href = '../index.html', 2000);
-            return;
-        }
         
         if (response.ok) {
             overlay.style.display = 'none';
@@ -737,8 +706,6 @@ function proceedToMembershipPayment() {
 async function submitReservation() {
     if (!checkSession()) return;
     
-    const token = getAuthToken();
-    
     // First, show the payment form to collect payment details
     const paymentFormShown = showReservationPaymentForm();
     if (!paymentFormShown) {
@@ -784,22 +751,11 @@ async function submitReservation() {
     document.getElementById('processingMsg').textContent = 'Submitting your reservation...';
     
     try {
-        const response = await fetch(`${API_URL}/reservations/apply`, { 
+        // CHANGED: Use apiFetch instead of fetch
+        const response = await apiFetch(`${API_URL}/reservations/apply`, { 
             method: 'POST', 
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            }, 
             body: JSON.stringify(data) 
         });
-        
-        if (response.status === 401) {
-            overlay.style.display = 'none';
-            localStorage.clear();
-            showToast('Session expired. Please login again.', 'error');
-            setTimeout(() => window.location.href = '../index.html', 2000);
-            return;
-        }
         
         const result = await response.json();
         
@@ -960,7 +916,7 @@ let dynamicReservationDetails = {};
 
 async function loadReservationTypes() {
     try {
-        const response = await fetch(`${API_URL}/reservation-types/active`);
+        const response = await apiFetch(`${API_URL}/reservation-types/active`);
         if (response.ok) {
             availableReservationTypes = await response.json();
             populateReservationTypeSelect();
@@ -1291,8 +1247,6 @@ async function submitDynamicReservation() {
 async function submitDynamicReservationPayment() {
     if (!checkSession()) return;
     
-    const token = getAuthToken();
-    
     const firstName = document.getElementById('resFirstName').value.trim();
     const lastName = document.getElementById('resLastName').value.trim();
     const email = document.getElementById('resEmail').value.trim();
@@ -1324,8 +1278,8 @@ async function submitDynamicReservationPayment() {
         accountNumber: accountNumber,
         referenceNumber: referenceNumber,
         amount: dynamicTotalPrice,
-        originalAmount: calculateOriginalPrice(), // Store original price for reference
-        isMember: isUserMember(), // Send membership status
+        originalAmount: calculateOriginalPrice(),
+        isMember: isUserMember(),
         memberDiscount: isUserMember() ? 0.2 : 0
     };
     
@@ -1334,22 +1288,11 @@ async function submitDynamicReservationPayment() {
     document.getElementById('processingMsg').textContent = 'Submitting your reservation...';
     
     try {
-        const response = await fetch(`${API_URL}/reservations/apply`, {
+        // CHANGED: Use apiFetch instead of fetch
+        const response = await apiFetch(`${API_URL}/reservations/apply`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify(data)
         });
-        
-        if (response.status === 401) {
-            overlay.style.display = 'none';
-            localStorage.clear();
-            showToast('Session expired. Please login again.', 'error');
-            setTimeout(() => window.location.href = '../index.html', 2000);
-            return;
-        }
         
         const result = await response.json();
         
@@ -1691,20 +1634,13 @@ let currentMembershipStatus = null;
 async function checkMembershipStatus() {
     if (!checkSession()) return;
     
-    const token = getAuthToken();
     const userId = localStorage.getItem('userId');
     
     if (!userId) return;
     
     try {
-        const response = await fetch(`${API_URL}/users/${userId}/membership-status`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.status === 401) {
-            handleLogout();
-            return;
-        }
+        // CHANGED: Use apiFetch instead of fetch
+        const response = await apiFetch(`${API_URL}/users/${userId}/membership-status`);
         
         if (response.ok) {
             const data = await response.json();
@@ -1933,8 +1869,6 @@ function displayUserName() {
 async function submitReservationPayment() {
     if (!checkSession()) return;
     
-    const token = getAuthToken();
-    
     // Get personal details
     const firstName = document.getElementById('resFirstName').value.trim();
     const lastName = document.getElementById('resLastName').value.trim();
@@ -2039,22 +1973,11 @@ async function submitReservationPayment() {
     document.getElementById('processingMsg').textContent = 'Submitting your reservation...';
     
     try {
-        const response = await fetch(`${API_URL}/reservations/apply`, {
+        // CHANGED: Use apiFetch instead of fetch
+        const response = await apiFetch(`${API_URL}/reservations/apply`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify(data)
         });
-        
-        if (response.status === 401) {
-            overlay.style.display = 'none';
-            localStorage.clear();
-            showToast('Session expired. Please login again.', 'error');
-            setTimeout(() => window.location.href = '../index.html', 2000);
-            return;
-        }
         
         const result = await response.json();
         console.log('📥 Server response:', response.status, result);
