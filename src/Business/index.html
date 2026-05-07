@@ -897,6 +897,7 @@
         document.getElementById('registerModal').style.display = 'flex';
         document.body.style.overflow = 'hidden';
         generateCaptcha();
+        document.getElementById('captchaInput').value = '';
     }
 
     function closeRegisterModal() {
@@ -925,11 +926,11 @@
         const captchaInput = document.getElementById('captchaInput').value.trim();
         const termsCheckbox = document.getElementById('terms');
 
-        // Check CAPTCHA first
-        if (captchaInput !== currentCaptcha) { 
-            showRegisterError('Invalid CAPTCHA code. Please try again.'); 
-            refreshCaptcha(); 
-            return; 
+        // Check CAPTCHA first (case-insensitive, trimmed)
+        if (captchaInput.trim().toUpperCase() !== currentCaptcha.trim().toUpperCase()) {
+            showRegisterError('Invalid CAPTCHA code. Please try again.');
+            refreshCaptcha();
+            return;
         }
 
         // Validate password
