@@ -712,12 +712,46 @@
     
     // Real-time validation
     document.addEventListener('DOMContentLoaded', () => {
-        generateCaptcha();
+    generateCaptcha();
+    
+    const emailInput = document.getElementById('regEmail');
+    const passwordInput = document.getElementById('regPassword');
+    const confirmInput = document.getElementById('regConfirmPassword');
+    const usernameInput = document.getElementById('regUsername');
+    const fullNameInput = document.getElementById('regFullName');
+    
+    // ========== NEW: Real-time name validation ==========
+    if (fullNameInput) {
+        const nameErrorSpan = document.createElement('span');
+        nameErrorSpan.className = 'error-msg';
+        nameErrorSpan.id = 'nameError';
+        fullNameInput.parentNode.appendChild(nameErrorSpan);
         
-        const emailInput = document.getElementById('regEmail');
-        const passwordInput = document.getElementById('regPassword');
-        const confirmInput = document.getElementById('regConfirmPassword');
-        const usernameInput = document.getElementById('regUsername');
+        fullNameInput.addEventListener('input', () => {
+            const nameValue = fullNameInput.value.trim();
+            const nameRegex = /^[A-Za-z\s\-']*$/; // * allows empty during typing
+            const nameErrorSpan = document.getElementById('nameError');
+            
+            if (nameValue && !nameRegex.test(nameValue)) {
+                nameErrorSpan.textContent = '✗ Only letters, spaces, hyphens, and apostrophes allowed';
+                nameErrorSpan.style.color = '#ff9999';
+                fullNameInput.style.border = '1px solid #ff9999';
+            } else if (nameValue && nameValue.length < 2) {
+                nameErrorSpan.textContent = '✗ Name must be at least 2 characters';
+                nameErrorSpan.style.color = '#ff9999';
+                fullNameInput.style.border = '1px solid #ff9999';
+            } else {
+                nameErrorSpan.textContent = '✓ Valid name';
+                nameErrorSpan.style.color = '#90EE90';
+                fullNameInput.style.border = '1px solid #90EE90';
+            }
+            
+            if (!nameValue) {
+                nameErrorSpan.textContent = '';
+                fullNameInput.style.border = '';
+            }
+        });
+    }
         
         // Email real-time validation with debounce
         if (emailInput) {
@@ -931,155 +965,187 @@
     }
 
     async function handleRegister(e) {
-        e.preventDefault();
-        
-        // Basic field validation
-        const fullName = document.getElementById('regFullName').value.trim();
-        const nameParts = fullName.split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-        const email = document.getElementById('regEmail').value.trim();
-        let phone = document.getElementById('regPhone').value.trim();
-        const username = document.getElementById('regUsername').value.trim();
-        const password = document.getElementById('regPassword').value;
-        const confirmPassword = document.getElementById('regConfirmPassword').value;
-        const captchaInput = document.getElementById('captchaInput').value.trim();
-        const termsCheckbox = document.getElementById('terms');
-
-        // Check required fields
-        if (!firstName || !lastName) {
-            showRegisterError('Please enter your full name');
-            return;
-        }
-
-        // Check CAPTCHA
-        if (captchaInput.toUpperCase() !== currentCaptcha.toUpperCase()) {
-            showRegisterError('Invalid CAPTCHA code. Please try again.');
-            refreshCaptcha();
-            return;
-        }
-
-        // Validate password
-        if (password.length < 6) {
-            showRegisterError('Password must be at least 6 characters');
-            return;
-        }
-
-        // Check passwords match
-        if (password !== confirmPassword) {
-            showRegisterError('Passwords do not match');
-            return;
-        }
-
-        // Check terms accepted
-        if (!termsCheckbox.checked) {
-            showRegisterError('Please accept the Terms & Conditions');
-            return;
-        }
-
-        // Clean phone number (remove spaces, dashes, parentheses, plus sign)
-        phone = phone.replace(/[\s\-\(\)\+]/g, '');
-        if (!phone || phone.length < 10) {
-            showRegisterError('Please enter a valid phone number');
-            return;
-        }
-
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            showRegisterError('Please enter a valid email address');
-            return;
-        }
-
-        // Check username length
-        if (username.length < 3) {
-            showRegisterError('Username must be at least 3 characters');
-            return;
-        }
-
-        // Check email availability
-        if (!isEmailAvailable) {
-            showRegisterError('The email you entered is already registered. Please use a different email.');
-            return;
-        }
-
-        // Check username availability
-        if (!isUsernameAvailable) {
-            showRegisterError('The username you entered is already taken. Please choose a different username.');
-            return;
-        }
-
-        const registerBtn = document.getElementById('registerBtn');
-        const btnText = document.getElementById('registerBtnText');
-        const btnLoader = document.getElementById('registerLoader');
-        registerBtn.disabled = true;
-        btnText.style.display = 'none';
-        btnLoader.style.display = 'inline';
-
-        try {
-            const response = await fetch(`${API_URL}/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    firstName,
-                    lastName,
-                    email: email.toLowerCase(),
-                    phone: phone,
-                    username: username.toLowerCase(),
-                    password,
-                    captcha: captchaInput
-                })
-            });
-
-            const data = await response.json();
-            console.log('Registration response:', response.status, data);
-
-            if (response.ok) {
-                showToast('Account created successfully! Please log in.', 'success');
-                closeRegisterModal();
-                // Reset form
-                document.getElementById('regFullName').value = '';
-                document.getElementById('regEmail').value = '';
-                document.getElementById('regPhone').value = '';
-                document.getElementById('regUsername').value = '';
-                document.getElementById('regPassword').value = '';
-                document.getElementById('regConfirmPassword').value = '';
-                document.getElementById('captchaInput').value = '';
-                document.getElementById('terms').checked = false;
-                document.getElementById('emailError').textContent = '';
-                document.getElementById('usernameError').textContent = '';
-            } else {
-                let errorMsg = data.message || 'Registration failed';
-
-                if (data.errors && data.errors.length > 0) {
-                    errorMsg = data.errors.map(err => err.msg).join(', ');
-                }
-
-                if (data.field === 'email') {
-                    errorMsg = data.message || 'This email is already registered';
-                    isEmailAvailable = false;
-                    document.getElementById('emailError').textContent = '✗ ' + errorMsg;
-                    document.getElementById('emailError').style.color = '#ff9999';
-                } else if (data.field === 'username') {
-                    errorMsg = data.message || 'This username is already taken';
-                    isUsernameAvailable = false;
-                    document.getElementById('usernameError').textContent = '✗ ' + errorMsg;
-                    document.getElementById('usernameError').style.color = '#ff9999';
-                }
-
-                showRegisterError(errorMsg);
-                refreshCaptcha();
-            }
-        } catch (error) {
-            console.error('Registration error:', error);
-            showRegisterError('Connection error. Please try again.');
-            refreshCaptcha();
-        } finally {
-            registerBtn.disabled = false;
-            btnText.style.display = 'inline';
-            btnLoader.style.display = 'none';
-        }
+    e.preventDefault();
+    
+    // Basic field validation
+    const fullName = document.getElementById('regFullName').value.trim();
+    
+    // ========== NEW: NAME VALIDATION ==========
+    // Only allow letters, spaces, hyphens, and apostrophes
+    const nameRegex = /^[A-Za-z\s\-']+$/;
+    if (!nameRegex.test(fullName)) {
+        showRegisterError('Please enter a valid name (letters, spaces, hyphens, and apostrophes only). No special characters or numbers allowed.');
+        return;
     }
+    
+    // Also check minimum length
+    if (fullName.length < 2) {
+        showRegisterError('Name must be at least 2 characters');
+        return;
+    }
+    
+    // Split name into parts for firstName and lastName
+    const nameParts = fullName.split(' ');
+    const firstName = nameParts[0] || '';
+    // Join remaining parts as lastName (supports multiple last names like "De La Cruz")
+    const lastName = nameParts.slice(1).join(' ') || '';
+    
+    // Validate each name part individually
+    const validateNamePart = (name, partName) => {
+        if (!name || name.length === 0) {
+            showRegisterError(`Please enter a valid ${partName}`);
+            return false;
+        }
+        if (!/^[A-Za-z\s\-']+$/.test(name)) {
+            showRegisterError(`${partName} contains invalid characters. Use letters, spaces, hyphens, or apostrophes only.`);
+            return false;
+        }
+        if (name.length < 1) {
+            showRegisterError(`${partName} must have at least 1 character`);
+            return false;
+        }
+        return true;
+    };
+    
+    if (!validateNamePart(firstName, 'first name')) return;
+    if (!validateNamePart(lastName, 'last name')) return;
+    
+    const email = document.getElementById('regEmail').value.trim();
+    let phone = document.getElementById('regPhone').value.trim();
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regConfirmPassword').value;
+    const captchaInput = document.getElementById('captchaInput').value.trim();
+    const termsCheckbox = document.getElementById('terms');
+
+    // Check CAPTCHA
+    if (captchaInput.toUpperCase() !== currentCaptcha.toUpperCase()) {
+        showRegisterError('Invalid CAPTCHA code. Please try again.');
+        refreshCaptcha();
+        return;
+    }
+
+    // Validate password
+    if (password.length < 6) {
+        showRegisterError('Password must be at least 6 characters');
+        return;
+    }
+
+    // Check passwords match
+    if (password !== confirmPassword) {
+        showRegisterError('Passwords do not match');
+        return;
+    }
+
+    // Check terms accepted
+    if (!termsCheckbox.checked) {
+        showRegisterError('Please accept the Terms & Conditions');
+        return;
+    }
+
+    // Clean phone number (remove spaces, dashes, parentheses, plus sign)
+    phone = phone.replace(/[\s\-\(\)\+]/g, '');
+    if (!phone || phone.length < 10) {
+        showRegisterError('Please enter a valid phone number');
+        return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showRegisterError('Please enter a valid email address');
+        return;
+    }
+
+    // Check username length
+    if (username.length < 3) {
+        showRegisterError('Username must be at least 3 characters');
+        return;
+    }
+
+    // Check email availability
+    if (!isEmailAvailable) {
+        showRegisterError('The email you entered is already registered. Please use a different email.');
+        return;
+    }
+
+    // Check username availability
+    if (!isUsernameAvailable) {
+        showRegisterError('The username you entered is already taken. Please choose a different username.');
+        return;
+    }
+
+    const registerBtn = document.getElementById('registerBtn');
+    const btnText = document.getElementById('registerBtnText');
+    const btnLoader = document.getElementById('registerLoader');
+    registerBtn.disabled = true;
+    btnText.style.display = 'none';
+    btnLoader.style.display = 'inline';
+
+    try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                firstName,
+                lastName,
+                email: email.toLowerCase(),
+                phone: phone,
+                username: username.toLowerCase(),
+                password,
+                captcha: captchaInput
+            })
+        });
+
+        const data = await response.json();
+        console.log('Registration response:', response.status, data);
+
+        if (response.ok) {
+            showToast('Account created successfully! Please log in.', 'success');
+            closeRegisterModal();
+            // Reset form
+            document.getElementById('regFullName').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPhone').value = '';
+            document.getElementById('regUsername').value = '';
+            document.getElementById('regPassword').value = '';
+            document.getElementById('regConfirmPassword').value = '';
+            document.getElementById('captchaInput').value = '';
+            document.getElementById('terms').checked = false;
+            document.getElementById('emailError').textContent = '';
+            document.getElementById('usernameError').textContent = '';
+        } else {
+            let errorMsg = data.message || 'Registration failed';
+
+            if (data.errors && data.errors.length > 0) {
+                errorMsg = data.errors.map(err => err.msg).join(', ');
+            }
+
+            if (data.field === 'email') {
+                errorMsg = data.message || 'This email is already registered';
+                isEmailAvailable = false;
+                document.getElementById('emailError').textContent = '✗ ' + errorMsg;
+                document.getElementById('emailError').style.color = '#ff9999';
+            } else if (data.field === 'username') {
+                errorMsg = data.message || 'This username is already taken';
+                isUsernameAvailable = false;
+                document.getElementById('usernameError').textContent = '✗ ' + errorMsg;
+                document.getElementById('usernameError').style.color = '#ff9999';
+            }
+
+            showRegisterError(errorMsg);
+            refreshCaptcha();
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        showRegisterError('Connection error. Please try again.');
+        refreshCaptcha();
+    } finally {
+        registerBtn.disabled = false;
+        btnText.style.display = 'inline';
+        btnLoader.style.display = 'none';
+    }
+}
 
     // Run session check on page load
     checkExistingSession();
