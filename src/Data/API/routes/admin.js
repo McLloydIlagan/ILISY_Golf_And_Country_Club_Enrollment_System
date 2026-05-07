@@ -372,4 +372,50 @@ router.post('/applications/:appId/reject', async (req, res) => {
     }
 });
 
+router.get('/reservations/calendar', async (req, res) => {
+    try {
+        const { year, month } = req.query;
+        const targetDate = new Date();
+        
+        let startDate, endDate;
+        
+        if (year && month) {
+            startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+            endDate = new Date(parseInt(year), parseInt(month), 0);
+        } else {
+            // Default to current month
+            startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+            endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
+        }
+        
+        const reservations = await Reservation.find({
+            date: { $gte: startDate, $lte: endDate },
+            status: { $in: ['confirmed', 'approved'] }
+        }).select('date timeSlot firstName lastName status');
+        
+        res.json(reservations);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Get reservations by specific date
+router.get('/reservations/by-date/:date', async (req, res) => {
+    try {
+        const { date } = req.params;
+        const startDate = new Date(date);
+        const endDate = new Date(date);
+        endDate.setDate(endDate.getDate() + 1);
+        
+        const reservations = await Reservation.find({
+            date: { $gte: startDate, $lt: endDate },
+            status: { $in: ['confirmed', 'approved'] }
+        }).select('date timeSlot firstName lastName status phone email');
+        
+        res.json(reservations);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;
