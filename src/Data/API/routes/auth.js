@@ -29,7 +29,6 @@ router.post('/register', [
         console.log('Checking for existing user with email:', normalizedEmail);
         console.log('Checking for existing user with username:', normalizedUsername);
 
-        // SIMPLIFIED: Use findOne with lowercase comparison
         // Check email first
         const existingEmail = await User.findOne({ email: normalizedEmail });
         if (existingEmail) {
@@ -92,7 +91,7 @@ router.post('/register', [
     }
 });
 
-// 1.0 Login Account > Access Homepage
+// 1.0 Login Account - Case-Insensitive Version
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -103,13 +102,16 @@ router.post('/login', async (req, res) => {
 
         const normalizedInput = username.trim().toLowerCase();
         
-        // Query with case-insensitive search
+        // Case-insensitive search for username, exact match for email
         const user = await User.findOne({
             $or: [
-                { username: normalizedInput },
+                { username: { $regex: `^${normalizedInput}$`, $options: 'i' } }, // Case-insensitive
                 { email: normalizedInput }
             ]
         });
+
+        console.log('Login attempt:', { input: username, normalized: normalizedInput });
+        console.log('User found:', user ? { username: user.username, email: user.email } : 'No user');
 
         if (!user || !(await user.comparePassword(password))) {
             return res.status(401).json({ message: 'Invalid credentials' });
@@ -196,6 +198,19 @@ router.post('/check-username', async (req, res) => {
     } catch (error) {
         console.error('Error checking username:', error);
         res.status(500).json({ available: false, message: error.message });
+    }
+});
+
+// DEBUG: Get all users (remove in production)
+router.get('/debug-users', async (req, res) => {
+    try {
+        const users = await User.find({}, 'email username firstName lastName isAdmin');
+        res.json({ 
+            count: users.length,
+            users: users 
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 });
 
