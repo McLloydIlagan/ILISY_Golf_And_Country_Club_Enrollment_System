@@ -242,27 +242,44 @@
         .reg-card {
             position: relative;
             background: rgba(13,43,15,0.97);
-            padding: 45px 40px; border-radius: 10px;
-            width: 100%; max-width: 500px;
+            /* CHANGED: Reduced padding from 45px 40px to 25px 35px */
+            padding: 25px 35px; 
+            border-radius: 10px;
+            width: 100%; 
+            /* CHANGED: Increased max-width from 500px to 600px for 2-column fit */
+            max-width: 600px; 
             border-top: 4px solid var(--gold);
             text-align: center;
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
             margin: auto;
         }
         .reg-card h2 { color: var(--gold); font-size: 26px; letter-spacing: 2px; margin-bottom: 8px; }
-        .reg-card .sub { font-size: 14px; margin-bottom: 28px; color: #ccc; }
+        /* CHANGED: Reduced margin-bottom from 28px to 15px */
+        .reg-card .sub { font-size: 14px; margin-bottom: 15px; color: #ccc; } 
         .reg-close-btn {
             position: absolute; top: 14px; right: 18px;
             background: none; border: none; color: #aaa;
             font-size: 22px; cursor: pointer; line-height: 1;
         }
         .reg-close-btn:hover { color: white; }
-        .input-group { text-align: left; margin-bottom: 14px; }
+        
+        /* NEW: Added this block for the 2-column layout */
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+        .form-row .input-group {
+            flex: 1; 
+        }
+
+        /* CHANGED: Reduced margin-bottom from 14px to 10px */
+        .input-group { text-align: left; margin-bottom: 10px; } 
         .input-group label { display: block; font-size: 12px; margin-bottom: 5px; color: var(--gold); }
         .input-group input {
-            width: 100%; padding: 10px 12px; border: none;
+            /* CHANGED: Reduced padding from 10px to 8px and font to 13px */
+            width: 100%; padding: 8px 12px; border: none; 
             background: #f0f0f0; border-radius: 3px; color: #000;
-            font-family: "Georgia", serif; font-size: 14px; outline: none;
+            font-family: "Georgia", serif; font-size: 13px; outline: none;
             transition: background 0.2s;
         }
         .input-group input:focus { background: #e0e0e0; }
@@ -429,57 +446,68 @@
         <p class="sub">Please enter your personal details below.</p>
         <div id="regError" style="background: #9c403d; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 13px;"></div>
         <form onsubmit="handleRegister(event)">
-            <div class="input-group">
-                <label>Full Name *</label>
-                <input type="text" id="regFullName" placeholder="Enter your full name" required>
+    <div class="form-row">
+        <div class="input-group">
+            <label>Full Name *</label>
+            <input type="text" id="regFullName" placeholder="Enter your full name" required>
+        </div>
+        <div class="input-group">
+            <label>Username *</label>
+            <input type="text" id="regUsername" placeholder="Choose a username" required>
+            <span class="error-msg" id="usernameError"></span>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="input-group">
+            <label>Email Address *</label>
+            <input type="email" id="regEmail" placeholder="email@example.com" required>
+            <span class="error-msg" id="emailError"></span>
+        </div>
+        <div class="input-group">
+            <label>Phone Number *</label>
+            <input type="tel" id="regPhone" placeholder="+63 000 000 0000" required>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="input-group">
+            <label>Password *</label>
+            <div class="pw-wrap">
+                <input type="password" id="regPassword" placeholder="Min 6 chars" required>
+                <button type="button" class="pw-toggle" onmousedown="event.preventDefault()" onclick="togglePw('regPassword', this)">👁</button>
             </div>
-            <div class="input-group">
-                <label>Email Address *</label>
-                <input type="email" id="regEmail" placeholder="email@example.com" required>
-                <span class="error-msg" id="emailError"></span>
+            <span class="error-msg" id="passwordError"></span>
+        </div>
+        <div class="input-group">
+            <label>Confirm Password *</label>
+            <div class="pw-wrap">
+                <input type="password" id="regConfirmPassword" placeholder="••••••••" required>
+                <button type="button" class="pw-toggle" onmousedown="event.preventDefault()" onclick="togglePw('regConfirmPassword', this)">👁</button>
             </div>
-            <div class="input-group">
-                <label>Phone Number *</label>
-                <input type="tel" id="regPhone" placeholder="+63 000 000 0000" required>
-            </div>
-            <div class="input-group">
-                <label>Username *</label>
-                <input type="text" id="regUsername" placeholder="Choose a username" required>
-                <span class="error-msg" id="usernameError"></span>
-            </div>
-            <div class="input-group">
-                <label>Password *</label>
-                <div class="pw-wrap">
-                    <input type="password" id="regPassword" placeholder="Minimum 6 characters" required>
-                    <button type="button" class="pw-toggle" onmousedown="event.preventDefault()" onclick="togglePw('regPassword', this)">👁</button>
-                </div>
-                <span class="error-msg" id="passwordError"></span>
-            </div>
-            <div class="input-group">
-                <label>Confirm Password *</label>
-                <div class="pw-wrap">
-                    <input type="password" id="regConfirmPassword" placeholder="••••••••" required>
-                    <button type="button" class="pw-toggle" onmousedown="event.preventDefault()" onclick="togglePw('regConfirmPassword', this)">👁</button>
-                </div>
-                <span class="error-msg" id="confirmError"></span>
-            </div>
-            <div class="input-group">
-                <label>CAPTCHA *</label>
-                <div class="captcha-container">
-                    <div class="captcha-code" id="captchaCode">ABCD12</div>
-                    <button type="button" class="refresh-captcha" onclick="refreshCaptcha()">⟳</button>
-                </div>
-                <input type="text" id="captchaInput" placeholder="Enter the code above" style="margin-top: 8px;" required>
-            </div>
-            <div class="terms-row">
-                <input type="checkbox" id="terms" required>
-                <label for="terms">By clicking the checkbox, you <a onclick="document.getElementById('termsModal').style.display='flex'">Accept the Terms &amp; Conditions</a></label>
-            </div>
-            <button type="submit" class="btn-reg" id="registerBtn">
-                <span id="registerBtnText">Sign Up</span>
-                <span id="registerLoader" style="display:none;">⏳ Processing...</span>
-            </button>
-        </form>
+            <span class="error-msg" id="confirmError"></span>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label>CAPTCHA *</label>
+        <div class="captcha-container">
+            <div class="captcha-code" id="captchaCode">ABCD12</div>
+            <button type="button" class="refresh-captcha" onclick="refreshCaptcha()">⟳</button>
+            <input type="text" id="captchaInput" placeholder="Enter the code above" required style="margin-top:0; margin-left: 10px; flex: 2;">
+        </div>
+    </div>
+
+    <div class="terms-row">
+        <input type="checkbox" id="terms" required>
+        <label for="terms">By clicking the checkbox, you <a onclick="document.getElementById('termsModal').style.display='flex'">Accept the Terms &amp; Conditions</a></label>
+    </div>
+    
+    <button type="submit" class="btn-reg" id="registerBtn">
+        <span id="registerBtnText">Sign Up</span>
+        <span id="registerLoader" style="display:none;">⏳ Processing...</span>
+    </button>
+    </form>
         <div class="reg-divider"><span>or</span></div>
         <button class="btn-google-reg" onclick="alert('Google sign up coming soon!')">&#x1F310; Sign up with Google</button>
         <div class="footer-link">Already have an account? <a onclick="closeRegisterModal()">Sign in</a></div>
@@ -1035,12 +1063,6 @@
         }
     }
 
-    // Close register modal on overlay click
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('registerModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('registerModal')) closeRegisterModal();
-        });
-    });
 
     // Run session check on page load
     checkExistingSession();
