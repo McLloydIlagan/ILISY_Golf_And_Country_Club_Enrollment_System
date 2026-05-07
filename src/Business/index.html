@@ -436,6 +436,7 @@
             <div class="input-group">
                 <label>Email Address *</label>
                 <input type="email" id="regEmail" placeholder="email@example.com" required>
+                <span class="error-msg" id="emailError"></span>
             </div>
             <div class="input-group">
                 <label>Phone Number *</label>
@@ -530,6 +531,14 @@
     
     // Current CAPTCHA value
     let currentCaptcha = '';
+
+    // Debounce timers for email and username validation
+    let emailCheckTimer = null;
+    let usernameCheckTimer = null;
+    
+    // Track which fields have been validated
+    let isEmailAvailable = false;
+    let isUsernameAvailable = false;
     
     // Generate random CAPTCHA
     function generateCaptcha() {
@@ -574,14 +583,168 @@
         }
         return null;
     }
+
+    // Check if email is already registered in database
+    async function checkEmailAvailability(email) {
+        if (!email || !email.includes('@')) {
+            document.getElementById('emailError').textContent = '';
+            isEmailAvailable = false;
+            return false;
+        }
+
+        try {
+            console.log('🔍 Checking email availability:', email);
+            const response = await fetch(`${API_URL}/auth/check-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email.toLowerCase() })
+            });
+
+            console.log('📡 Email check response status:', response.status);
+            const data = await response.json();
+            console.log('📊 Email check data:', data);
+
+            const emailErrorDiv = document.getElementById('emailError');
+
+            if (response.ok) {
+                if (data.available === false) {
+                    emailErrorDiv.textContent = '✗ This email is already registered';
+                    emailErrorDiv.style.color = '#ff9999';
+                    isEmailAvailable = false;
+                    console.log('❌ Email already exists in database');
+                    return false;
+                } else {
+                    emailErrorDiv.textContent = '✓ Email is available';
+                    emailErrorDiv.style.color = '#90EE90';
+                    isEmailAvailable = true;
+                    console.log('✅ Email is available');
+                    return true;
+                }
+            } else {
+                console.error('❌ Email check error status:', response.status);
+                emailErrorDiv.textContent = '⚠ Unable to verify email. Please try again.';
+                emailErrorDiv.style.color = '#ff9999';
+                isEmailAvailable = false;
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Email check error:', error);
+            document.getElementById('emailError').textContent = '⚠ Connection error. Please try again.';
+            document.getElementById('emailError').style.color = '#ff9999';
+            isEmailAvailable = false;
+            return false;
+        }
+    }
+
+    // Check if username is already taken in database
+    async function checkUsernameAvailability(username) {
+        if (!username || username.length < 3) {
+            document.getElementById('usernameError').textContent = 'Username must be at least 3 characters';
+            isUsernameAvailable = false;
+            return false;
+        }
+
+        try {
+            console.log('🔍 Checking username availability:', username);
+            const response = await fetch(`${API_URL}/auth/check-username`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username.toLowerCase() })
+            });
+
+            console.log('📡 Username check response status:', response.status);
+            const data = await response.json();
+            console.log('📊 Username check data:', data);
+
+            const usernameErrorDiv = document.getElementById('usernameError');
+
+            if (response.ok) {
+                if (data.available === false) {
+                    usernameErrorDiv.textContent = '✗ This username is already taken';
+                    usernameErrorDiv.style.color = '#ff9999';
+                    isUsernameAvailable = false;
+                    console.log('❌ Username already exists in database');
+                    return false;
+                } else {
+                    usernameErrorDiv.textContent = '✓ Username is available';
+                    usernameErrorDiv.style.color = '#90EE90';
+                    isUsernameAvailable = true;
+                    console.log('✅ Username is available');
+                    return true;
+                }
+            } else {
+                console.error('❌ Username check error status:', response.status);
+                usernameErrorDiv.textContent = '⚠ Unable to verify username. Please try again.';
+                usernameErrorDiv.style.color = '#ff9999';
+                isUsernameAvailable = false;
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Username check error:', error);
+            document.getElementById('usernameError').textContent = '⚠ Connection error. Please try again.';
+            document.getElementById('usernameError').style.color = '#ff9999';
+            isUsernameAvailable = false;
+            return false;
+        }
+    }
     
     // Real-time validation
     document.addEventListener('DOMContentLoaded', () => {
         generateCaptcha();
         
+        const emailInput = document.getElementById('regEmail');
         const passwordInput = document.getElementById('regPassword');
         const confirmInput = document.getElementById('regConfirmPassword');
         const usernameInput = document.getElementById('regUsername');
+        
+        // Email real-time validation with debounce
+        if (emailInput) {
+            emailInput.addEventListener('input', () => {
+                clearTimeout(emailCheckTimer);
+                const emailErrorDiv = document.getElementById('emailError');
+                
+                if (!emailInput.value) {
+                    emailErrorDiv.textContent = '';
+                    isEmailAvailable = false;
+                    return;
+                }
+
+                emailErrorDiv.textContent = '⏳ Checking...';
+                emailErrorDiv.style.color = '#c5a96b';
+                
+                emailCheckTimer = setTimeout(() => {
+                    checkEmailAvailability(emailInput.value.trim());
+                }, 500);
+            });
+        }
+        
+        // Username real-time validation with debounce
+        if (usernameInput) {
+            usernameInput.addEventListener('input', () => {
+                clearTimeout(usernameCheckTimer);
+                const usernameErrorDiv = document.getElementById('usernameError');
+                
+                if (!usernameInput.value) {
+                    usernameErrorDiv.textContent = '';
+                    isUsernameAvailable = false;
+                    return;
+                }
+
+                if (usernameInput.value.length < 3) {
+                    usernameErrorDiv.textContent = 'Username must be at least 3 characters';
+                    usernameErrorDiv.style.color = '#ff9999';
+                    isUsernameAvailable = false;
+                    return;
+                }
+
+                usernameErrorDiv.textContent = '⏳ Checking...';
+                usernameErrorDiv.style.color = '#c5a96b';
+                
+                usernameCheckTimer = setTimeout(() => {
+                    checkUsernameAvailability(usernameInput.value.trim());
+                }, 500);
+            });
+        }
         
         if (passwordInput) {
             passwordInput.addEventListener('input', () => {
@@ -596,16 +759,6 @@
                     document.getElementById('confirmError').textContent = 'Passwords do not match';
                 } else {
                     document.getElementById('confirmError').textContent = '';
-                }
-            });
-        }
-        
-        if (usernameInput) {
-            usernameInput.addEventListener('input', () => {
-                if (usernameInput.value.length < 3) {
-                    document.getElementById('usernameError').textContent = 'Username must be at least 3 characters';
-                } else {
-                    document.getElementById('usernameError').textContent = '';
                 }
             });
         }
@@ -772,20 +925,64 @@
         const captchaInput = document.getElementById('captchaInput').value.trim();
         const termsCheckbox = document.getElementById('terms');
 
-        if (captchaInput !== currentCaptcha) { showRegisterError('Invalid CAPTCHA code. Please try again.'); refreshCaptcha(); return; }
+        // Check CAPTCHA first
+        if (captchaInput !== currentCaptcha) { 
+            showRegisterError('Invalid CAPTCHA code. Please try again.'); 
+            refreshCaptcha(); 
+            return; 
+        }
+
+        // Validate password
         const passwordError = validatePassword(password);
-        if (passwordError) { showRegisterError(passwordError); return; }
-        if (password !== confirmPassword) { showRegisterError('Passwords do not match!'); return; }
-        if (!termsCheckbox.checked) { showRegisterError('Please accept the Terms & Conditions'); return; }
+        if (passwordError) { 
+            showRegisterError(passwordError); 
+            return; 
+        }
+
+        // Check passwords match
+        if (password !== confirmPassword) { 
+            showRegisterError('Passwords do not match!'); 
+            return; 
+        }
+
+        // Check terms accepted
+        if (!termsCheckbox.checked) { 
+            showRegisterError('Please accept the Terms & Conditions'); 
+            return; 
+        }
+
+        // Validate phone
         const phoneRegex = /^(09|\+63|0)[0-9]{9,10}$/;
-        if (!phoneRegex.test(phone.replace(/\s/g, ''))) { showRegisterError('Please enter a valid phone number (e.g., 09123456789)'); return; }
+        if (!phoneRegex.test(phone.replace(/\s/g, ''))) { 
+            showRegisterError('Please enter a valid phone number (e.g., 09123456789)'); 
+            return; 
+        }
+
+        // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) { showRegisterError('Please enter a valid email address'); return; }
+        if (!emailRegex.test(email)) { 
+            showRegisterError('Please enter a valid email address'); 
+            return; 
+        }
+
+        // Check if email is available (after validation from input)
+        if (!isEmailAvailable) {
+            showRegisterError('The email you entered is already registered. Please use a different email.');
+            return;
+        }
+
+        // Check if username is available (after validation from input)
+        if (!isUsernameAvailable) {
+            showRegisterError('The username you entered is already taken. Please choose a different username.');
+            return;
+        }
 
         const registerBtn = document.getElementById('registerBtn');
         const btnText = document.getElementById('registerBtnText');
         const btnLoader = document.getElementById('registerLoader');
-        registerBtn.disabled = true; btnText.style.display = 'none'; btnLoader.style.display = 'inline';
+        registerBtn.disabled = true; 
+        btnText.style.display = 'none'; 
+        btnLoader.style.display = 'inline';
 
         try {
             const response = await fetch(`${API_URL}/auth/register`, {
@@ -794,15 +991,36 @@
                 body: JSON.stringify({ firstName, lastName, email, phone, username, password, captcha: captchaInput })
             });
             const data = await response.json();
+            
             if (response.ok) {
                 showToast('Account created successfully! Please log in.', 'success');
                 closeRegisterModal();
                 document.getElementById('registerBtn').disabled = false;
                 ['regFullName','regEmail','regPhone','regUsername','regPassword','regConfirmPassword','captchaInput'].forEach(id => document.getElementById(id).value = '');
                 document.getElementById('terms').checked = false;
+                // Clear validation messages
+                document.getElementById('emailError').textContent = '';
+                document.getElementById('usernameError').textContent = '';
             } else {
                 let errorMsg = data.message || 'Registration failed';
-                if (data.errors && data.errors.length > 0) errorMsg = data.errors[0].msg;
+                
+                // Handle specific field errors from backend
+                if (data.field === 'email') {
+                    errorMsg = data.message || 'This email is already registered';
+                    isEmailAvailable = false;
+                    document.getElementById('emailError').textContent = '✗ ' + errorMsg;
+                    document.getElementById('emailError').style.color = '#ff9999';
+                } else if (data.field === 'username') {
+                    errorMsg = data.message || 'This username is already taken';
+                    isUsernameAvailable = false;
+                    document.getElementById('usernameError').textContent = '✗ ' + errorMsg;
+                    document.getElementById('usernameError').style.color = '#ff9999';
+                }
+                
+                if (data.errors && data.errors.length > 0) {
+                    errorMsg = data.errors[0].msg;
+                }
+                
                 showRegisterError(errorMsg);
                 refreshCaptcha();
             }
@@ -810,7 +1028,9 @@
             showRegisterError('Connection error. Please try again.');
             refreshCaptcha();
         } finally {
-            registerBtn.disabled = false; btnText.style.display = 'inline'; btnLoader.style.display = 'none';
+            registerBtn.disabled = false; 
+            btnText.style.display = 'inline'; 
+            btnLoader.style.display = 'none';
         }
     }
 
