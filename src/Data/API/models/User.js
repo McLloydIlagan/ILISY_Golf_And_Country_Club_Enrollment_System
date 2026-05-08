@@ -32,6 +32,9 @@ const userSchema = new mongoose.Schema({
     membershipExpiration: { type: Date },
     membershipType: { type: String },
     isAdmin: { type: Boolean, default: false },
+    isBlocked: { type: Boolean, default: false },
+    blockReason: { type: String },
+    blockedAt: { type: Date },
 
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
