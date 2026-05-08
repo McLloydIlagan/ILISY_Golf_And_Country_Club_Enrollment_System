@@ -96,7 +96,7 @@ function saveCurrentPage(pageId) {
 
 function loadLastVisitedPage() {
     const lastPage = localStorage.getItem('adminCurrentPage');
-    const validPages = ['dashboard', 'reservations', 'accounts', 'payments', 'messages', 'manage_reservations'];
+    const validPages = ['dashboard', 'reservations', 'accounts', 'payments', 'messages', 'manage_reservations', 'membership_settings'];
     
     if (lastPage && validPages.includes(lastPage) && document.getElementById(`page-${lastPage}`)) {
         console.log('Restoring page:', lastPage);
@@ -223,7 +223,7 @@ function showPage(id) {
     const page = document.getElementById('page-' + id);
     if (page) page.classList.add('active');
     
-    const map = { dashboard: 0, reservations: 1, accounts: 2, payments: 3, messages: 4, manage_reservations: 5 };
+    const map = { dashboard: 0, reservations: 1, accounts: 2, payments: 3, messages: 4, manage_reservations: 5, membership_settings: 6 };
     const items = document.querySelectorAll('.nav-item');
     if (map[id] !== undefined && items[map[id]]) {
         items[map[id]].classList.add('active');
@@ -247,6 +247,7 @@ function showPage(id) {
         loadAvailabilityDashboard();
     }
     else if (id === 'manage_reservations') loadReservationTypes();
+    else if (id === 'membership_settings') loadMembershipSettings();
     
     restoreScrollPosition(id);
 }
@@ -897,8 +898,7 @@ async function loadPayments() {
                     : rawAcct || '—';
 
                 row.innerHTML = `
-                    <td>${escapeHtml(payment.firstName || '')}</td>
-                    <td>${escapeHtml(payment.lastName || '')}</td>
+                    <td><strong>${escapeHtml(payment.firstName || '')} ${escapeHtml(payment.lastName || '')}</strong></td>
                     <td>${escapeHtml(payment.paymentMethod || '')}</td>
                     <td style="font-family:monospace;">${escapeHtml(maskedAcct)}</td>
                     <td>₱${(payment.amount || 0).toLocaleString()}</td>
@@ -1009,6 +1009,7 @@ async function loadReservations() {
             allReservations = await response.json();
             console.log('Loaded reservations:', allReservations.length);
             filterReservationsTable();
+            loadReservedClientsTable();
         } else {
             const error = await response.json();
             console.error('Error response:', error);
@@ -1280,6 +1281,151 @@ function changeReservationPage(page) {
     renderReservationsTable();
 }
 
+// ──────────────────────────────────────────────────────────────────
+// Reserved Clients Table
+// ──────────────────────────────────────────────────────────────────
+
+let allReservedClients = [];
+let filteredReservedClients = [];
+let currentReservedClientsPage = 1;
+const reservedClientsPerPage = 10;
+
+function loadReservedClientsTable() {
+    // Pull confirmed/approved reservation-type entries from the already-loaded allReservations array
+    allReservedClients = (allReservations || []).filter(app =>
+        app.type === 'reservation' &&
+        (app.status === 'confirmed' || app.status === 'approved')
+    );
+    filterReservedClientsTable();
+}
+
+function filterReservedClientsTable() {
+    const searchInput = document.getElementById('reservedClientsSearchInput');
+    const categoryFilter = document.getElementById('reservedClientsCategoryFilter');
+    const dateFrom = document.getElementById('reservedClientsDateFrom');
+    const dateTo = document.getElementById('reservedClientsDateTo');
+
+    const query = searchInput ? searchInput.value.toLowerCase() : '';
+    const category = categoryFilter ? categoryFilter.value : 'all';
+    const fromDate = dateFrom && dateFrom.value ? new Date(dateFrom.value) : null;
+    const toDate = dateTo && dateTo.value ? new Date(dateTo.value + 'T23:59:59') : null;
+
+    filteredReservedClients = allReservedClients.filter(app => {
+        const fullName = `${app.firstName || ''} ${app.lastName || ''}`.toLowerCase();
+        const email = (app.email || '').toLowerCase();
+        const phone = (app.phone || '').toLowerCase();
+        const matchesSearch = fullName.includes(query) || email.includes(query) || phone.includes(query);
+
+        const appCategory = (app.reservationCategory || app.details?.category || '').toLowerCase();
+        const matchesCategory = category === 'all' || appCategory === category;
+
+        let matchesDate = true;
+        if (fromDate || toDate) {
+            const appDate = app.details?.date ? new Date(app.details.date) : null;
+            if (appDate) {
+                if (fromDate && appDate < fromDate) matchesDate = false;
+                if (toDate && appDate > toDate) matchesDate = false;
+            } else {
+                matchesDate = false;
+            }
+        }
+
+        return matchesSearch && matchesCategory && matchesDate;
+    });
+
+    currentReservedClientsPage = 1;
+    renderReservedClientsTable();
+}
+
+function resetReservedClientsFilters() {
+    const searchInput = document.getElementById('reservedClientsSearchInput');
+    const categoryFilter = document.getElementById('reservedClientsCategoryFilter');
+    const dateFrom = document.getElementById('reservedClientsDateFrom');
+    const dateTo = document.getElementById('reservedClientsDateTo');
+    if (searchInput) searchInput.value = '';
+    if (categoryFilter) categoryFilter.value = 'all';
+    if (dateFrom) dateFrom.value = '';
+    if (dateTo) dateTo.value = '';
+    filterReservedClientsTable();
+}
+
+function renderReservedClientsTable() {
+    const tbody = document.getElementById('reservedClientsTbody');
+    const countEl = document.getElementById('reservedClientsCount');
+    if (!tbody) return;
+
+    if (countEl) countEl.textContent = `${filteredReservedClients.length} result${filteredReservedClients.length !== 1 ? 's' : ''}`;
+
+    if (filteredReservedClients.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(255,255,255,.4);">No reserved clients found</td></tr>';
+        const paginationDiv = document.getElementById('reservedClientsPagination');
+        if (paginationDiv) paginationDiv.innerHTML = '';
+        return;
+    }
+
+    const start = (currentReservedClientsPage - 1) * reservedClientsPerPage;
+    const page = filteredReservedClients.slice(start, start + reservedClientsPerPage);
+
+    const statusLabels = {
+        confirmed: { label: '✓ Confirmed', cls: 'status-confirmed' },
+        approved:  { label: '✓ Approved',  cls: 'status-confirmed' }
+    };
+
+    let html = '';
+    page.forEach(app => {
+        const displayDate = app.details?.date ? new Date(app.details.date).toLocaleDateString() : 'N/A';
+        const displayTime = app.details?.timeSlot || 'N/A';
+        const typeName = app.reservationTypeName || app.details?.reservationType || 'Reservation';
+        const statusInfo = statusLabels[app.status] || { label: app.status, cls: 'status-pending' };
+
+        html += `
+            <tr>
+                <td>
+                    <strong>${escapeHtml(app.firstName || '')} ${escapeHtml(app.lastName || '')}</strong>
+                </td>
+                <td>
+                    ${escapeHtml(app.phone || 'N/A')}<br>
+                    <small style="color:#666;">${escapeHtml(app.email || '')}</small>
+                </td>
+                <td><span class="badge" style="background:var(--sage);">📅 ${escapeHtml(typeName)}</span></td>
+                <td>${displayDate}</td>
+                <td>${escapeHtml(displayTime)}</td>
+                <td><strong>₱${(app.amount || 0).toLocaleString()}</strong></td>
+                <td><span class="status-badge ${statusInfo.cls}">${statusInfo.label}</span></td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+    renderReservedClientsPagination();
+}
+
+function renderReservedClientsPagination() {
+    const paginationDiv = document.getElementById('reservedClientsPagination');
+    if (!paginationDiv) return;
+
+    const totalPages = Math.ceil(filteredReservedClients.length / reservedClientsPerPage);
+    if (totalPages <= 1) { paginationDiv.innerHTML = ''; return; }
+
+    let html = `<button class="pagination-btn" onclick="changeReservedClientsPage(${currentReservedClientsPage - 1})" ${currentReservedClientsPage === 1 ? 'disabled' : ''}>◀ Prev</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentReservedClientsPage - 2 && i <= currentReservedClientsPage + 2)) {
+            html += `<button class="pagination-btn ${i === currentReservedClientsPage ? 'active' : ''}" onclick="changeReservedClientsPage(${i})">${i}</button>`;
+        } else if (i === currentReservedClientsPage - 3 || i === currentReservedClientsPage + 3) {
+            html += `<span class="pagination-dots">…</span>`;
+        }
+    }
+    html += `<button class="pagination-btn" onclick="changeReservedClientsPage(${currentReservedClientsPage + 1})" ${currentReservedClientsPage === totalPages ? 'disabled' : ''}>Next ▶</button>`;
+    paginationDiv.innerHTML = html;
+}
+
+function changeReservedClientsPage(page) {
+    const totalPages = Math.ceil(filteredReservedClients.length / reservedClientsPerPage);
+    if (page < 1 || page > totalPages) return;
+    currentReservedClientsPage = page;
+    renderReservedClientsTable();
+}
+
 async function viewReservationDetails(appId) {
     const token = getAuthToken();
     if (!token) return;
@@ -1487,79 +1633,105 @@ function playNotificationSound() {
 }
 
 async function loadMessages() {
-    console.log('📩 Loading messages...');
-    
     const token = getAuthToken();
-    if (!token) {
-        console.error('❌ Cannot load messages: No auth token');
-        return;
-    }
+    if (!token) return;
     
     try {
         const response = await apiFetch(`${API_URL}/admin/messages`);
         
         if (response.ok) {
             const messages = await response.json();
-            console.log(`✅ Loaded ${messages.length} messages`);
             
             const msgSidebar = document.getElementById('msgSidebar');
-            if (msgSidebar) {
-                const currentActiveUserId = document.querySelector('.msg-contact.active')?.getAttribute('data-user-id');
-                
-                msgSidebar.innerHTML = '';
-                
-                if (messages.length === 0) {
-                    msgSidebar.innerHTML = '<div style="padding:20px; text-align:center; color:#ccc;">No messages found</div>';
-                    return;
-                }
-                
-                const uniqueUsers = new Map();
-                messages.forEach(msg => {
-                    if (!uniqueUsers.has(msg.userId) || new Date(msg.createdAt) > new Date(uniqueUsers.get(msg.userId).createdAt)) {
-                        uniqueUsers.set(msg.userId, msg);
-                    }
-                });
-                
-                let newActiveContact = null;
-                
-                uniqueUsers.forEach(msg => {
-                    const contactDiv = document.createElement('div');
-                    contactDiv.className = 'msg-contact';
-                    contactDiv.setAttribute('data-user-id', msg.userId);
-                    contactDiv.setAttribute('data-conversation-id', msg._id);
-                    contactDiv.onclick = () => selectContact(contactDiv, msg);
+            if (!msgSidebar) return;
 
-                    const isPending = msg.status === 'pending';
-                    // userId may be populated object or string
-                    const userObj = msg.userId && typeof msg.userId === 'object' ? msg.userId : null;
-                    const isBlocked = userObj ? !!userObj.isBlocked : false;
-                    const userIdStr = userObj ? userObj._id : msg.userId;
+            const currentActiveUserId = document.querySelector('.msg-contact.active')?.getAttribute('data-user-id');
 
-                    contactDiv.innerHTML = `
-                        <div class="contact-avatar">👤</div>
-                        <div style="flex:1;min-width:0;">
-                            <div class="msg-contact-name">${escapeHtml(msg.userName || 'User')}</div>
-                            <div style="font-size:11px;color:#ccc;">${escapeHtml(msg.concernType || 'general')}</div>
-                        </div>
-                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
-                            <div class="msg-contact-dot ${isPending ? 'online' : ''}"></div>
-                            ${isBlocked
-                                ? `<span title="Unblock user" onclick="event.stopPropagation();openBlockUserModal('${userIdStr}','${escapeHtml(msg.userName || 'User')}',true)" style="font-size:10px;background:#9c403d;color:#fff;border-radius:8px;padding:1px 6px;cursor:pointer;">🚫 Blocked</span>`
-                                : `<span title="Block user" onclick="event.stopPropagation();openBlockUserModal('${userIdStr}','${escapeHtml(msg.userName || 'User')}',false)" style="font-size:10px;background:rgba(255,255,255,.12);color:#ccc;border-radius:8px;padding:1px 6px;cursor:pointer;">⚙️</span>`
-                            }
-                        </div>
-                    `;
-                    msgSidebar.appendChild(contactDiv);
-                    
-                    if (currentActiveUserId === msg.userId) {
-                        newActiveContact = contactDiv;
-                    }
-                });
-                
-                if (newActiveContact && currentMessage) {
-                    newActiveContact.classList.add('active');
-                    await refreshCurrentConversation();
+            // Deduplicate by userId, keep the most recent message per user
+            const uniqueUsers = new Map();
+            messages.forEach(msg => {
+                const uid = msg.userId && typeof msg.userId === 'object' ? msg.userId._id : msg.userId;
+                const existing = uniqueUsers.get(uid);
+                // Use updatedAt for ordering (latest activity first)
+                const msgTime = new Date(msg.updatedAt || msg.createdAt).getTime();
+                const existingTime = existing ? new Date(existing.updatedAt || existing.createdAt).getTime() : 0;
+                if (!existing || msgTime > existingTime) {
+                    uniqueUsers.set(uid, msg);
                 }
+            });
+
+            // Sort by latest activity — newest conversation at top
+            const sorted = [...uniqueUsers.values()].sort((a, b) => {
+                const tA = new Date(a.updatedAt || a.createdAt).getTime();
+                const tB = new Date(b.updatedAt || b.createdAt).getTime();
+                return tB - tA;
+            });
+
+            msgSidebar.innerHTML = '<div class="msg-sidebar-header">Conversations</div>';
+
+            if (sorted.length === 0) {
+                msgSidebar.innerHTML += '<div style="padding:20px;text-align:center;color:rgba(255,255,255,.4);font-size:13px;">No messages yet</div>';
+                return;
+            }
+
+            let newActiveContact = null;
+
+            sorted.forEach(msg => {
+                const userObj = msg.userId && typeof msg.userId === 'object' ? msg.userId : null;
+                const isBlocked = userObj ? !!userObj.isBlocked : false;
+                const userIdStr = userObj ? userObj._id : msg.userId;
+                const isPending = msg.status === 'pending';
+
+                // Last message preview
+                const lastConv = msg.conversation && msg.conversation.length > 0
+                    ? msg.conversation[msg.conversation.length - 1]
+                    : null;
+                const preview = lastConv
+                    ? (lastConv.imageUrl ? '📎 Image' : (lastConv.message || '').substring(0, 32) + ((lastConv.message || '').length > 32 ? '…' : ''))
+                    : (msg.message || '').substring(0, 32);
+
+                const timeAgo = (() => {
+                    const d = new Date(msg.updatedAt || msg.createdAt);
+                    const diff = Date.now() - d.getTime();
+                    if (diff < 60000) return 'just now';
+                    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+                    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+                    return d.toLocaleDateString();
+                })();
+
+                const contactDiv = document.createElement('div');
+                contactDiv.className = 'msg-contact';
+                contactDiv.setAttribute('data-user-id', userIdStr);
+                contactDiv.setAttribute('data-conversation-id', msg._id);
+                contactDiv.onclick = () => selectContact(contactDiv, msg);
+
+                contactDiv.innerHTML = `
+                    <div class="contact-avatar">${isBlocked ? '🚫' : '👤'}</div>
+                    <div style="flex:1;min-width:0;overflow:hidden;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+                            <div class="msg-contact-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(msg.userName || 'User')}</div>
+                            <span style="font-size:10px;color:rgba(255,255,255,.35);flex-shrink:0;">${timeAgo}</span>
+                        </div>
+                        <div style="font-size:11px;color:rgba(255,255,255,.45);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;">${escapeHtml(preview)}</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;margin-left:6px;">
+                        <div class="msg-contact-dot ${isPending ? 'online' : ''}"></div>
+                        ${isBlocked
+                            ? `<span title="Unblock" onclick="event.stopPropagation();openBlockUserModal('${userIdStr}','${escapeHtml(msg.userName || 'User')}',true)" style="font-size:9px;background:#9c403d;color:#fff;border-radius:6px;padding:1px 5px;cursor:pointer;">Blocked</span>`
+                            : `<span title="Block user" onclick="event.stopPropagation();openBlockUserModal('${userIdStr}','${escapeHtml(msg.userName || 'User')}',false)" style="font-size:9px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:6px;padding:1px 5px;cursor:pointer;">⚙️</span>`
+                        }
+                    </div>
+                `;
+                msgSidebar.appendChild(contactDiv);
+
+                if (currentActiveUserId === userIdStr) {
+                    newActiveContact = contactDiv;
+                }
+            });
+
+            if (newActiveContact && currentMessage) {
+                newActiveContact.classList.add('active');
+                await refreshCurrentConversation();
             }
         }
     } catch (error) {
@@ -2211,56 +2383,180 @@ async function loadReservationTypes() {
     }
 }
 
+// ── Manage Types carousel state ──
+let _allTypes = [];
+let _filteredTypes = [];
+let _currentTypeIndex = 0;
+
 function renderReservationCards(types) {
-    // Keep tableReservationTypes in sync so openEditTypeModal always has fresh data
     tableReservationTypes = types;
+    _allTypes = types;
+    _filteredTypes = [...types];
+    _currentTypeIndex = 0;
 
     const container = document.getElementById('reservationCards');
     if (!container) return;
-    
+
     if (types.length === 0) {
-        container.innerHTML = '<div class="empty-state">No reservation types yet. Click "Add New" to create one.</div>';
+        container.innerHTML = `
+            <div class="manage-types-wrap">
+                <div class="empty-state" style="padding:60px;text-align:center;color:rgba(255,255,255,.5);">
+                    No reservation types yet.<br>Click <strong style="color:#d4b36a;">+ Add New Type</strong> to create one.
+                </div>
+            </div>`;
         return;
     }
-    
-    container.innerHTML = types.map(type => `
-        <div class="reservation-card">
-            <div class="card-header">
-                <span class="icon">${type.icon || '🏌️'}</span>
-                <div class="card-header-info">
-                    <strong>${escapeHtml(type.name)}</strong>
-                    <small>${type.category}</small>
+
+    container.innerHTML = `
+        <div class="manage-types-wrap">
+            <!-- Search + counter -->
+            <div class="manage-types-toolbar">
+                <div class="manage-types-search">
+                    <span>🔍</span>
+                    <input type="text" id="typeSearchInput" placeholder="Search types…" oninput="filterManageTypes(this.value)">
                 </div>
-                <div class="status-toggle ${type.isActive ? 'active' : ''}" 
-                     onclick="toggleReservationStatus('${type._id}', ${!type.isActive})"></div>
+                <span class="manage-types-counter" id="typeCounter"></span>
             </div>
-            <div class="card-body">
-                <p><strong>💰 Base Price:</strong> ₱${type.basePrice.toLocaleString()}</p>
-                <p><strong>📝 Description:</strong> ${escapeHtml(type.description || 'No description')}</p>
-                
-                <div class="time-slots-list">
-                    <h4>⏰ Time Slots & Capacity</h4>
-                    ${type.timeSlots && type.timeSlots.length > 0 ? type.timeSlots.map((slot, index) => `
-                        <div class="time-slot-item" data-slot-index="${index}">
-                            <input type="text" value="${escapeHtml(slot.time)}" 
-                                   onchange="updateTimeSlotField('${type._id}', ${index}, 'time', this.value)">
-                            <input type="number" value="${slot.capacity}" 
-                                   onchange="updateTimeSlotField('${type._id}', ${index}, 'capacity', parseInt(this.value))">
-                            <div class="status-toggle ${slot.isAvailable ? 'active' : ''}" 
-                                 onclick="toggleTimeSlotAvailability('${type._id}', ${index})"></div>
-                            <button class="btn-delete-slot" onclick="deleteTimeSlot('${type._id}', ${index})">🗑️</button>
-                        </div>
-                    `).join('') : '<p style="font-size:12px; color:#999;">No time slots added yet</p>'}
-                    <button class="btn-add-slot" onclick="openAddTimeSlotModal('${type._id}')">+ Add Time Slot</button>
+
+            <!-- Carousel -->
+            <div class="manage-types-carousel">
+                <button class="carousel-arrow carousel-prev" onclick="prevType()" id="carouselPrev">&#8249;</button>
+                <div class="manage-types-card-wrap" id="manageTypeCardWrap"></div>
+                <button class="carousel-arrow carousel-next" onclick="nextType()" id="carouselNext">&#8250;</button>
+            </div>
+
+            <!-- Dot indicators -->
+            <div class="carousel-dots" id="carouselDots"></div>
+        </div>
+    `;
+
+    renderCurrentTypeCard();
+}
+
+function filterManageTypes(query) {
+    const q = query.toLowerCase().trim();
+    _filteredTypes = q
+        ? _allTypes.filter(t => t.name.toLowerCase().includes(q) || (t.category || '').toLowerCase().includes(q) || (t.description || '').toLowerCase().includes(q))
+        : [..._allTypes];
+    _currentTypeIndex = 0;
+    renderCurrentTypeCard();
+}
+
+function prevType() {
+    if (_filteredTypes.length === 0) return;
+    _currentTypeIndex = (_currentTypeIndex - 1 + _filteredTypes.length) % _filteredTypes.length;
+    renderCurrentTypeCard();
+}
+
+function nextType() {
+    if (_filteredTypes.length === 0) return;
+    _currentTypeIndex = (_currentTypeIndex + 1) % _filteredTypes.length;
+    renderCurrentTypeCard();
+}
+
+function goToType(index) {
+    _currentTypeIndex = index;
+    renderCurrentTypeCard();
+}
+
+function renderCurrentTypeCard() {
+    const wrap = document.getElementById('manageTypeCardWrap');
+    const dots = document.getElementById('carouselDots');
+    const counter = document.getElementById('typeCounter');
+    const prevBtn = document.getElementById('carouselPrev');
+    const nextBtn = document.getElementById('carouselNext');
+    if (!wrap) return;
+
+    if (_filteredTypes.length === 0) {
+        wrap.innerHTML = `<div style="padding:60px;text-align:center;color:rgba(255,255,255,.4);">No types match your search.</div>`;
+        if (dots) dots.innerHTML = '';
+        if (counter) counter.textContent = '0 types';
+        return;
+    }
+
+    const type = _filteredTypes[_currentTypeIndex];
+    const total = _filteredTypes.length;
+    if (counter) counter.textContent = `${_currentTypeIndex + 1} / ${total}`;
+    if (prevBtn) prevBtn.disabled = total <= 1;
+    if (nextBtn) nextBtn.disabled = total <= 1;
+
+    // Dot indicators (max 10 shown)
+    if (dots) {
+        dots.innerHTML = _filteredTypes.slice(0, 10).map((_, i) =>
+            `<button class="carousel-dot ${i === _currentTypeIndex ? 'active' : ''}" onclick="goToType(${i})"></button>`
+        ).join('') + (total > 10 ? `<span style="color:rgba(255,255,255,.4);font-size:11px;margin-left:4px;">+${total - 10}</span>` : '');
+    }
+
+    wrap.innerHTML = `
+        <div class="manage-type-card">
+            <!-- Card header -->
+            <div class="mtc-header">
+                <div class="mtc-icon">${type.icon || '🏌️'}</div>
+                <div class="mtc-title">
+                    <h2>${escapeHtml(type.name)}</h2>
+                    <div class="mtc-meta">
+                        <span class="mtc-category">${type.category || 'general'}</span>
+                        <span class="mtc-status ${type.isActive ? 'active' : 'inactive'}">${type.isActive ? '● Active' : '○ Inactive'}</span>
+                    </div>
                 </div>
-                
-                <div class="card-actions">
-                    <button class="btn-edit" onclick="openEditTypeModal('${type._id}')">✏️ Edit Type</button>
-                    <button class="btn-remove" onclick="deleteReservationType('${type._id}')">🗑️ Delete Type</button>
+                <div class="mtc-toggle-wrap">
+                    <div class="status-toggle ${type.isActive ? 'active' : ''}"
+                         onclick="toggleReservationStatus('${type._id}', ${!type.isActive})"
+                         title="${type.isActive ? 'Deactivate' : 'Activate'}"></div>
                 </div>
+            </div>
+
+            <!-- Info row -->
+            <div class="mtc-info-row">
+                <div class="mtc-info-item">
+                    <span class="mtc-info-label">Base Price</span>
+                    <span class="mtc-info-value">₱${type.basePrice.toLocaleString()}</span>
+                </div>
+                <div class="mtc-info-item">
+                    <span class="mtc-info-label">Time Slots</span>
+                    <span class="mtc-info-value">${(type.timeSlots || []).length}</span>
+                </div>
+                <div class="mtc-info-item">
+                    <span class="mtc-info-label">Total Capacity</span>
+                    <span class="mtc-info-value">${(type.timeSlots || []).reduce((s, sl) => s + (sl.capacity || 0), 0)}</span>
+                </div>
+            </div>
+
+            ${type.description ? `<p class="mtc-desc">${escapeHtml(type.description)}</p>` : ''}
+
+            <!-- Time slots -->
+            <div class="mtc-slots-section">
+                <div class="mtc-slots-header">
+                    <span>⏰ Time Slots & Capacity</span>
+                    <button class="mtc-add-slot-btn" onclick="openAddTimeSlotModal('${type._id}')">+ Add Slot</button>
+                </div>
+                <div class="mtc-slots-list">
+                    ${(type.timeSlots || []).length > 0
+                        ? (type.timeSlots || []).map((slot, index) => `
+                            <div class="mtc-slot-row" data-slot-index="${index}">
+                                <input class="mtc-slot-input" type="text" value="${escapeHtml(slot.time)}"
+                                       onchange="updateTimeSlotField('${type._id}', ${index}, 'time', this.value)">
+                                <input class="mtc-slot-cap" type="number" value="${slot.capacity}"
+                                       onchange="updateTimeSlotField('${type._id}', ${index}, 'capacity', parseInt(this.value))">
+                                <div class="status-toggle ${slot.isAvailable ? 'active' : ''}"
+                                     onclick="toggleTimeSlotAvailability('${type._id}', ${index})"
+                                     title="${slot.isAvailable ? 'Available' : 'Unavailable'}"
+                                     style="width:36px;height:18px;"></div>
+                                <button class="mtc-del-slot" onclick="deleteTimeSlot('${type._id}', ${index})" title="Delete slot">🗑</button>
+                            </div>
+                        `).join('')
+                        : '<p class="mtc-no-slots">No time slots yet.</p>'
+                    }
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="mtc-actions">
+                <button class="mtc-btn-edit" onclick="openEditTypeModal('${type._id}')">✏️ Edit</button>
+                <button class="mtc-btn-delete" onclick="deleteReservationType('${type._id}')">🗑️ Delete</button>
             </div>
         </div>
-    `).join('');
+    `;
 }
 
 async function updateTimeSlotField(typeId, slotIndex, field, value) {
@@ -3260,9 +3556,193 @@ window.loadReservationTypes = loadReservationTypes;
 window.openAddReservationModal = openAddReservationModal;
 window.closeReservationModal = closeReservationModal;
 window.saveReservationType = saveReservationType;
+
+// ──────────────────────────────────────────────────────────────────
+// Membership Settings
+// ──────────────────────────────────────────────────────────────────
+
+let _msEnrollmentOpen = true;
+
+async function loadMembershipSettings() {
+    try {
+        const res = await apiFetch(`${API_URL}/admin/membership-settings`);
+        if (!res.ok) { showToast('Failed to load membership settings', 'error'); return; }
+        const s = await res.json();
+        _populateMembershipSettingsUI(s);
+    } catch (e) {
+        console.error('loadMembershipSettings error:', e);
+        showToast('Error loading membership settings', 'error');
+    }
+}
+
+function _populateMembershipSettingsUI(s) {
+    const fee = s.annualFee ?? 1000000;
+    const discountPct = Math.round((1 - (s.memberDiscountRate ?? 0.8)) * 100);
+    const duration = s.durationDays ?? 365;
+    const open = s.enrollmentOpen !== false;
+
+    // Hero stats
+    const feeEl = document.getElementById('msStatFee');
+    if (feeEl) feeEl.textContent = '₱' + fee.toLocaleString();
+    const discEl = document.getElementById('msStatDiscount');
+    if (discEl) discEl.textContent = discountPct + '%';
+    const durEl = document.getElementById('msStatDuration');
+    if (durEl) durEl.textContent = duration;
+    const enrEl = document.getElementById('msStatEnrollment');
+    if (enrEl) enrEl.textContent = open ? 'Open' : 'Closed';
+    const enrLbl = document.getElementById('msStatEnrollmentLabel');
+    if (enrLbl) {
+        enrLbl.textContent = open ? 'Accepting applications' : 'Applications paused';
+        enrLbl.className = 'hero-card-badge ' + (open ? 'badge-up' : 'badge-warn');
+    }
+
+    // Form fields
+    const feeInput = document.getElementById('msAnnualFee');
+    if (feeInput) feeInput.value = fee;
+    const durInput = document.getElementById('msDurationDays');
+    if (durInput) durInput.value = duration;
+    const discInput = document.getElementById('msDiscountPct');
+    if (discInput) { discInput.value = discountPct; _updateDiscountPreview(discountPct); }
+    const tierName = document.getElementById('msTierName');
+    if (tierName) tierName.value = s.tierName || '';
+    const tierDesc = document.getElementById('msTierDescription');
+    if (tierDesc) tierDesc.value = s.tierDescription || '';
+
+    // Enrollment toggle
+    _msEnrollmentOpen = open;
+    _renderEnrollmentToggle(open);
+
+    // Perks
+    _renderPerks(s.perks || []);
+}
+
+function _updateDiscountPreview(pct) {
+    const example = 10000;
+    const memberPrice = Math.round(example * (1 - pct / 100));
+    const savings = example - memberPrice;
+    const mp = document.getElementById('msPreviewMemberPrice');
+    const sv = document.getElementById('msPreviewSavings');
+    if (mp) mp.textContent = '₱' + memberPrice.toLocaleString();
+    if (sv) sv.textContent = '₱' + savings.toLocaleString();
+}
+
+function onDiscountInput() {
+    const val = parseFloat(document.getElementById('msDiscountPct').value) || 0;
+    _updateDiscountPreview(Math.min(100, Math.max(0, val)));
+}
+
+function _renderEnrollmentToggle(open) {
+    const toggle = document.getElementById('msEnrollmentToggle');
+    const label = document.getElementById('msEnrollmentLabel');
+    if (toggle) toggle.classList.toggle('ms-toggle-on', open);
+    if (label) label.textContent = open ? 'Open' : 'Closed';
+}
+
+function toggleEnrollment() {
+    _msEnrollmentOpen = !_msEnrollmentOpen;
+    _renderEnrollmentToggle(_msEnrollmentOpen);
+}
+
+function _renderPerks(perks) {
+    const container = document.getElementById('msPerksContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    perks.forEach((perk, i) => {
+        container.insertAdjacentHTML('beforeend', _perkRowHtml(perk, i));
+    });
+}
+
+function _perkRowHtml(text, idx) {
+    return `
+        <div class="ms-perk-row" id="msPerkRow_${idx}">
+            <span class="ms-perk-drag">⠿</span>
+            <input type="text" class="ms-perk-input" value="${escapeHtml(text)}" placeholder="Enter perk description…" maxlength="120">
+            <button class="ms-perk-del" onclick="removePerkRow(${idx})" title="Remove">✕</button>
+        </div>
+    `;
+}
+
+function addPerkRow() {
+    const container = document.getElementById('msPerksContainer');
+    if (!container) return;
+    const idx = container.querySelectorAll('.ms-perk-row').length;
+    container.insertAdjacentHTML('beforeend', _perkRowHtml('', idx));
+    const newInput = container.querySelector(`#msPerkRow_${idx} .ms-perk-input`);
+    if (newInput) newInput.focus();
+}
+
+function removePerkRow(idx) {
+    const row = document.getElementById(`msPerkRow_${idx}`);
+    if (row) row.remove();
+    // Re-index remaining rows
+    const container = document.getElementById('msPerksContainer');
+    if (!container) return;
+    container.querySelectorAll('.ms-perk-row').forEach((r, i) => {
+        r.id = `msPerkRow_${i}`;
+        const btn = r.querySelector('.ms-perk-del');
+        if (btn) btn.setAttribute('onclick', `removePerkRow(${i})`);
+    });
+}
+
+function _collectPerks() {
+    const inputs = document.querySelectorAll('#msPerksContainer .ms-perk-input');
+    return Array.from(inputs).map(i => i.value.trim()).filter(Boolean);
+}
+
+async function saveMembershipSettings() {
+    const feeVal = parseFloat(document.getElementById('msAnnualFee').value);
+    const durVal = parseInt(document.getElementById('msDurationDays').value, 10);
+    const discPct = parseFloat(document.getElementById('msDiscountPct').value);
+    const tierName = (document.getElementById('msTierName').value || '').trim();
+    const tierDesc = (document.getElementById('msTierDescription').value || '').trim();
+
+    if (isNaN(feeVal) || feeVal < 0) { showToast('Enter a valid annual fee', 'error'); return; }
+    if (isNaN(durVal) || durVal < 1) { showToast('Duration must be at least 1 day', 'error'); return; }
+    if (isNaN(discPct) || discPct < 0 || discPct > 100) { showToast('Discount must be 0–100%', 'error'); return; }
+    if (!tierName) { showToast('Tier name cannot be empty', 'error'); return; }
+
+    const payload = {
+        annualFee: feeVal,
+        durationDays: durVal,
+        memberDiscountRate: parseFloat((1 - discPct / 100).toFixed(4)),
+        tierName,
+        tierDescription: tierDesc,
+        enrollmentOpen: _msEnrollmentOpen,
+        perks: _collectPerks()
+    };
+
+    const statusEl = document.getElementById('msSaveStatus');
+    if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.className = 'ms-save-status ms-saving'; }
+
+    try {
+        const res = await apiFetch(`${API_URL}/admin/membership-settings`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            const updated = await res.json();
+            _populateMembershipSettingsUI(updated);
+            showToast('Membership settings saved!', 'success');
+            if (statusEl) { statusEl.textContent = '✓ Saved'; statusEl.className = 'ms-save-status ms-saved'; }
+            setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+        } else {
+            const err = await res.json();
+            showToast(err.message || 'Save failed', 'error');
+            if (statusEl) { statusEl.textContent = '✗ Error'; statusEl.className = 'ms-save-status ms-error'; }
+        }
+    } catch (e) {
+        console.error('saveMembershipSettings error:', e);
+        showToast('Error saving settings', 'error');
+        if (statusEl) { statusEl.textContent = '✗ Error'; statusEl.className = 'ms-save-status ms-error'; }
+    }
+}
+
 window.openEditTypeModal = openEditTypeModal;
 window.openAddTimeSlotModal = openAddTimeSlotModal;
 window.closeTimeSlotModal = closeTimeSlotModal;
+window.filterReservedClientsTable = filterReservedClientsTable;
+window.resetReservedClientsFilters = resetReservedClientsFilters;
+window.changeReservedClientsPage = changeReservedClientsPage;
 window.addTimeSlot = addTimeSlot;
 window.deleteReservationType = deleteReservationType;
 window.toggleReservationStatus = toggleReservationStatus;
@@ -3278,3 +3758,14 @@ window.confirmBlockUser = confirmBlockUser;
 window.unblockUser = unblockUser;
 window.toggleResGroup = toggleResGroup;
 window.toggleDashboardAccordion = toggleDashboardAccordion;
+window.filterManageTypes = filterManageTypes;
+window.prevType = prevType;
+window.nextType = nextType;
+window.goToType = goToType;
+// Membership Settings
+window.loadMembershipSettings = loadMembershipSettings;
+window.saveMembershipSettings = saveMembershipSettings;
+window.toggleEnrollment = toggleEnrollment;
+window.addPerkRow = addPerkRow;
+window.removePerkRow = removePerkRow;
+window.onDiscountInput = onDiscountInput;

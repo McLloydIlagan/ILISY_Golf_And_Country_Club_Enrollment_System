@@ -6,6 +6,7 @@ const Payment = require('../models/Payment');
 const Message = require('../models/Message');
 const Application = require('../models/Application');
 const Record = require('../models/Record');
+const MembershipSettings = require('../models/MembershipSettings');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 router.use(authMiddleware, adminMiddleware);
@@ -768,6 +769,62 @@ router.patch('/users/:userId/revoke-membership', async (req, res) => {    try {
             previousStatus: previousStatus,
             newStatus: 'expired'
         });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ─── Membership Settings ──────────────────────────────────────────────────────
+
+// GET current settings (upsert default if none exists)
+router.get('/membership-settings', async (req, res) => {
+    try {
+        let settings = await MembershipSettings.findOne({ key: 'global' });
+        if (!settings) {
+            settings = await MembershipSettings.create({ key: 'global' });
+        }
+        res.json(settings);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// PUT update settings
+router.put('/membership-settings', async (req, res) => {
+    try {
+        const {
+            annualFee, memberDiscountRate, durationDays,
+            perks, tierName, tierDescription, enrollmentOpen
+        } = req.body;
+
+        const updates = { updatedAt: new Date(), updatedBy: req.user.userId };
+
+        if (annualFee !== undefined) {
+            if (typeof annualFee !== 'number' || annualFee < 0)
+                return res.status(400).json({ message: 'annualFee must be a non-negative number' });
+            updates.annualFee = annualFee;
+        }
+        if (memberDiscountRate !== undefined) {
+            if (typeof memberDiscountRate !== 'number' || memberDiscountRate < 0 || memberDiscountRate > 1)
+                return res.status(400).json({ message: 'memberDiscountRate must be between 0 and 1' });
+            updates.memberDiscountRate = memberDiscountRate;
+        }
+        if (durationDays !== undefined) {
+            if (typeof durationDays !== 'number' || durationDays < 1)
+                return res.status(400).json({ message: 'durationDays must be at least 1' });
+            updates.durationDays = durationDays;
+        }
+        if (Array.isArray(perks)) updates.perks = perks.filter(p => typeof p === 'string' && p.trim());
+        if (tierName !== undefined) updates.tierName = String(tierName).trim();
+        if (tierDescription !== undefined) updates.tierDescription = String(tierDescription).trim();
+        if (enrollmentOpen !== undefined) updates.enrollmentOpen = Boolean(enrollmentOpen);
+
+        const settings = await MembershipSettings.findOneAndUpdate(
+            { key: 'global' },
+            { $set: updates },
+            { new: true, upsert: true }
+        );
+        res.json(settings);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
