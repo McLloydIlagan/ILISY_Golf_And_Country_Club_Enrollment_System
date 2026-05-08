@@ -2006,6 +2006,32 @@ window.addEventListener('scroll', () => {
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!checkSession()) return;
+
+    // ── Block status check ──────────────────────────────────────
+    const userId = localStorage.getItem('userId');
+    try {
+        const blockRes = await fetch(`${API_URL}/users/${userId}/block-status`, {
+            headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        });
+        if (blockRes.ok) {
+            const blockData = await blockRes.json();
+            if (blockData.isBlocked) {
+                // Hide all tabs and tab contents, show the blocked banner
+                const tabBar = document.getElementById('portalTabBar');
+                if (tabBar) tabBar.style.display = 'none';
+                document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+                const banner = document.getElementById('blockedBanner');
+                if (banner) banner.style.display = 'block';
+                const reasonEl = document.getElementById('blockedReasonText');
+                if (reasonEl) reasonEl.textContent = blockData.blockReason || 'No reason provided.';
+                // Stop all polling and return early — no further init needed
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn('Could not check block status:', e);
+    }
+    // ────────────────────────────────────────────────────────────
     
     displayUserName();
     renderCalendars();

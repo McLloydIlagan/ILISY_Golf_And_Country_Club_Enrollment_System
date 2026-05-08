@@ -91,7 +91,7 @@
                             <span class="hero-card-label">Tee-Time Utilization</span>
                             <div class="hero-card-icon">⛳</div>
                         </div>
-                        <div class="hero-card-value" id="statUtilization">—%</div>
+                        <div class="hero-card-value" id="statUtilization">—</div>
                         <div class="hero-card-footer">
                             <span id="statUtilizationLabel" class="hero-card-badge badge-up">of capacity booked</span>
                         </div>
@@ -135,7 +135,7 @@
                 </div>
 
                 <!-- ── Dashboard Filter Bar ── -->
-                <div class="filter-bar" id="dashboardFilterBar" style="margin-bottom:20px;">
+                <div class="filter-bar" id="dashboardFilterBar" style="margin-bottom:0;">
                     <span style="font-size:13px;font-weight:600;color:var(--c-text-muted);">📅 Period:</span>
                     <select id="dashboardPeriodFilter" class="filter-select" onchange="onDashboardFilterChange()">
                         <option value="3">Last 3 Months</option>
@@ -149,10 +149,18 @@
                         <option value="reservation">Reservations Only</option>
                     </select>
                     <span class="filter-results-count" id="dashboardFilterSummary"></span>
+                    <!-- Accordion toggle -->
+                    <button onclick="toggleDashboardAccordion()" id="dashboardAccordionBtn"
+                        style="margin-left:auto;background:var(--c-surface);border:1px solid var(--c-border);border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--c-text-muted);">
+                        <span id="dashboardAccordionChevron" style="transition:transform .2s;display:inline-block;">▼</span> Details
+                    </button>
                 </div>
 
+                <!-- ── Accordion body: second charts + pending verifications ── -->
+                <div id="dashboardAccordionBody" style="overflow:hidden;transition:max-height .35s ease;max-height:0;">
+
                 <!-- ── Second Charts Row: Top Reservation Types + Cumulative Revenue ── -->
-                <div class="charts-row charts-row-bottom" style="margin-bottom:28px;">
+                <div class="charts-row charts-row-bottom" style="margin-top:20px;margin-bottom:28px;">
                     <!-- Bar chart: Top Reservation Types -->
                     <div class="chart-panel">
                         <div class="chart-panel-header">
@@ -218,6 +226,8 @@
                         </table>
                     </div>
                 </div>
+
+                </div><!-- end dashboardAccordionBody -->
 
             </div><!-- end page-body -->
         </div><!-- end page-dashboard -->
@@ -524,11 +534,11 @@
     <!-- MODALS -->
     <div class="modal-overlay" id="removeModal">
         <div class="modal-card">
-            <div class="modal-icon">⛳</div>
+            <div class="modal-icon">📦</div>
             <hr>
-            <p>Are you sure you want to remove this user?</p>
+            <p>Are you sure you want to archive this account?<br><small style="color:#aaa;font-size:12px;">The account will be hidden from the system but not permanently deleted.</small></p>
             <div class="modal-btns">
-                <button class="btn-confirm-modal" onclick="confirmRemove()">Confirm</button>
+                <button class="btn-confirm-modal" onclick="confirmRemove()">Archive</button>
                 <button class="btn-cancel-modal" onclick="closeModal('removeModal')">Cancel</button>
             </div>
         </div>
@@ -548,38 +558,41 @@
     </div>
 
     <div class="modal-overlay" id="refundReasonsModal">
-        <div class="refund-modal">
-            <div class="refund-header">
-                <h3 id="refundReasonTitle">Make a refund</h3>
-                <div class="refund-admin">
-                    <div class="refund-admin-av"></div>
-                    <div class="refund-admin-txt">admin<br><span style="color:#aaa;">Administrator</span></div>
-                </div>
+        <div class="modal-card" style="max-width:420px;width:94%;">
+            <div class="modal-icon">💳</div>
+            <hr>
+            <h3 id="refundReasonTitle" style="margin:0 0 12px;font-size:15px;text-align:center;">Make a refund</h3>
+            <div style="text-align:left;width:100%;">
+                <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">Reason for Refund <span style="color:#dc3545;">*</span></label>
+                <textarea id="refundReasonText" rows="4" placeholder="Enter the reason for this refund…"
+                    style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
             </div>
-            <div class="refund-body">
-                <h4>Reason for Refund</h4>
-                <div class="refund-option"><input type="checkbox" id="reason1"><label
-                        for="reason1">Unavailability</label></div>
-                <div class="refund-option"><input type="checkbox" id="reason2"><label for="reason2">Poor Service</label>
-                </div>
-                <div class="refund-option"><input type="checkbox" id="reason3"><label for="reason3">Email not
-                        received</label></div>
-                <div class="refund-option"><input type="checkbox" id="reason4"><label for="reason4">Membership
-                        Cancellation</label></div>
-                <div class="refund-option"><input type="checkbox" id="reason5"><label for="reason5">Reservation
-                        Cancellation</label></div>
-                <div class="refund-option">
-                    <input type="checkbox" id="reasonOther">
-                    <label for="reasonOther">Other: <input type="text" class="refund-other-input" id="otherReason"
-                            placeholder="Specify reason"></label>
-                </div>
-                <button class="btn-refund-confirm" onclick="processRefund()">Confirm Refund</button>
+            <div class="modal-btns" style="margin-top:16px;">
+                <button class="btn-confirm-modal" onclick="processRefund()">Confirm Refund</button>
+                <button class="btn-cancel-modal" onclick="closeModal('refundReasonsModal')">Cancel</button>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="resDetailModal">
-        <div class="res-detail-modal" style="width:560px;max-width:94%;">
+    <div class="modal-overlay" id="blockUserModal">
+        <div class="modal-card" style="max-width:420px;width:94%;">
+            <div class="modal-icon">🚫</div>
+            <hr>
+            <h3 id="blockUserTitle" style="margin:0 0 6px;font-size:15px;text-align:center;">Block User from Messaging</h3>
+            <p id="blockUserSubtitle" style="font-size:13px;color:#666;text-align:center;margin:0 0 14px;">This user will no longer be able to send messages to admin.</p>
+            <div style="text-align:left;width:100%;">
+                <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">Reason for Block <span style="color:#dc3545;">*</span></label>
+                <textarea id="blockReasonText" rows="3" placeholder="Enter the reason for blocking this user…"
+                    style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+            </div>
+            <div class="modal-btns" style="margin-top:16px;">
+                <button class="btn-confirm-modal" style="background:#9c403d;" onclick="confirmBlockUser()">Block User</button>
+                <button class="btn-cancel-modal" onclick="closeModal('blockUserModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="resDetailModal">        <div class="res-detail-modal" style="width:560px;max-width:94%;">
             <div class="res-detail-header" id="resDetailDate">Select a date</div>
             <div class="res-detail-body" style="max-height:70vh;overflow-y:auto;padding:20px;">
                 <div style="text-align:center;padding:40px;color:var(--c-text-muted);">Click on a date to see
@@ -759,35 +772,43 @@
                 if (usersRes.ok) {
                     const users = await usersRes.json();
                     const active = users.filter(u => (u.membershipStatus || '').toLowerCase() === 'active').length;
-                    const pending = users.filter(u => (u.membershipStatus || '').toLowerCase() === 'pending').length;
                     const mEl = document.getElementById('statMembers'); if (mEl) mEl.textContent = active;
-                    const pEl = document.getElementById('statPending'); if (pEl) pEl.textContent = pending;
-                    const pLabel = document.getElementById('statPendingLabel');
-                    if (pLabel) { pLabel.textContent = pending > 0 ? 'Action required' : 'All clear'; pLabel.className = 'hero-card-badge ' + (pending > 0 ? 'badge-warn' : 'badge-up'); }
                     renderMembershipDoughnut(users);
                 }
 
                 const typesRes = await fetch('https://ilisy-golf-and-country-club-enrollment.onrender.com/api/reservation-types/admin/all', { headers: { Authorization: 'Bearer ' + token } });
                 if (typesRes.ok) {
                     const types = await typesRes.json();
-                    const totalCap = types.reduce((s, t) => s + (t.timeSlots || []).reduce((ss, sl) => ss + (sl.capacity || 0), 0), 0);
+                    const activeTypes = types.filter(t => t.isActive);
+                    const totalSlots = activeTypes.reduce((s, t) => s + (t.timeSlots || []).length, 0);
                     const utilEl = document.getElementById('statUtilization');
-                    if (utilEl) utilEl.textContent = totalCap > 0 ? totalCap + ' slots' : '—';
+                    if (utilEl) utilEl.textContent = totalSlots > 0 ? totalSlots : '—';
+                    const utilLabel = document.getElementById('statUtilizationLabel');
+                    if (utilLabel) utilLabel.textContent = 'active time slots';
                 }
 
+                // Pending Enrollments = real pending Applications awaiting payment verification
                 const pendRes = await fetch('https://ilisy-golf-and-country-club-enrollment.onrender.com/api/admin/pending-applications', { headers: { Authorization: 'Bearer ' + token } });
                 if (pendRes.ok) {
                     const apps = await pendRes.json();
+                    const count = apps.length;
+                    const pEl = document.getElementById('statPending'); if (pEl) pEl.textContent = count;
+                    const pLabel = document.getElementById('statPendingLabel');
+                    if (pLabel) {
+                        pLabel.textContent = count > 0 ? 'Action required' : 'All clear';
+                        pLabel.className = 'hero-card-badge ' + (count > 0 ? 'badge-warn' : 'badge-up');
+                    }
                     const badge = document.getElementById('pendingCountBadge');
-                    if (badge) badge.textContent = apps.length;
+                    if (badge) badge.textContent = count;
                 }
             } catch (e) { console.warn('Hero card patch error:', e); }
         };
 
-        /* Patch loadMonthlySummary to update revenue growth badge */
-        const _origLoadMonthlySummary = window.loadMonthlySummary;
-        window.loadMonthlySummary = async function () {
-            if (_origLoadMonthlySummary) await _origLoadMonthlySummary();
+        /* Patch loadFinancialReport to also update the revenue growth badge */
+        const _origLoadFinancialReportForBadge = window.loadFinancialReport;
+        window.loadFinancialReport = async function () {
+            if (_origLoadFinancialReportForBadge) await _origLoadFinancialReportForBadge();
+            // After admin.js sets financialReportTitle, extract the % and update the hero badge
             const titleEl = document.getElementById('financialReportTitle');
             if (titleEl) {
                 const match = titleEl.textContent.match(/([\d.]+)%/);
@@ -1074,17 +1095,16 @@
         }
 
         /*
-         * Patch renderFinancialChart so that after admin.js calls it,
-         * we also cache the raw data and render the two new charts.
+         * Patch loadFinancialReport so that after admin.js calls it,
+         * we also cache the raw payments and render the two new charts.
+         * NOTE: We must NOT re-wrap loadFinancialReport here because it was
+         * already wrapped above for the revenue badge. Instead we extend the
+         * existing wrapper by patching _cachedPayments loading into it.
          */
-        const _origRenderFinancialChart = window.renderFinancialChart;
-        // Override the function defined earlier in this same script block
-        // by wrapping the loadFinancialReport flow instead.
-        // We patch loadFinancialReport (from admin.js) to cache payments.
-        const _origLoadFinancialReport = window.loadFinancialReport;
+        const _origLoadFinancialReportForCharts = window.loadFinancialReport;
         window.loadFinancialReport = async function () {
-            // Run the original to populate enrollmentLineChart
-            if (_origLoadFinancialReport) await _origLoadFinancialReport();
+            // Run the badge-patched version (which itself calls the original)
+            if (_origLoadFinancialReportForCharts) await _origLoadFinancialReportForCharts();
 
             // Now fetch payments ourselves to power the new charts
             try {

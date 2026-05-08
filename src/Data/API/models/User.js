@@ -35,6 +35,9 @@ const userSchema = new mongoose.Schema({
     isBlocked: { type: Boolean, default: false },
     blockReason: { type: String },
     blockedAt: { type: Date },
+    isArchived: { type: Boolean, default: false },
+    archivedAt: { type: Date },
+    archivedReason: { type: String },
 
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }

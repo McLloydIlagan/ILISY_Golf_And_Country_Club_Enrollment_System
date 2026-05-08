@@ -234,6 +234,7 @@ function showPage(id) {
     if (id === 'dashboard') {
         loadDashboardStats();
         loadFinancialReport();
+        loadPendingApplications();
     }
     else if (id === 'accounts') loadUsers();
     else if (id === 'payments') loadPayments();
@@ -241,7 +242,10 @@ function showPage(id) {
         loadMessages();
         startAdminMessagePolling();
     }
-    else if (id === 'reservations') loadReservations();
+    else if (id === 'reservations') {
+        loadReservations();
+        loadAvailabilityDashboard();
+    }
     else if (id === 'manage_reservations') loadReservationTypes();
     
     restoreScrollPosition(id);
@@ -759,7 +763,7 @@ async function loadUsers() {
                     <td>${user.membershipExpiration ? new Date(user.membershipExpiration).toLocaleDateString() : 'N/A'}</td>
                     <td>
                         <button class="btn-edit" onclick="editUser('${user._id}')">edit</button>
-                        <button class="btn-remove" onclick="showRemoveModal('${user._id}')">remove</button>
+                        <button class="btn-remove" onclick="showRemoveModal('${user._id}')">archive</button>
                         ${user.membershipStatus === 'active' ? 
                             `<button class="btn-revoke" onclick="revokeMembership('${user._id}')" style="background: #9c403d; color: white; padding: 4px 12px; border: none; border-radius: 3px; cursor: pointer; margin-left: 5px;">Revoke</button>` 
                             : ''}
@@ -833,8 +837,8 @@ async function confirmRemove() {
         }
         
         if (response.ok) {
-            showToast('User removed successfully', 'success');
-            loadUsers();
+                showToast('User archived successfully', 'success');
+                loadUsers();
         } else {
             const error = await response.json();
             showToast(error.message || 'Remove failed', 'error');
@@ -855,28 +859,28 @@ async function confirmRemove() {
 async function loadPayments() {
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/payments`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             const payments = await response.json();
             const tbody = document.getElementById('paymentsTbody');
             if (!tbody) return;
             tbody.innerHTML = '';
-            
+
             if (payments.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No payments found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">No payments found</td></tr>';
                 return;
             }
-            
+
             payments.forEach(payment => {
                 const row = tbody.insertRow();
                 const isRefunded = payment.paymentStatus === 'refunded';
@@ -885,17 +889,24 @@ async function loadPayments() {
                     failed: '#dc3545', processing: '#0d6efd'
                 };
                 const statusColor = statusColors[payment.paymentStatus] || '#666';
+
+                // Mask account number — show only last 4 digits
+                const rawAcct = payment.accountNumber || '';
+                const maskedAcct = rawAcct.length > 4
+                    ? '••••' + rawAcct.slice(-4)
+                    : rawAcct || '—';
+
                 row.innerHTML = `
                     <td>${escapeHtml(payment.firstName || '')}</td>
                     <td>${escapeHtml(payment.lastName || '')}</td>
                     <td>${escapeHtml(payment.paymentMethod || '')}</td>
-                    <td>${escapeHtml(payment.accountNumber || '')}</td>
+                    <td style="font-family:monospace;">${escapeHtml(maskedAcct)}</td>
                     <td>₱${(payment.amount || 0).toLocaleString()}</td>
                     <td>${payment.processedAt ? new Date(payment.processedAt).toLocaleDateString() : payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : 'Pending'}</td>
                     <td><span class="badge ${payment.transactionType === 'membership' ? 'badge-active' : 'badge-none'}">${escapeHtml(payment.transactionType || 'N/A')}</span></td>
                     <td>
                         <span style="background:${statusColor}; color:white; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold;">${payment.paymentStatus || 'pending'}</span>
-                        ${isRefunded && payment.refundReason ? `<br><small style="color:#aaa; font-size:10px;">${escapeHtml(payment.refundReason)}</small>` : ''}
+                        ${isRefunded && payment.refundReason ? `<br><small style="color:#888; font-size:10px; display:block; margin-top:3px;">📝 ${escapeHtml(payment.refundReason)}</small>` : ''}
                     </td>
                     <td><button class="btn-refund" onclick="showRefundModal('${payment._id}', '${escapeHtml(payment.firstName)} ${escapeHtml(payment.lastName)}')" ${isRefunded ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''}>Refund</button></td>
                 `;
@@ -919,31 +930,26 @@ function showRefundModal(paymentId, name) {
 
 function openRefundReasons() {
     closeModal('refundConfirmModal');
-    document.getElementById('refundReasonTitle').textContent = `Make a refund for, ${currentRefundName}`;
+    document.getElementById('refundReasonTitle').textContent = `Make a refund for ${currentRefundName}`;
+    const textarea = document.getElementById('refundReasonText');
+    if (textarea) textarea.value = '';
     document.getElementById('refundReasonsModal').classList.add('show');
 }
 
 async function processRefund() {
     if (!currentPaymentId) return;
-    
-    const reasons = [];
-    const checkboxes = ['reason1', 'reason2', 'reason3', 'reason4', 'reason5', 'reasonOther'];
-    checkboxes.forEach(id => {
-        const cb = document.getElementById(id);
-        if (cb && cb.checked) {
-            if (id === 'reasonOther') {
-                const otherText = document.getElementById('otherReason')?.value;
-                if (otherText) reasons.push(otherText);
-            } else {
-                const label = document.querySelector(`label[for="${id}"]`);
-                if (label) reasons.push(label.textContent);
-            }
-        }
-    });
-    
+
+    const textarea = document.getElementById('refundReasonText');
+    const reason = textarea ? textarea.value.trim() : '';
+
+    if (!reason) {
+        showToast('Please enter a reason for the refund.', 'error');
+        return;
+    }
+
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/payments/${currentPaymentId}/refund`, {
             method: 'POST',
@@ -951,14 +957,14 @@ async function processRefund() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ refundReason: reasons.join(', ') })
+            body: JSON.stringify({ refundReason: reason })
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             showToast('Refund processed successfully', 'success');
             loadPayments();
@@ -971,11 +977,7 @@ async function processRefund() {
         showToast('Error processing refund', 'error');
     } finally {
         closeModal('refundReasonsModal');
-        checkboxes.forEach(id => {
-            const cb = document.getElementById(id);
-            if (cb) cb.checked = false;
-        });
-        document.getElementById('otherReason').value = '';
+        if (textarea) textarea.value = '';
         currentPaymentId = null;
     }
 }
@@ -1130,11 +1132,11 @@ function renderReservationsTable() {
         console.error('reservationAppTbody not found');
         return;
     }
-    
+
     const startIndex = (currentReservationPage - 1) * reservationsPerPage;
     const endIndex = startIndex + reservationsPerPage;
     const pageReservations = filteredReservations.slice(startIndex, endIndex);
-    
+
     if (pageReservations.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px;">📋 No reservation applications found</td></tr>';
         const paginationDiv = document.getElementById('reservationPagination');
@@ -1142,69 +1144,106 @@ function renderReservationsTable() {
         updateResultsCount();
         return;
     }
-    
-    tbody.innerHTML = pageReservations.map(app => {
-        let statusClass = 'status-pending';
-        let statusText = '⏳ Pending';
-        
-        if (app.status === 'approved') {
-            statusClass = 'status-confirmed';
-            statusText = '✓ Approved';
-        } else if (app.status === 'confirmed') {
-            statusClass = 'status-confirmed';
-            statusText = '✓ Confirmed';
-        } else if (app.status === 'rejected') {
-            statusClass = 'status-rejected';
-            statusText = '✗ Rejected';
-        } else if (app.status === 'cancelled') {
-            statusClass = 'status-rejected';
-            statusText = '❌ Cancelled';
-        } else if (app.status === 'processing') {
-            statusClass = 'status-pending';
-            statusText = '⏳ Processing';
-        }
-        
-        const displayDate = app.details?.date ? new Date(app.details.date).toLocaleDateString() : 'N/A';
-        const displayTime = app.details?.timeSlot || 'N/A';
-        let displayType = '';
-if (app.type === 'membership') {
-    displayType = '🏌️ Membership';
-} else {
-    // Show specific reservation type if available
-    if (app.reservationTypeName) {
-        displayType = `📅 ${app.reservationTypeName}`;
-    } else if (app.details && app.details.reservationType) {
-        displayType = `📅 ${app.details.reservationType}`;
-    } else {
-        displayType = '📅 Reservation';
-    }
-}
-        
-        return `
-            <tr>
-                <td>
-                    <strong>${escapeHtml(app.firstName)} ${escapeHtml(app.lastName)}</strong><br>
-                    <small style="color:#666;">${escapeHtml(app.email || '')}</small>
-                </td>
-                <td>${displayDate}</td>
-                <td>${escapeHtml(displayTime)}</td>
-                <td><span class="badge" style="background:var(--sage);">${displayType}</span></td>
-                <td><strong>₱${(app.amount || 0).toLocaleString()}</strong></td>
-                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                <td>
-                    ${app.status === 'pending' || app.status === 'processing' ? `
-                        <button class="action-btn btn-approve" onclick="approveReservation('${app._id}')" style="margin-right: 5px;">Approve</button>
-                        <button class="btn-remove" onclick="rejectReservation('${app._id}')">Reject</button>
-                        <br>
-                    ` : ''}
-                    <button class="btn-view-details" onclick="viewReservationDetails('${app._id}')" style="background: var(--sage-dark); color:#333; padding:4px 12px; border:none; border-radius:3px; font-size:12px; cursor:pointer; margin-top: 5px;">📋 Details</button>
+
+    // Group by status for accordion display
+    const groups = {};
+    const statusOrder = ['pending', 'processing', 'approved', 'confirmed', 'rejected', 'cancelled'];
+    const statusLabels = {
+        pending: { label: '⏳ Pending', color: '#856404', bg: '#fff8e1' },
+        processing: { label: '⏳ Processing', color: '#0d6efd', bg: '#e8f0fe' },
+        approved: { label: '✓ Approved', color: '#155724', bg: '#e8f5e9' },
+        confirmed: { label: '✓ Confirmed', color: '#155724', bg: '#e8f5e9' },
+        rejected: { label: '✗ Rejected', color: '#721c24', bg: '#fdecea' },
+        cancelled: { label: '❌ Cancelled', color: '#721c24', bg: '#fdecea' }
+    };
+
+    pageReservations.forEach(app => {
+        const s = app.status || 'pending';
+        if (!groups[s]) groups[s] = [];
+        groups[s].push(app);
+    });
+
+    let html = '';
+    statusOrder.forEach(status => {
+        if (!groups[status] || groups[status].length === 0) return;
+        const info = statusLabels[status] || { label: status, color: '#333', bg: '#f5f5f5' };
+        const groupId = `resGroup_${status}`;
+
+        html += `
+            <tr class="res-accordion-header" onclick="toggleResGroup('${groupId}')"
+                style="background:${info.bg}; cursor:pointer; user-select:none;">
+                <td colspan="7" style="padding:10px 16px; font-weight:600; font-size:13px; color:${info.color};">
+                    <span id="${groupId}_chevron" style="display:inline-block;transition:transform .2s;margin-right:6px;">▶</span>
+                    ${info.label}
+                    <span style="background:${info.color};color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:8px;">${groups[status].length}</span>
                 </td>
             </tr>
+            <tbody id="${groupId}" style="display:none;">
         `;
-    }).join('');
-    
+
+        groups[status].forEach(app => {
+            let displayType = '';
+            if (app.type === 'membership') {
+                displayType = '🏌️ Membership';
+            } else if (app.reservationTypeName) {
+                displayType = `📅 ${app.reservationTypeName}`;
+            } else if (app.details && app.details.reservationType) {
+                displayType = `📅 ${app.details.reservationType}`;
+            } else {
+                displayType = '📅 Reservation';
+            }
+
+            const displayDate = app.details?.date ? new Date(app.details.date).toLocaleDateString() : 'N/A';
+            const displayTime = app.details?.timeSlot || 'N/A';
+
+            html += `
+                <tr>
+                    <td>
+                        <strong>${escapeHtml(app.firstName)} ${escapeHtml(app.lastName)}</strong><br>
+                        <small style="color:#666;">${escapeHtml(app.email || '')}</small>
+                    </td>
+                    <td>${displayDate}</td>
+                    <td>${escapeHtml(displayTime)}</td>
+                    <td><span class="badge" style="background:var(--sage);">${displayType}</span></td>
+                    <td><strong>₱${(app.amount || 0).toLocaleString()}</strong></td>
+                    <td><span class="status-badge ${status === 'pending' || status === 'processing' ? 'status-pending' : status === 'rejected' || status === 'cancelled' ? 'status-rejected' : 'status-confirmed'}">${info.label}</span></td>
+                    <td>
+                        ${status === 'pending' || status === 'processing' ? `
+                            <button class="action-btn btn-approve" onclick="approveReservation('${app._id}')" style="margin-right:5px;">Approve</button>
+                            <button class="btn-remove" onclick="rejectReservation('${app._id}')">Reject</button><br>
+                        ` : ''}
+                        <button class="btn-view-details" onclick="viewReservationDetails('${app._id}')" style="background:var(--sage-dark);color:#333;padding:4px 12px;border:none;border-radius:3px;font-size:12px;cursor:pointer;margin-top:5px;">📋 Details</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody>`;
+    });
+
+    tbody.innerHTML = html;
+
+    // Auto-expand pending and processing groups
+    ['pending', 'processing'].forEach(status => {
+        if (groups[status] && groups[status].length > 0) {
+            const el = document.getElementById(`resGroup_${status}`);
+            const chevron = document.getElementById(`resGroup_${status}_chevron`);
+            if (el) el.style.display = '';
+            if (chevron) chevron.style.transform = 'rotate(90deg)';
+        }
+    });
+
     renderReservationPagination();
     updateResultsCount();
+}
+
+function toggleResGroup(groupId) {
+    const el = document.getElementById(groupId);
+    const chevron = document.getElementById(`${groupId}_chevron`);
+    if (!el) return;
+    const isHidden = el.style.display === 'none' || el.style.display === '';
+    el.style.display = isHidden ? '' : 'none';
+    if (chevron) chevron.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
 }
 
 function renderReservationPagination() {
@@ -1489,16 +1528,26 @@ async function loadMessages() {
                     contactDiv.setAttribute('data-user-id', msg.userId);
                     contactDiv.setAttribute('data-conversation-id', msg._id);
                     contactDiv.onclick = () => selectContact(contactDiv, msg);
-                    
+
                     const isPending = msg.status === 'pending';
-                    
+                    // userId may be populated object or string
+                    const userObj = msg.userId && typeof msg.userId === 'object' ? msg.userId : null;
+                    const isBlocked = userObj ? !!userObj.isBlocked : false;
+                    const userIdStr = userObj ? userObj._id : msg.userId;
+
                     contactDiv.innerHTML = `
                         <div class="contact-avatar">👤</div>
-                        <div>
+                        <div style="flex:1;min-width:0;">
                             <div class="msg-contact-name">${escapeHtml(msg.userName || 'User')}</div>
                             <div style="font-size:11px;color:#ccc;">${escapeHtml(msg.concernType || 'general')}</div>
                         </div>
-                        <div class="msg-contact-dot ${isPending ? 'online' : ''}" style="margin-left:auto;"></div>
+                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+                            <div class="msg-contact-dot ${isPending ? 'online' : ''}"></div>
+                            ${isBlocked
+                                ? `<span title="Unblock user" onclick="event.stopPropagation();openBlockUserModal('${userIdStr}','${escapeHtml(msg.userName || 'User')}',true)" style="font-size:10px;background:#9c403d;color:#fff;border-radius:8px;padding:1px 6px;cursor:pointer;">🚫 Blocked</span>`
+                                : `<span title="Block user" onclick="event.stopPropagation();openBlockUserModal('${userIdStr}','${escapeHtml(msg.userName || 'User')}',false)" style="font-size:10px;background:rgba(255,255,255,.12);color:#ccc;border-radius:8px;padding:1px 6px;cursor:pointer;">⚙️</span>`
+                            }
+                        </div>
                     `;
                     msgSidebar.appendChild(contactDiv);
                     
@@ -1645,7 +1694,24 @@ function selectContact(element, message) {
         message.conversation.forEach(conv => {
             const row = document.createElement('div');
             row.className = `msg-row-wrap ${conv.sender === 'admin' ? 'sent' : ''}`;
-            if (conv.sender === 'user') {
+            if (conv.imageUrl) {
+                const safeUrl = escapeHtml(conv.imageUrl);
+                if (conv.sender === 'user') {
+                    row.innerHTML = `
+                        <div class="chat-avatar">👤</div>
+                        <div class="chat-bubble bubble-received image-message" onclick="viewFullImage('${safeUrl}')">
+                            <img src="${safeUrl}" alt="Receipt image">
+                        </div>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <div class="chat-bubble bubble-sent image-message" onclick="viewFullImage('${safeUrl}')">
+                            <img src="${safeUrl}" alt="Receipt image">
+                        </div>
+                        <div class="chat-avatar">👤</div>
+                    `;
+                }
+            } else if (conv.sender === 'user') {
                 row.innerHTML = `
                     <div class="chat-avatar">👤</div>
                     <div class="chat-bubble bubble-received">${escapeHtml(conv.message)}</div>
@@ -1931,8 +1997,8 @@ function renderValidateModalContent(app) {
         `}
         
         <div class="admin-notes">
-            <label>📝 Admin Notes (Optional)</label>
-            <textarea id="adminNotesTextarea" placeholder="Add any notes about this verification..."></textarea>
+            <label>📝 Admin Notes <span style="color:#856404;font-size:11px;">(required to reject)</span></label>
+            <textarea id="adminNotesTextarea" placeholder="Add notes about this verification. Required if rejecting."></textarea>
         </div>
         
         <div class="modal-action-buttons">
@@ -2001,12 +2067,20 @@ async function confirmVerifyPayment() {
 
 async function confirmRejectPayment() {
     if (!currentValidateApplication) return;
-    
+
     const token = getAuthToken();
-    const reason = prompt('Please enter the reason for rejection:');
-    
+
+    // Use the admin notes textarea — it's already in the modal
+    const notesTextarea = document.getElementById('adminNotesTextarea');
+    const reason = notesTextarea ? notesTextarea.value.trim() : '';
+
     if (!reason) {
-        showToast('Rejection reason is required', 'error');
+        showToast('Please enter a reason in the Admin Notes field before rejecting.', 'error');
+        if (notesTextarea) {
+            notesTextarea.focus();
+            notesTextarea.style.border = '2px solid #dc3545';
+            setTimeout(() => { notesTextarea.style.border = ''; }, 2500);
+        }
         return;
     }
     
@@ -2078,9 +2152,14 @@ function updatePendingApplicationsTable(applications) {
     
     if (applications.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No pending applications</td></tr>';
+        const badge = document.getElementById('pendingCountBadge');
+        if (badge) badge.textContent = '0';
         return;
     }
-    
+
+    const badge = document.getElementById('pendingCountBadge');
+    if (badge) badge.textContent = applications.length;
+
     tbody.innerHTML = applications.map(app => `
         <tr>
             <td><span class="badge-pending">${app.type === 'membership' ? '📋 Membership' : '📅 Reservation'}</span></td>
@@ -2097,6 +2176,9 @@ function updatePendingApplicationsTable(applications) {
             </td>
         </tr>
     `).join('');
+
+    // Auto-expand accordion if there are pending items
+    openDashboardAccordionIfNeeded();
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -2130,6 +2212,9 @@ async function loadReservationTypes() {
 }
 
 function renderReservationCards(types) {
+    // Keep tableReservationTypes in sync so openEditTypeModal always has fresh data
+    tableReservationTypes = types;
+
     const container = document.getElementById('reservationCards');
     if (!container) return;
     
@@ -2484,6 +2569,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     startAdminMessagePolling();
     
+    // Auto-refresh dashboard pending applications every 30 seconds
+    setInterval(() => {
+        const activePage = document.querySelector('.page.active');
+        if (activePage && activePage.id === 'page-dashboard') {
+            loadPendingApplications();
+            loadDashboardStats();
+        }
+    }, 30000);
+    
     document.querySelectorAll('.modal-overlay').forEach(o => {
         o.addEventListener('click', e => {
             if (e.target === o) o.classList.remove('show');
@@ -2608,6 +2702,113 @@ async function revokeMembership(userId) {
     } catch (error) {
         console.error('Error revoking membership:', error);
         showToast('Error revoking membership', 'error');
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// User Block / Unblock
+// ──────────────────────────────────────────────────────────────────
+
+let blockTargetUserId = null;
+let blockTargetUserName = '';
+
+function openBlockUserModal(userId, userName, isBlocked) {
+    if (isBlocked) {
+        // Unblock immediately — no reason needed
+        unblockUser(userId, userName);
+        return;
+    }
+    blockTargetUserId = userId;
+    blockTargetUserName = userName;
+    document.getElementById('blockUserTitle').textContent = `Block ${escapeHtml(userName)}`;
+    document.getElementById('blockUserSubtitle').textContent = `${escapeHtml(userName)} will no longer be able to send messages to admin.`;
+    const textarea = document.getElementById('blockReasonText');
+    if (textarea) textarea.value = '';
+    document.getElementById('blockUserModal').classList.add('show');
+}
+
+async function confirmBlockUser() {
+    if (!blockTargetUserId) return;
+
+    const textarea = document.getElementById('blockReasonText');
+    const reason = textarea ? textarea.value.trim() : '';
+
+    if (!reason) {
+        showToast('Please enter a reason for blocking.', 'error');
+        return;
+    }
+
+    const token = getAuthToken();
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${API_URL}/admin/users/${blockTargetUserId}/block`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ reason })
+        });
+
+        if (response.ok) {
+            showToast(`${blockTargetUserName} has been blocked from messaging.`, 'success');
+            closeModal('blockUserModal');
+            loadMessages();
+        } else {
+            const err = await response.json();
+            showToast(err.message || 'Block failed', 'error');
+        }
+    } catch (error) {
+        console.error('Block error:', error);
+        showToast('Error blocking user', 'error');
+    } finally {
+        blockTargetUserId = null;
+        blockTargetUserName = '';
+    }
+}
+
+async function unblockUser(userId, userName) {
+    const token = getAuthToken();
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${API_URL}/admin/users/${userId}/unblock`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            showToast(`${userName} has been unblocked.`, 'success');
+            loadMessages();
+        } else {
+            const err = await response.json();
+            showToast(err.message || 'Unblock failed', 'error');
+        }
+    } catch (error) {
+        console.error('Unblock error:', error);
+        showToast('Error unblocking user', 'error');
+    }
+}
+
+function toggleDashboardAccordion() {
+    const body = document.getElementById('dashboardAccordionBody');
+    const chevron = document.getElementById('dashboardAccordionChevron');
+    if (!body) return;
+    const isOpen = body.style.maxHeight !== '0px' && body.style.maxHeight !== '';
+    if (isOpen) {
+        body.style.maxHeight = '0';
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+    } else {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+    }
+}
+
+// Auto-open accordion when pending count > 0
+function openDashboardAccordionIfNeeded() {
+    const badge = document.getElementById('pendingCountBadge');
+    const count = badge ? parseInt(badge.textContent) || 0 : 0;
+    const body = document.getElementById('dashboardAccordionBody');
+    if (body && count > 0 && (body.style.maxHeight === '0px' || body.style.maxHeight === '')) {
+        toggleDashboardAccordion();
     }
 }
 
@@ -3072,3 +3273,8 @@ window.changeAdminMonth = changeAdminMonth;
 window.openAdminDayDetails = openAdminDayDetails;
 window.revokeMembership = revokeMembership;
 window.scrollToBottom = scrollToBottom;
+window.openBlockUserModal = openBlockUserModal;
+window.confirmBlockUser = confirmBlockUser;
+window.unblockUser = unblockUser;
+window.toggleResGroup = toggleResGroup;
+window.toggleDashboardAccordion = toggleDashboardAccordion;

@@ -14,7 +14,7 @@ router.use(authMiddleware, adminMiddleware);
 
 router.get('/users', async (req, res) => {
     try {
-        const users = await User.find({}, '-password');
+        const users = await User.find({ isArchived: { $ne: true } }, '-password');
         res.json(users);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -40,13 +40,16 @@ router.put('/users/:userId', async (req, res) => {
     }
 });
 
-// Remove unwanted accounts > D1
+// Archive account (soft delete) > D1
 router.delete('/users/:userId', async (req, res) => {
     try {
         const user = await User.findById(req.params.userId);
         if (!user) return res.status(404).json({ message: 'User not found' });
-        await User.findByIdAndDelete(req.params.userId);
-        res.json({ message: 'User removed successfully' });
+        user.isArchived = true;
+        user.archivedAt = new Date();
+        user.archivedReason = req.body.reason || 'Archived by admin';
+        await user.save();
+        res.json({ message: 'User archived successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
