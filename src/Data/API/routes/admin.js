@@ -510,82 +510,71 @@ router.get('/reservations/calendar', async (req, res) => {
             endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
         }
         
-        // Build query for confirmed reservations
-        let query = {
+        // Get ALL reservations (confirmed and approved)
+        let reservations = await Reservation.find({
             date: { $gte: startDate, $lte: endDate },
             status: { $in: ['confirmed', 'approved'] }
-        };
+        });
         
-        // Apply filter based on filterType
-        if (filterType === 'type_id' && filterValue) {
-            // Filter by specific reservation type ID
-            query.reservationTypeId = filterValue;
-        } else if (filterType === 'category' && filterValue) {
-            // Filter by category
-            query.category = filterValue;
-        } else if (filterType === 'membership') {
-            // For membership, we need to get from Application collection
-            const applications = await Application.find({
-                type: 'membership',
-                status: 'approved',
-                createdAt: { $gte: startDate, $lte: endDate }
-            });
-            return res.json(applications.map(app => ({
-                date: app.createdAt,
-                type: 'membership',
-                firstName: app.firstName,
-                lastName: app.lastName,
-                amount: app.amount
-            })));
-        }
-        
-        // Get reservations from Reservation collection
-        const reservations = await Reservation.find(query)
-            .select('date timeSlot firstName lastName status reservationType category amount');
-        
-        // Also get from Application collection for pending/approved reservations
-        const applications = await Application.find({
+        // Get applications with reservation details
+        let applications = await Application.find({
             type: 'reservation',
-            status: { $in: ['pending', 'approved'] },
+            status: { $in: ['pending', 'approved', 'confirmed'] },
             'details.date': { $gte: startDate, $lte: endDate }
         });
         
-        // Combine both sources
-        let allReservations = [...reservations];
+        // Combine and format
+        let allItems = [];
         
-        // Add applications with date filter
+        reservations.forEach(res => {
+            allItems.push({
+                date: res.date,
+                timeSlot: res.timeSlot,
+                firstName: res.firstName,
+                lastName: res.lastName,
+                status: res.status,
+                reservationTypeName: res.reservationTypeName || 'Reservation',
+                amount: res.amount,
+                source: 'reservation'
+            });
+        });
+        
         applications.forEach(app => {
             if (app.details && app.details.date) {
-                allReservations.push({
+                allItems.push({
                     date: new Date(app.details.date),
                     timeSlot: app.details.timeSlot,
                     firstName: app.firstName,
                     lastName: app.lastName,
                     status: app.status,
-                    reservationType: app.reservationTypeName || 'Reservation',
+                    reservationTypeName: app.reservationTypeName || 'Reservation',
                     amount: app.amount,
                     source: 'application'
                 });
             }
         });
         
-        // Apply category filter to combined results
-        if (filterType === 'category' && filterValue) {
-            allReservations = allReservations.filter(res => 
-                (res.category || '').toLowerCase() === filterValue.toLowerCase() ||
-                (res.reservationType || '').toLowerCase().includes(filterValue.toLowerCase())
-            );
-        }
-        
-        // Apply specific type filter
+        // Apply filter if specified
         if (filterType === 'type_id' && filterValue) {
-            allReservations = allReservations.filter(res => 
-                res.reservationTypeId === filterValue ||
-                (res.reservationType || '').toLowerCase().includes(filterValue.toLowerCase())
+            // Filter by specific reservation type ID
+            allItems = allItems.filter(item => 
+                item.reservationTypeId === filterValue
+            );
+        } else if (filterType === 'category' && filterValue) {
+            // Filter by category - check if reservation type name contains category or matches
+            allItems = allItems.filter(item => 
+                item.reservationTypeName?.toLowerCase().includes(filterValue.toLowerCase()) ||
+                item.reservationType?.toLowerCase().includes(filterValue.toLowerCase())
+            );
+        } else if (filterType === 'type_name' && filterValue) {
+            // Direct name match
+            allItems = allItems.filter(item => 
+                item.reservationTypeName === filterValue ||
+                item.reservationTypeName?.toLowerCase() === filterValue.toLowerCase()
             );
         }
         
-        res.json(allReservations);
+        res.json(allItems);
     } catch (error) {
         console.error('Calendar error:', error);
         res.status(500).json({ message: error.message });

@@ -547,36 +547,37 @@ async function loadAdminCalendar() {
     
     let filterType = 'all';
     let filterValue = '';
+    let selectedTypeName = '';
     
     if (selectedFilter === 'membership') {
         filterType = 'membership';
-        filterValue = '';
     } else if (selectedFilter === 'all') {
         filterType = 'all';
-        filterValue = '';
     } else if (selectedFilter.startsWith('cat_')) {
         filterType = 'category';
         filterValue = selectedFilter.replace('cat_', '');
     } else if (selectedFilter.startsWith('type_')) {
         filterType = 'type_id';
         filterValue = selectedFilter.replace('type_', '');
-    } else {
-        // Check if it's a category name directly
-        const categories = ['golf', 'amenities', 'events', 'accommodation', 'premium'];
-        if (categories.includes(selectedFilter)) {
-            filterType = 'category';
-            filterValue = selectedFilter;
+        
+        // Also get the type name for better matching
+        const selectedType = calendarReservationTypes.find(t => t._id === filterValue);
+        if (selectedType) {
+            selectedTypeName = selectedType.name;
         }
     }
     
-    console.log('Loading calendar with filter:', { filterType, filterValue, selectedFilter });
+    console.log('Loading calendar with filter:', { filterType, filterValue, selectedTypeName });
     
     try {
         const year = adminCurrentMonth.getFullYear();
         const month = adminCurrentMonth.getMonth() + 1;
         
-        const url = `${API_URL}/admin/reservations/calendar?year=${year}&month=${month}&filterType=${filterType}&filterValue=${encodeURIComponent(filterValue)}`;
-        console.log('Calendar URL:', url);
+        // Pass both ID and name for better matching
+        let url = `${API_URL}/admin/reservations/calendar?year=${year}&month=${month}&filterType=${filterType}&filterValue=${encodeURIComponent(filterValue)}`;
+        if (selectedTypeName) {
+            url += `&typeName=${encodeURIComponent(selectedTypeName)}`;
+        }
         
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -589,10 +590,9 @@ async function loadAdminCalendar() {
         
         if (response.ok) {
             adminCalendarData = await response.json();
-            console.log('Calendar data loaded:', adminCalendarData.length, 'records');
-            console.log('Sample data:', adminCalendarData.slice(0, 3));
+            console.log('Calendar data loaded:', adminCalendarData.length, 'records for filter:', selectedFilter);
+            console.log('Sample:', adminCalendarData.slice(0, 3));
         } else {
-            console.error('Calendar response not ok:', response.status);
             adminCalendarData = [];
         }
     } catch (error) {
@@ -615,7 +615,13 @@ function renderAdminCalendar() {
     }
     
     const filterSelect = document.getElementById('calendarTypeFilter');
-    const selectedFilterDisplay = filterSelect ? filterSelect.options[filterSelect.selectedIndex]?.text || 'All' : 'All';
+    const selectedFilterValue = filterSelect ? filterSelect.value : 'all';
+    const selectedFilterText = filterSelect ? filterSelect.options[filterSelect.selectedIndex]?.text || 'All Reservations' : 'All Reservations';
+    
+    // Determine if we're filtering by a specific type
+    const isSpecificType = selectedFilterValue.startsWith('type_');
+    const isCategoryFilter = selectedFilterValue.startsWith('cat_');
+    const isMembershipFilter = selectedFilterValue === 'membership';
     
     const grid = document.getElementById('adminCalGrid');
     if (!grid) return;
@@ -632,53 +638,101 @@ function renderAdminCalendar() {
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const totalSlots = 10;
     
     for (let d = 1; d <= daysInMonth; d++) {
         const cellDate = new Date(year, month, d);
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const isToday = cellDate.toDateString() === today.toDateString();
         
-        // Filter reservations for this specific day
-        const dayReservations = adminCalendarData.filter(res => {
+        // Filter reservations for this specific day based on current filter
+        let dayReservations = adminCalendarData.filter(res => {
             const resDate = new Date(res.date);
-            return resDate.getFullYear() === year && 
-                   resDate.getMonth() === month && 
-                   resDate.getDate() === d;
+            const dateMatches = resDate.getFullYear() === year && 
+                               resDate.getMonth() === month && 
+                               resDate.getDate() === d;
+            
+            if (!dateMatches) return false;
+            
+            // Apply filter logic
+            if (isSpecificType) {
+                // For specific type filter, match by reservationTypeName
+                const typeId = selectedFilterValue.replace('type_', '');
+                const selectedType = calendarReservationTypes.find(t => t._id === typeId);
+                if (selectedType) {
+                    return res.reservationTypeName === selectedType.name ||
+                           (res.reservationType || '').toLowerCase() === selectedType.name.toLowerCase();
+                }
+                return false;
+            } else if (isCategoryFilter) {
+                // For category filter
+                const category = selectedFilterValue.replace('cat_', '');
+                return (res.category || '').toLowerCase() === category.toLowerCase() ||
+                       (res.reservationTypeName || '').toLowerCase().includes(category.toLowerCase());
+            } else if (isMembershipFilter) {
+                return res.type === 'membership';
+            }
+            
+            // Default: show all reservations
+            return true;
         });
         
         const bookedCount = dayReservations.length;
+        
+        // Determine status class based on bookings
         let statusClass = 'available';
+        let tooltipDetails = '';
         
         if (bookedCount === 0) {
             statusClass = 'available';
-        } else if (bookedCount >= totalSlots) {
+            tooltipDetails = `Available for ${selectedFilterText}`;
+        } else if (bookedCount === 1) {
             statusClass = 'booked';
+            const res = dayReservations[0];
+            const typeName = res.reservationTypeName || res.type || 'Reservation';
+            tooltipDetails = `${bookedCount} booking: ${typeName} - ${res.firstName} ${res.lastName}`;
         } else {
-            statusClass = 'partial';
+            statusClass = 'booked';
+            const typeNames = [...new Set(dayReservations.map(r => r.reservationTypeName || r.type || 'Reservation'))];
+            tooltipDetails = `${bookedCount} bookings: ${typeNames.join(', ')}`;
         }
         
         const todayClass = isToday ? 'today' : '';
-        
-        // Build tooltip with reservation details
-        let tooltipInfo = '';
-        if (bookedCount > 0) {
-            const types = [...new Set(dayReservations.map(r => r.reservationType || r.type || 'Reservation'))];
-            tooltipInfo = `data-info="${bookedCount} booking${bookedCount !== 1 ? 's' : ''}: ${types.join(', ')}"`;
-        } else {
-            tooltipInfo = `data-info="Available for ${selectedFilterDisplay}"`;
-        }
         
         grid.innerHTML += `
             <div class="res-day ${statusClass} ${todayClass}" 
                  data-date="${dateKey}"
                  data-booked="${bookedCount}"
-                 ${tooltipInfo}
+                 data-info="${escapeHtml(tooltipDetails)}"
+                 title="${escapeHtml(tooltipDetails)}"
                  onclick="openAdminDayDetails('${dateKey}')">
                 ${d}
                 ${bookedCount > 0 ? `<span style="font-size:8px; position:absolute; bottom:2px; right:2px;">${bookedCount}</span>` : ''}
             </div>
         `;
+    }
+    
+    // Update legend to show what colors mean
+    const legendRow = document.querySelector('.legend-row');
+    if (legendRow) {
+        let filterSpecificText = '';
+        if (isSpecificType) {
+            const typeId = selectedFilterValue.replace('type_', '');
+            const selectedType = calendarReservationTypes.find(t => t._id === typeId);
+            if (selectedType) {
+                filterSpecificText = ` - Showing: ${selectedType.icon || '📌'} ${selectedType.name}`;
+            }
+        } else if (isCategoryFilter) {
+            const category = selectedFilterValue.replace('cat_', '');
+            filterSpecificText = ` - Category: ${category}`;
+        } else if (isMembershipFilter) {
+            filterSpecificText = ` - Membership Applications`;
+        }
+        
+        // Update the calendar title or add a subtitle
+        const calendarTitle = document.querySelector('.res-cal-header span');
+        if (calendarTitle && filterSpecificText) {
+            // Don't override, just log
+        }
     }
 }
 
