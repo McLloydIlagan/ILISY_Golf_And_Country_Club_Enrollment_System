@@ -38,4 +38,29 @@ router.get('/:userId/membership-status', authMiddleware, async (req, res) => {
     }
 });
 
+// Get user's block status
+router.get('/:userId/block-status', authMiddleware, async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (req.user.userId !== userId && !req.user.isAdmin) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        const user = await User.findById(userId).select('isBlocked blockReason blockedAt');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({
+            isBlocked: !!user.isBlocked,
+            blockReason: user.blockReason || null,
+            blockedAt: user.blockedAt || null
+        });
+    } catch (error) {
+        console.error('Error getting block status:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;
