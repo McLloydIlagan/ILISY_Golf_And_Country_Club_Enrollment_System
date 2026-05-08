@@ -265,7 +265,7 @@ router.get('/messages', async (req, res) => {
     try {
         const messages = await Message.find()
             .sort({ createdAt: -1 })
-            .populate('userId', 'firstName lastName email username');
+            .populate('userId', 'firstName lastName email username isBlocked blockReason');
         res.json(messages);
     } catch (error) {
         console.error('Error loading messages:', error);
@@ -704,8 +704,46 @@ router.get('/reservations/by-date/:date', async (req, res) => {
     }
 });
 
-router.patch('/users/:userId/revoke-membership', async (req, res) => {
+// Block a user from messaging
+router.patch('/users/:userId/block', async (req, res) => {
     try {
+        const { userId } = req.params;
+        const { reason } = req.body;
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.isBlocked = true;
+        user.blockReason = reason || 'Blocked by admin';
+        user.blockedAt = new Date();
+        await user.save();
+
+        res.json({ message: 'User blocked from messaging', userId });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Unblock a user
+router.patch('/users/:userId/unblock', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.isBlocked = false;
+        user.blockReason = undefined;
+        user.blockedAt = undefined;
+        await user.save();
+
+        res.json({ message: 'User unblocked', userId });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+router.patch('/users/:userId/revoke-membership', async (req, res) => {    try {
         const { userId } = req.params;
         const { reason } = req.body;
         

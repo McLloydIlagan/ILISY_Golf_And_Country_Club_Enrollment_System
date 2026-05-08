@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Message = require('../models/Message');
+const User = require('../models/User');
 const { authMiddleware } = require('../middleware/auth');
 
 // ============================================
@@ -66,6 +67,16 @@ router.post('/submit', authMiddleware, async (req, res) => {
             return res.status(403).json({ message: 'Unauthorized' });
         }
 
+        // Check if user is blocked from messaging
+        const user = await User.findById(userId).select('isBlocked blockReason');
+        if (user && user.isBlocked) {
+            return res.status(403).json({
+                message: 'You have been blocked from sending messages.',
+                reason: user.blockReason || 'Contact the club for more information.',
+                blocked: true
+            });
+        }
+
         // Check if there's an existing OPEN conversation for this user
         let existingConversation = await Message.findOne({
             userId: userId,
@@ -124,6 +135,17 @@ router.post('/upload-image', authMiddleware, upload.single('image'), async (req,
         // Verify user
         if (req.user.userId !== userId) {
             return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        // Check if user is blocked from messaging
+        const blockedUser = await User.findById(userId).select('isBlocked blockReason');
+        if (blockedUser && blockedUser.isBlocked) {
+            if (req.file && req.file.path) fs.unlinkSync(req.file.path);
+            return res.status(403).json({
+                message: 'You have been blocked from sending messages.',
+                reason: blockedUser.blockReason || 'Contact the club for more information.',
+                blocked: true
+            });
         }
         
         if (!req.file) {
