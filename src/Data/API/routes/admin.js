@@ -523,15 +523,37 @@ router.get('/reservations/calendar', async (req, res) => {
             'details.date': { $gte: startDate, $lte: endDate }
         });
         
+        // Amount to Reservation Type Name mapping
+        const amountToTypeMap = {
+            240: 'Swimming Pool',
+            300: 'Swimming Pool',
+            640: 'Spa / Massage',
+            800: 'Spa / Massage',
+            160: 'Gym / Fitness',
+            200: 'Gym / Fitness',
+            400: 'Driving Range',
+            500: 'Driving Range',
+            4000: 'Ballroom / Function Hall',
+            5000: 'Ballroom / Function Hall',
+            2000: 'Villas / Guest Rooms',
+            2500: 'Villas / Guest Rooms',
+            0: 'Restaurant Reservation'
+        };
+        
         // Combine and format
         let allItems = [];
         
         reservations.forEach(res => {
-            // Get type name from multiple possible fields
+            // Try to get type name from multiple sources
             let typeName = res.reservationTypeName || 
                           res.reservationType || 
                           res.type || 
-                          'Reservation';
+                          null;
+            
+            // If no type name found, infer from amount
+            if (!typeName || typeName === 'Reservation') {
+                typeName = amountToTypeMap[res.amount] || 'Reservation';
+            }
             
             allItems.push({
                 date: res.date,
@@ -549,7 +571,12 @@ router.get('/reservations/calendar', async (req, res) => {
             if (app.details && app.details.date) {
                 let typeName = app.reservationTypeName || 
                               app.details.reservationType || 
-                              'Reservation';
+                              null;
+                
+                // If no type name found, infer from amount
+                if (!typeName || typeName === 'Reservation') {
+                    typeName = amountToTypeMap[app.amount] || 'Reservation';
+                }
                 
                 allItems.push({
                     date: new Date(app.details.date),
@@ -564,9 +591,9 @@ router.get('/reservations/calendar', async (req, res) => {
             }
         });
         
-        // ========== FIXED FILTERING LOGIC ==========
+        // ========== FILTERING LOGIC ==========
         
-        // Case 1: Filter by specific reservation type NAME (most common)
+        // Case 1: Filter by specific reservation type NAME
         if (filterType === 'type_name' && filterValue) {
             const searchName = filterValue.toLowerCase().trim();
             allItems = allItems.filter(item => {
@@ -574,9 +601,18 @@ router.get('/reservations/calendar', async (req, res) => {
                 return itemName === searchName;
             });
             console.log(`📅 Filtered by type_name "${filterValue}": ${allItems.length} items`);
+            
+            // Log what was found for debugging
+            if (allItems.length > 0) {
+                console.log('Found items:', allItems.map(i => ({ 
+                    date: i.date, 
+                    type: i.reservationTypeName, 
+                    amount: i.amount 
+                })));
+            }
         }
         
-        // Case 2: Filter by category (partial match)
+        // Case 2: Filter by category
         else if (filterType === 'category' && filterValue) {
             const searchCategory = filterValue.toLowerCase().trim();
             allItems = allItems.filter(item => {
@@ -586,7 +622,7 @@ router.get('/reservations/calendar', async (req, res) => {
             console.log(`📅 Filtered by category "${filterValue}": ${allItems.length} items`);
         }
         
-        // Case 3: Filter by type ID (look up the type name first)
+        // Case 3: Filter by type ID
         else if (filterType === 'type_id' && filterValue) {
             try {
                 const ReservationType = require('../models/ReservationType');
@@ -604,14 +640,7 @@ router.get('/reservations/calendar', async (req, res) => {
             }
         }
         
-        // Case 4: Filter by membership (no filtering needed, just return all items)
-        else if (filterType === 'membership') {
-            // For membership, we want to show membership applications
-            // You may want to add membership data here
-            console.log(`📅 Showing membership applications`);
-        }
-        
-        // Case 5: No filter (all items)
+        // Case 4: No filter (all items)
         else {
             console.log(`📅 No filter applied, showing ${allItems.length} total items`);
         }
