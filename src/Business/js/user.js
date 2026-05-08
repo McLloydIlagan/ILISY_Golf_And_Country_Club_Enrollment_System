@@ -48,7 +48,8 @@ function getRateLabel() {
 // ------------------------------------------------------------------
 
 function getAuthToken() {
-    return localStorage.getItem('authToken');
+    // Try both possible storage keys
+    return localStorage.getItem('authToken') || localStorage.getItem('token');
 }
 
 async function apiFetch(url, options = {}) {
@@ -1495,7 +1496,7 @@ async function submitDynamicReservationPayment(event) {
         return;
     }
     
-    // Prepare data for API - Send to /reservations/apply endpoint (which creates application for admin verification)
+    // Prepare data for API
     const data = {
         userId: userId,
         firstName: pendingReservationData.firstName,
@@ -1525,7 +1526,16 @@ async function submitDynamicReservationPayment(event) {
     }
     
     try {
-        const token = localStorage.getItem('token');
+        // Get the auth token properly
+        const token = getAuthToken();
+        
+        // Debug: Check if token exists
+        console.log('Auth token exists:', !!token);
+        
+        if (!token) {
+            throw new Error('No authentication token found. Please login again.');
+        }
+        
         const response = await fetch(`${API_URL}/reservations/apply`, { 
             method: 'POST', 
             headers: {
@@ -1534,6 +1544,18 @@ async function submitDynamicReservationPayment(event) {
             },
             body: JSON.stringify(data) 
         });
+        
+        console.log('Response status:', response.status);
+        
+        // Handle 401 specifically - token might be expired
+        if (response.status === 401) {
+            localStorage.clear();
+            showToast('Session expired. Please login again.', 'error');
+            setTimeout(() => {
+                window.location.href = '../index.html';
+            }, 2000);
+            return;
+        }
         
         const result = await response.json();
         console.log('Server response:', result);
@@ -1544,43 +1566,31 @@ async function submitDynamicReservationPayment(event) {
             const memberText = isUserMember() ? ' (Member discount applied!)' : '';
             showToast(`✅ Reservation application submitted!${memberText} Admin will verify your payment.`, 'success');
             
-            // Store application ID for tracking
             if (result.applicationId) {
                 localStorage.setItem('lastReservationAppId', result.applicationId);
             }
             
-            // Update receipt popup with payment method info
+            // Update receipt popup
             const receiptTracking = document.getElementById('receiptTracking');
             const receiptName = document.getElementById('receiptName');
             const receiptAmount = document.querySelector('#receiptPopup .popup-card p:last-child span');
             const receiptStatus = document.getElementById('receiptStatus');
-            const receiptPaymentMethod = document.getElementById('receiptPaymentMethod');
             
             if (receiptTracking) receiptTracking.textContent = transactionId;
             if (receiptName) receiptName.textContent = `${pendingReservationData.firstName} ${pendingReservationData.lastName}`;
             if (receiptAmount) receiptAmount.textContent = `₱${pendingReservationData.totalPrice.toLocaleString()}`;
             
-            // Add payment method display if element exists
-            if (receiptPaymentMethod) {
-                receiptPaymentMethod.textContent = activeMethod;
-                receiptPaymentMethod.style.display = 'block';
-            }
-            
-            // Update status to show pending verification
             if (receiptStatus) {
                 receiptStatus.innerHTML = `⏳ <strong>Pending Admin Verification</strong><br><small>Payment via ${activeMethod} - Please wait for admin to verify</small>`;
                 receiptStatus.style.background = '#fff3cd';
                 receiptStatus.style.color = '#856404';
             }
             
-            // Show receipt popup
             const receiptPopup = document.getElementById('receiptPopup');
             if (receiptPopup) receiptPopup.style.display = 'flex';
             
-            // Reset form
             resetReservationForm();
             
-            // Clear pending data
             pendingReservationData = {
                 firstName: '',
                 lastName: '',
@@ -1595,22 +1605,13 @@ async function submitDynamicReservationPayment(event) {
             
         } else {
             let errorMessage = result.message || 'Reservation failed. Please try again.';
-            
-            if (result.message && result.message.toLowerCase().includes('time slot')) {
-                errorMessage = 'This time slot is no longer available. Please go back and select another time.';
-                const reservationCard = document.querySelector('#tab-reservation .reservation-card');
-                if (reservationCard) reservationCard.style.display = 'block';
-                const paymentSection = document.getElementById('reservationPayment');
-                if (paymentSection) paymentSection.style.display = 'none';
-            }
-            
             showToast(errorMessage, 'error');
         }
         
     } catch (error) {
         if (overlay) overlay.style.display = 'none';
         console.error('Error submitting reservation:', error);
-        showToast('Network error: ' + error.message, 'error');
+        showToast('Error: ' + error.message, 'error');
     }
 }
 
