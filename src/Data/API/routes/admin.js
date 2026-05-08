@@ -656,17 +656,50 @@ router.get('/reservations/calendar', async (req, res) => {
 router.get('/reservations/by-date/:date', async (req, res) => {
     try {
         const { date } = req.params;
+        
+        // Create date range for the entire day
         const startDate = new Date(date);
+        startDate.setUTCHours(0, 0, 0, 0);
+        
         const endDate = new Date(date);
-        endDate.setDate(endDate.getDate() + 1);
+        endDate.setUTCHours(23, 59, 59, 999);
         
+        console.log('Searching for reservations between:', startDate, 'and', endDate);
+        
+        // Search in Reservation collection
         const reservations = await Reservation.find({
-            date: { $gte: startDate, $lt: endDate },
+            date: { $gte: startDate, $lte: endDate },
             status: { $in: ['confirmed', 'approved'] }
-        }).select('date timeSlot firstName lastName status phone email');
+        }).select('date timeSlot firstName lastName status phone email amount reservationTypeName');
         
-        res.json(reservations);
+        // Also search in Application collection for pending/approved applications
+        const applications = await Application.find({
+            type: 'reservation',
+            status: { $in: ['pending', 'approved'] },
+            'details.date': { $gte: startDate, $lte: endDate }
+        });
+        
+        // Format applications to match reservation structure
+        const formattedApplications = applications.map(app => ({
+            date: app.details.date,
+            timeSlot: app.details.timeSlot,
+            firstName: app.firstName,
+            lastName: app.lastName,
+            email: app.email,
+            phone: app.phone,
+            status: app.status,
+            amount: app.amount,
+            reservationTypeName: app.reservationTypeName || 'Reservation'
+        }));
+        
+        // Combine both arrays
+        const allReservations = [...reservations, ...formattedApplications];
+        
+        console.log(`Found ${allReservations.length} reservations for ${date}`);
+        
+        res.json(allReservations);
     } catch (error) {
+        console.error('Error getting reservations by date:', error);
         res.status(500).json({ message: error.message });
     }
 });

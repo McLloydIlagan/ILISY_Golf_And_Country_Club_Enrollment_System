@@ -638,7 +638,7 @@ function renderAdminCalendar() {
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const isToday = cellDate.toDateString() === today.toDateString();
         
-        // Count reservations for this day from the filtered data
+        // Count reservations for this day
         const dayReservations = adminCalendarData.filter(res => {
             const resDate = new Date(res.date);
             return resDate.getFullYear() === year && 
@@ -651,7 +651,7 @@ function renderAdminCalendar() {
         // Determine color based on bookings
         let statusClass = 'available';
         if (bookedCount > 0) {
-            statusClass = 'booked';  // Red for any bookings when filtered
+            statusClass = 'booked';
         }
         
         const todayClass = isToday ? 'today' : '';
@@ -659,15 +659,17 @@ function renderAdminCalendar() {
         // Build tooltip
         let tooltipText = `Available for ${selectedFilterText}`;
         if (bookedCount > 0) {
-            const names = dayReservations.map(r => `${r.firstName} ${r.lastName}`).join(', ');
-            tooltipText = `${bookedCount} booking(s): ${names}`;
+            const typeNames = [...new Set(dayReservations.map(r => r.reservationTypeName || 'Reservation'))];
+            tooltipText = `${bookedCount} booking(s): ${typeNames.join(', ')}`;
         }
         
+        // IMPORTANT: Make ALL days clickable, even booked ones
         grid.innerHTML += `
             <div class="res-day ${statusClass} ${todayClass}" 
                  data-date="${dateKey}"
                  data-booked="${bookedCount}"
                  title="${escapeHtml(tooltipText)}"
+                 style="cursor: pointer;"
                  onclick="openAdminDayDetails('${dateKey}')">
                 ${d}
                 ${bookedCount > 0 ? `<span style="font-size:8px; position:absolute; bottom:2px; right:2px;">${bookedCount}</span>` : ''}
@@ -682,8 +684,11 @@ function changeAdminMonth(delta) {
 }
 
 async function openAdminDayDetails(dateKey) {
+    console.log('Opening details for date:', dateKey);
+    
+    // Parse the date correctly
     const [year, month, day] = dateKey.split('-');
-    const dateObj = new Date(year, month - 1, day);
+    const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     const formattedDate = dateObj.toLocaleDateString('en-US', { 
         weekday: 'long', 
         year: 'numeric', 
@@ -700,11 +705,10 @@ async function openAdminDayDetails(dateKey) {
     const modalBody = document.querySelector('#resDetailModal .res-detail-body');
     if (!modalBody) return;
     
-    const currentFilter = document.getElementById('calendarTypeFilter')?.value || 'all';
-    
+    // Show loading state
     modalBody.innerHTML = `
         <div style="text-align:center; padding:20px;">
-            <div class="loading-spinner" style="display:inline-block;"></div> Loading reservations...
+            <div class="loading-spinner"></div> Loading reservations...
         </div>
         <div style="text-align:right; margin-top:16px;">
             <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
@@ -712,7 +716,15 @@ async function openAdminDayDetails(dateKey) {
     `;
     
     try {
-        const response = await fetch(`${API_URL}/admin/reservations/by-date/${dateKey}?filter=${currentFilter}`, {
+        // Create proper date range
+        const startDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        startDate.setHours(0, 0, 0, 0);
+        
+        const endDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        endDate.setHours(23, 59, 59, 999);
+        
+        // Fetch reservations for this specific date range
+        const response = await fetch(`${API_URL}/admin/reservations/by-date/${dateKey}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -723,19 +735,12 @@ async function openAdminDayDetails(dateKey) {
         
         if (response.ok) {
             let reservations = await response.json();
+            console.log('Reservations for date:', reservations);
             
-            if (currentFilter !== 'all' && currentFilter !== 'membership') {
-                reservations = reservations.filter(res => {
-                    const resType = (res.reservationType || res.type || 'golf').toLowerCase();
-                    return resType === currentFilter.toLowerCase() ||
-                           (currentFilter === 'reservation' && (resType === 'golf' || resType === 'tee time'));
-                });
-            }
-            
-            if (reservations.length === 0) {
+            if (!reservations || reservations.length === 0) {
                 modalBody.innerHTML = `
                     <div style="text-align:center; padding:40px; color:#888;">
-                        No ${currentFilter !== 'all' ? currentFilter : ''} reservations for this day.
+                        No reservations for ${formattedDate}.
                     </div>
                     <div style="text-align:right; margin-top:16px;">
                         <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
@@ -744,34 +749,35 @@ async function openAdminDayDetails(dateKey) {
                 return;
             }
             
+            // Build HTML for each reservation
             let slotsHtml = `
-                <div class="res-detail-header-info" style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">
-                    <strong>Total ${currentFilter !== 'all' ? currentFilter + ' ' : ''}Reservations: ${reservations.length}</strong>
+                <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">
+                    <strong>Total Reservations: ${reservations.length}</strong>
                 </div>
             `;
             
             reservations.forEach((res, index) => {
-                const reservationType = res.reservationType || res.type || 'N/A';
-                const statusClass = res.status === 'confirmed' ? 'status-confirmed' : 'status-pending';
-                const statusText = res.status === 'confirmed' ? '✓ Confirmed' : '⏳ Pending';
+                const reservationType = res.reservationTypeName || res.reservationType || res.type || 'Reservation';
+                const statusClass = res.status === 'confirmed' || res.status === 'approved' ? 'status-confirmed' : 'status-pending';
+                const statusText = res.status === 'confirmed' || res.status === 'approved' ? '✓ Confirmed' : '⏳ Pending';
                 
                 slotsHtml += `
-                    <div class="reservation-detail-card" style="background: ${index % 2 === 0 ? '#f9f9f9' : 'white'}; border: 1px solid #eee; border-radius: 8px; margin-bottom: 12px; padding: 15px;">
+                    <div style="background: ${index % 2 === 0 ? '#f9f9f9' : 'white'}; border: 1px solid #eee; border-radius: 8px; margin-bottom: 12px; padding: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <div class="res-slot-time" style="background: var(--olive); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">
+                            <div style="background: var(--olive); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">
                                 🕐 ${escapeHtml(res.timeSlot || 'N/A')}
                             </div>
                             <div>
                                 <span class="status-badge ${statusClass}">${statusText}</span>
                             </div>
                         </div>
-                        <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;">
+                        <div style="margin-bottom: 10px;">
                             <div><strong>👤 Guest:</strong> ${escapeHtml(res.firstName || '')} ${escapeHtml(res.lastName || '')}</div>
                             <div><strong>📞 Phone:</strong> ${escapeHtml(res.phone || 'N/A')}</div>
                             <div><strong>📧 Email:</strong> ${escapeHtml(res.email || 'N/A')}</div>
                         </div>
-                        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
-                            <div><strong>🏷️ Type:</strong> <span class="detail-badge">${escapeHtml(reservationType)}</span></div>
+                        <div>
+                            <div><strong>🏷️ Type:</strong> <span style="background: var(--sage); padding: 2px 8px; border-radius: 12px;">${escapeHtml(reservationType)}</span></div>
                             <div><strong>💰 Amount:</strong> <strong>₱${(res.amount || 0).toLocaleString()}</strong></div>
                         </div>
                     </div>
@@ -799,7 +805,7 @@ async function openAdminDayDetails(dateKey) {
         console.error('Error loading day reservations:', error);
         modalBody.innerHTML = `
             <div style="text-align:center; padding:40px; color:#dc3545;">
-                Error loading reservations.
+                Error loading reservations: ${error.message}
             </div>
             <div style="text-align:right; margin-top:16px;">
                 <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
@@ -807,6 +813,7 @@ async function openAdminDayDetails(dateKey) {
         `;
     }
     
+    // Show the modal
     const modal = document.getElementById('resDetailModal');
     if (modal) modal.classList.add('show');
 }

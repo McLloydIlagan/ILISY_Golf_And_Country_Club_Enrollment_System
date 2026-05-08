@@ -1771,3 +1771,11 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
     z-index: 10;
     margin-bottom: 5px;
 }
+
+.res-day {
+    cursor: pointer;
+}
+
+.res-day.empty {
+    cursor: default;
+}
