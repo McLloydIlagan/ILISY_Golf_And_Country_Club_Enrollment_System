@@ -8,26 +8,32 @@ let tableReservationTypes = [];
 let lastMessageIds = new Map();
 let notifiedMessageIds = new Map();
 let audioContextAllowed = false;
+let allAvailabilityData = [];
+
+function debounce(fn, delay) {
+    let timer;
+    return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+const debouncedFilterReservations = debounce(filterReservationsTable, 250);
+const debouncedFilterAvailability = debounce(filterAvailabilityCards, 250);
 
 function getAuthToken() {
-    const token = localStorage.getItem('authToken');
-    console.log('🔑 Getting auth token:', token ? 'Token exists (length: ' + token.length + ')' : 'No token');
-    return token;
+    return localStorage.getItem('authToken');
 }
 
 async function apiFetch(url, options = {}) {
     const token = getAuthToken();
     
     if (!token) {
-        console.error('❌ No auth token found!');
         showToast('Session expired. Please login again.', 'error');
         setTimeout(() => {
             window.location.href = '../index.html';
         }, 1500);
         throw new Error('No auth token');
     }
-    
-    console.log(`📡 API Request: ${options.method || 'GET'} ${url}`);
     
     const defaultOptions = {
         headers: {
@@ -47,10 +53,8 @@ async function apiFetch(url, options = {}) {
     
     try {
         const response = await fetch(url, mergedOptions);
-        console.log(`📡 Response status: ${response.status} for ${url}`);
         
         if (response.status === 401 || response.status === 403) {
-            console.error(`❌ Auth failed with status ${response.status}`);
             localStorage.clear();
             showToast('Session expired. Please login again.', 'error');
             setTimeout(() => {
@@ -61,37 +65,8 @@ async function apiFetch(url, options = {}) {
         
         return response;
     } catch (error) {
-        console.error('❌ API fetch error:', error);
         throw error;
     }
-}
-
-function checkSession() {
-    const token = getAuthToken();
-    const userId = localStorage.getItem('userId');
-    const loginTime = localStorage.getItem('loginTime');
-    
-    if (!token || !userId) {
-        showToast('Session expired. Please login again.', 'error');
-        setTimeout(() => {
-            window.location.href = '../index.html';
-        }, 2000);
-        return false;
-    }
-    
-    if (loginTime) {
-        const hoursSinceLogin = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
-        if (hoursSinceLogin >= 24) {
-            localStorage.clear();
-            showToast('Session expired. Please login again.', 'error');
-            setTimeout(() => {
-                window.location.href = '../index.html';
-            }, 2000);
-            return false;
-        }
-    }
-    
-    return true;
 }
 
 function saveScrollPosition(pageId) {
@@ -169,6 +144,7 @@ function scrollToBottom() {
 
 // View full image in modal (for admin)
 function viewFullImage(imageUrl) {
+    const safeUrl = escapeHtml(imageUrl);
     const modal = document.createElement('div');
     modal.className = 'image-viewer-modal';
     modal.style.cssText = `
@@ -198,7 +174,7 @@ function viewFullImage(imageUrl) {
             border: none;
             z-index: 20001;
         ">&times;</button>
-        <img src="${imageUrl}" alt="Full size image" style="
+        <img src="${safeUrl}" alt="Full size image" style="
             max-width: 90%;
             max-height: 90%;
             object-fit: contain;
@@ -258,7 +234,6 @@ function showPage(id) {
     if (id === 'dashboard') {
         loadDashboardStats();
         loadFinancialReport();
-        loadMonthlySummary();
     }
     else if (id === 'accounts') loadUsers();
     else if (id === 'payments') loadPayments();
@@ -306,61 +281,72 @@ async function loadDashboardStats() {
 // ──────────────────────────────────────────────────────────────────
 
 async function loadFinancialReport() {
-    const token = getAuthToken();
-    if (!token) return;
-    
     try {
         const response = await apiFetch(`${API_URL}/admin/payments`);
-        
-        if (response.ok) {
-            const payments = await response.json();
-            
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            
-            const months = [];
-            const membershipData = [];
-            const reservationData = [];
-            
-            for (let i = 5; i >= 0; i--) {
-                const date = new Date(currentYear, currentMonth - i, 1);
-                const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-                months.push(monthName);
-                
-                let membershipTotal = 0;
-                let reservationTotal = 0;
-                
-                payments.forEach(payment => {
-                    const paymentDate = new Date(payment.createdAt);
-                    if (payment.paymentStatus === 'completed' &&
-                        paymentDate.getMonth() === date.getMonth() && 
-                        paymentDate.getFullYear() === date.getFullYear()) {
-                        if (payment.transactionType === 'membership') {
-                            membershipTotal += payment.amount;
-                        } else if (payment.transactionType === 'reservation') {
-                            reservationTotal += payment.amount;
-                        }
-                    }
-                });
-                
-                membershipData.push(membershipTotal);
-                reservationData.push(reservationTotal);
+        if (!response.ok) return;
+        const payments = await response.json();
+
+        // ── Chart ──────────────────────────────────────────────
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const months = [];
+        const membershipData = [];
+        const reservationData = [];
+
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(currentYear, currentMonth - i, 1);
+            months.push(date.toLocaleDateString('en-US', { month: 'short' }));
+            let membershipTotal = 0;
+            let reservationTotal = 0;
+            payments.forEach(payment => {
+                const paymentDate = new Date(payment.createdAt);
+                if (payment.paymentStatus === 'completed' &&
+                    paymentDate.getMonth() === date.getMonth() &&
+                    paymentDate.getFullYear() === date.getFullYear()) {
+                    if (payment.transactionType === 'membership') membershipTotal += payment.amount;
+                    else if (payment.transactionType === 'reservation') reservationTotal += payment.amount;
+                }
+            });
+            membershipData.push(membershipTotal);
+            reservationData.push(reservationTotal);
+        }
+
+        renderFinancialChart(months, membershipData, reservationData);
+
+        const totalIncome = payments
+            .filter(p => p.paymentStatus === 'completed')
+            .reduce((sum, p) => sum + p.amount, 0);
+        const incomeElement = document.querySelector('.stat-card.highlighted .stat-num');
+        if (incomeElement) incomeElement.textContent = `₱${totalIncome.toLocaleString()}`;
+
+        // ── Monthly summary title ──────────────────────────────
+        const completedPayments = payments.filter(p => p.paymentStatus === 'completed');
+        let currentMonthIncome = 0;
+        let previousMonthIncome = 0;
+        completedPayments.forEach(payment => {
+            const paymentDate = new Date(payment.createdAt);
+            if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+                currentMonthIncome += payment.amount;
+            } else if (
+                (currentMonth > 0 && paymentDate.getMonth() === currentMonth - 1 && paymentDate.getFullYear() === currentYear) ||
+                (currentMonth === 0 && paymentDate.getMonth() === 11 && paymentDate.getFullYear() === currentYear - 1)
+            ) {
+                previousMonthIncome += payment.amount;
             }
-            
-            renderFinancialChart(months, membershipData, reservationData);
-            
-            const totalIncome = payments
-                .filter(p => p.paymentStatus === 'completed')
-                .reduce((sum, p) => sum + p.amount, 0);
-            
-            const incomeElement = document.querySelector('.stat-card.highlighted .stat-num');
-            if (incomeElement) {
-                incomeElement.textContent = `₱${totalIncome.toLocaleString()}`;
-            }
+        });
+        const percentageChange = previousMonthIncome > 0
+            ? ((currentMonthIncome - previousMonthIncome) / previousMonthIncome) * 100
+            : 0;
+        const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const chartHeader = document.getElementById('financialReportTitle');
+        if (chartHeader) {
+            chartHeader.innerHTML = `${monthName} Financial Report
+                <span style="font-size: 11px; color: ${percentageChange >= 0 ? '#4caf50' : '#dc3545'}; margin-left: 10px;">
+                    ${percentageChange >= 0 ? '↑' : '↓'} ${Math.abs(percentageChange).toFixed(1)}% vs last month
+                </span>`;
         }
     } catch (error) {
-        console.error('Error loading financial report:', error);
         const chartContainer = document.getElementById('financialChart');
         if (chartContainer) {
             chartContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;">❌ Failed to load financial data</div>';
@@ -416,54 +402,6 @@ function renderFinancialChart(months, membershipData, reservationData) {
     `;
 }
 
-async function loadMonthlySummary() {
-    const token = getAuthToken();
-    if (!token) return;
-    
-    try {
-        const response = await apiFetch(`${API_URL}/admin/payments`);
-        
-        if (response.ok) {
-            const payments = await response.json();
-            const completedPayments = payments.filter(p => p.paymentStatus === 'completed');
-            
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            
-            let currentMonthIncome = 0;
-            let previousMonthIncome = 0;
-            let percentageChange = 0;
-            
-            completedPayments.forEach(payment => {
-                const paymentDate = new Date(payment.createdAt);
-                if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
-                    currentMonthIncome += payment.amount;
-                } else if (paymentDate.getMonth() === currentMonth - 1 && paymentDate.getFullYear() === currentYear) {
-                    previousMonthIncome += payment.amount;
-                } else if (currentMonth === 0 && paymentDate.getMonth() === 11 && paymentDate.getFullYear() === currentYear - 1) {
-                    previousMonthIncome += payment.amount;
-                }
-            });
-            
-            if (previousMonthIncome > 0) {
-                percentageChange = ((currentMonthIncome - previousMonthIncome) / previousMonthIncome) * 100;
-            }
-            
-            const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-            const chartHeader = document.getElementById('financialReportTitle');
-            if (chartHeader) {
-                chartHeader.innerHTML = `${monthName} Financial Report 
-                    <span style="font-size: 11px; color: ${percentageChange >= 0 ? '#4caf50' : '#dc3545'}; margin-left: 10px;">
-                        ${percentageChange >= 0 ? '↑' : '↓'} ${Math.abs(percentageChange).toFixed(1)}% vs last month
-                    </span>`;
-            }
-        }
-    } catch (error) {
-        console.error('Error loading monthly summary:', error);
-    }
-}
-
 // ──────────────────────────────────────────────────────────────────
 // Admin Dynamic Calendar Functions
 // ──────────────────────────────────────────────────────────────────
@@ -473,32 +411,6 @@ let adminReservationsData = [];
 let adminCalendarData = [];
 let currentCalendarFilter = 'all';
 let calendarReservationTypes = [];
-
-async function loadCalendarReservationTypes() {
-    const token = getAuthToken();
-    if (!token) return;
-    
-    try {
-        const response = await fetch(`${API_URL}/reservation-types/admin/all`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.status === 401) {
-            handleLogout();
-            return;
-        }
-        
-        if (response.ok) {
-            const types = await response.json();
-            calendarReservationTypes = types;
-            populateCalendarFilter();
-            // Load calendar after types are loaded
-            await loadAdminCalendar();
-        }
-    } catch (error) {
-        console.error('Error loading reservation types for calendar:', error);
-    }
-}
 
 function populateCalendarFilter() {
     const filterSelect = document.getElementById('calendarTypeFilter');
@@ -1116,10 +1028,14 @@ function filterReservationsTable() {
     const searchInput = document.getElementById('reservationSearchInput');
     const statusFilter = document.getElementById('reservationStatusFilter');
     const typeFilter = document.getElementById('reservationTypeFilter');
+    const dateFrom = document.getElementById('reservationDateFrom');
+    const dateTo = document.getElementById('reservationDateTo');
     
     const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
     const statusFilterValue = statusFilter ? statusFilter.value : 'all';
     let typeFilterValue = typeFilter ? typeFilter.value : 'all';
+    const fromDate = dateFrom && dateFrom.value ? new Date(dateFrom.value) : null;
+    const toDate = dateTo && dateTo.value ? new Date(dateTo.value + 'T23:59:59') : null;
     
     console.log('Filtering reservations. Total:', allReservations.length);
     
@@ -1154,8 +1070,20 @@ function filterReservationsTable() {
                 matchesType = app.type === typeFilterValue;
             }
         }
+
+        let matchesDate = true;
+        if (fromDate || toDate) {
+            const appDate = app.details?.date ? new Date(app.details.date) : null;
+            if (appDate) {
+                if (fromDate && appDate < fromDate) matchesDate = false;
+                if (toDate && appDate > toDate) matchesDate = false;
+            } else {
+                // If no date on record and a date filter is active, exclude it
+                matchesDate = false;
+            }
+        }
         
-        return matchesSearch && matchesStatus && matchesType;
+        return matchesSearch && matchesStatus && matchesType && matchesDate;
     });
     
     console.log('Filtered reservations:', filteredReservations.length);
@@ -1169,10 +1097,14 @@ function resetReservationFilters() {
     const searchInput = document.getElementById('reservationSearchInput');
     const statusFilter = document.getElementById('reservationStatusFilter');
     const typeFilter = document.getElementById('reservationTypeFilter');
+    const dateFrom = document.getElementById('reservationDateFrom');
+    const dateTo = document.getElementById('reservationDateTo');
     
     if (searchInput) searchInput.value = '';
     if (statusFilter) statusFilter.value = 'all';
     if (typeFilter) typeFilter.value = 'all';
+    if (dateFrom) dateFrom.value = '';
+    if (dateTo) dateTo.value = '';
     
     filterReservationsTable();
 }
@@ -1587,32 +1519,15 @@ async function loadMessages() {
 }
 
 async function checkAdminStatus() {
-    console.log('🔍 Checking admin status...');
-    
     const token = localStorage.getItem('authToken');
     const userId = localStorage.getItem('userId');
-    const isAdmin = localStorage.getItem('isAdmin');
-    
-    console.log('  Token:', token ? `Present (${token.substring(0, 20)}...)` : 'MISSING');
-    console.log('  UserId:', userId);
-    console.log('  isAdmin from localStorage:', isAdmin);
-    
-    if (!token) {
-        console.error('❌ No token found! User needs to login again.');
-        return false;
-    }
+
+    if (!token) return false;
     
     try {
         const response = await apiFetch(`${API_URL}/admin/dashboard`);
-        if (response.ok) {
-            console.log('✅ Admin access verified!');
-            return true;
-        } else {
-            console.error('❌ Admin access FAILED with status:', response.status);
-            return false;
-        }
+        return response.ok;
     } catch (error) {
-        console.error('❌ Admin check error:', error);
         return false;
     }
 }
@@ -1657,17 +1572,18 @@ async function refreshCurrentConversation() {
                         row.className = `msg-row-wrap ${conv.sender === 'admin' ? 'sent' : ''}`;
                         
                         if (conv.imageUrl) {
+                            const safeUrl = escapeHtml(conv.imageUrl);
                             if (conv.sender === 'user') {
                                 row.innerHTML = `
                                     <div class="chat-avatar">👤</div>
-                                    <div class="chat-bubble bubble-received image-message" onclick="viewFullImage('${conv.imageUrl}')">
-                                        <img src="${conv.imageUrl}" alt="Receipt image">
+                                    <div class="chat-bubble bubble-received image-message" onclick="viewFullImage('${safeUrl}')">
+                                        <img src="${safeUrl}" alt="Receipt image">
                                     </div>
                                 `;
                             } else {
                                 row.innerHTML = `
-                                    <div class="chat-bubble bubble-sent image-message" onclick="viewFullImage('${conv.imageUrl}')">
-                                        <img src="${conv.imageUrl}" alt="Receipt image">
+                                    <div class="chat-bubble bubble-sent image-message" onclick="viewFullImage('${safeUrl}')">
+                                        <img src="${safeUrl}" alt="Receipt image">
                                     </div>
                                     <div class="chat-avatar">👤</div>
                                 `;
@@ -1691,10 +1607,11 @@ async function refreshCurrentConversation() {
                     if (updatedMessage.imageUrl) {
                         const row = document.createElement('div');
                         row.className = 'msg-row-wrap';
+                        const safeUrl = escapeHtml(updatedMessage.imageUrl);
                         row.innerHTML = `
                             <div class="chat-avatar">👤</div>
-                            <div class="chat-bubble bubble-received image-message" onclick="viewFullImage('${updatedMessage.imageUrl}')">
-                                <img src="${updatedMessage.imageUrl}" alt="Receipt image">
+                            <div class="chat-bubble bubble-received image-message" onclick="viewFullImage('${safeUrl}')">
+                                <img src="${safeUrl}" alt="Receipt image">
                             </div>
                         `;
                         msgBody.appendChild(row);
@@ -1812,26 +1729,32 @@ async function adminSendMsg() {
     }
 }
 
+let adminVisibilityHandler = null;
+
 function startAdminMessagePolling() {
     if (adminPollingInterval) clearInterval(adminPollingInterval);
+    if (adminVisibilityHandler) document.removeEventListener('visibilitychange', adminVisibilityHandler);
+    
+    adminVisibilityHandler = () => {
+        if (!document.hidden) loadMessages();
+    };
+    document.addEventListener('visibilitychange', adminVisibilityHandler);
     
     adminPollingInterval = setInterval(() => {
         if (!document.hidden) {
             loadMessages();
         }
     }, 5000);
-    
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-            loadMessages();
-        }
-    });
 }
 
 function stopAdminMessagePolling() {
     if (adminPollingInterval) {
         clearInterval(adminPollingInterval);
         adminPollingInterval = null;
+    }
+    if (adminVisibilityHandler) {
+        document.removeEventListener('visibilitychange', adminVisibilityHandler);
+        adminVisibilityHandler = null;
     }
 }
 
@@ -2360,33 +2283,22 @@ function openAddReservationModal() {
 }
 
 async function openEditTypeModal(typeId) {
-    const token = getAuthToken();
-    if (!token) return;
+    // Use already-loaded in-memory data instead of re-fetching the full list
+    const type = tableReservationTypes.find(t => t._id === typeId);
     
-    try {
-        const response = await fetch(`${API_URL}/reservation-types/admin/all`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-            const types = await response.json();
-            const type = types.find(t => t._id === typeId);
-            
-            if (type) {
-                currentEditTypeId = typeId;
-                document.getElementById('modalTitle').textContent = 'Edit Reservation Type';
-                document.getElementById('typeName').value = type.name;
-                document.getElementById('typeCategory').value = type.category;
-                document.getElementById('typeIcon').value = type.icon || '🏌️';
-                document.getElementById('typeDescription').value = type.description || '';
-                document.getElementById('typeBasePrice').value = type.basePrice;
-                document.getElementById('typeId').value = typeId;
-                document.getElementById('typeTimeSlots').value = '';
-                document.getElementById('reservationModal').classList.add('show');
-            }
-        }
-    } catch (error) {
-        console.error('Error loading type for edit:', error);
+    if (type) {
+        currentEditTypeId = typeId;
+        document.getElementById('modalTitle').textContent = 'Edit Reservation Type';
+        document.getElementById('typeName').value = type.name;
+        document.getElementById('typeCategory').value = type.category;
+        document.getElementById('typeIcon').value = type.icon || '🏌️';
+        document.getElementById('typeDescription').value = type.description || '';
+        document.getElementById('typeBasePrice').value = type.basePrice;
+        document.getElementById('typeId').value = typeId;
+        document.getElementById('typeTimeSlots').value = '';
+        document.getElementById('reservationModal').classList.add('show');
+    } else {
+        showToast('Could not find reservation type. Please refresh.', 'error');
     }
 }
 
@@ -2589,9 +2501,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (adminPollingInterval) clearInterval(adminPollingInterval);
     });
     
-    loadFinancialReport();
-    loadMonthlySummary();
-    
     loadLastVisitedPage();
 });
 
@@ -2609,23 +2518,6 @@ async function loadReservationTypesForFilters() {
         }
     } catch (error) {
         console.error('Error loading reservation types for filters:', error);
-    }
-}
-
-async function verifyAdminAccess() {
-    try {
-        const response = await apiFetch(`${API_URL}/admin/dashboard`);
-        if (!response.ok) {
-            throw new Error('Not authorized');
-        }
-        return true;
-    } catch (error) {
-        console.error('Admin verification failed:', error);
-        showToast('You do not have admin access. Redirecting...', 'error');
-        setTimeout(() => {
-            window.location.href = '../index.html';
-        }, 2000);
-        return false;
     }
 }
 
@@ -2719,140 +2611,23 @@ async function revokeMembership(userId) {
     }
 }
 
-async function getReservationAvailability() {
-    const token = getAuthToken();
-    if (!token) return null;
-    
-    try {
-        // Get all reservation types
-        const typesResponse = await fetch(`${API_URL}/reservation-types/admin/all`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (!typesResponse.ok) throw new Error('Failed to fetch reservation types');
-        const reservationTypes = await typesResponse.json();
-        
-        // Get current date range (today + next 30 days for availability)
-        const today = new Date();
-        const endDate = new Date();
-        endDate.setDate(today.getDate() + 30);
-        
-        // Get all bookings in date range
-        const bookingsResponse = await fetch(`${API_URL}/admin/reservations/calendar?year=${today.getFullYear()}&month=${today.getMonth() + 1}&filterType=all`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        let bookings = [];
-        if (bookingsResponse.ok) {
-            bookings = await bookingsResponse.json();
-        }
-        
-        // Calculate availability for each type
-        const availabilityData = reservationTypes.map(type => {
-            const timeSlots = type.timeSlots || [];
-            const slotAvailability = timeSlots.map(slot => {
-                // Count bookings for this type and time slot
-                const bookingsForSlot = bookings.filter(booking => 
-                    booking.reservationTypeId === type._id && 
-                    booking.timeSlot === slot.time &&
-                    booking.status !== 'cancelled' &&
-                    booking.status !== 'rejected'
-                );
-                
-                const usedCapacity = bookingsForSlot.length;
-                const remainingCapacity = slot.capacity - usedCapacity;
-                const percentageUsed = slot.capacity > 0 ? (usedCapacity / slot.capacity) * 100 : 0;
-                
-                return {
-                    time: slot.time,
-                    capacity: slot.capacity,
-                    usedCapacity: usedCapacity,
-                    remainingCapacity: Math.max(0, remainingCapacity),
-                    percentageUsed: Math.min(100, percentageUsed),
-                    isAvailable: remainingCapacity > 0 && slot.isAvailable !== false
-                };
-            });
-            
-            return {
-                id: type._id,
-                name: type.name,
-                category: type.category,
-                icon: type.icon || '🏌️',
-                isActive: type.isActive,
-                basePrice: type.basePrice,
-                timeSlots: slotAvailability,
-                totalCapacity: timeSlots.reduce((sum, slot) => sum + slot.capacity, 0),
-                totalUsed: slotAvailability.reduce((sum, slot) => sum + slot.usedCapacity, 0),
-                totalRemaining: slotAvailability.reduce((sum, slot) => sum + slot.remainingCapacity, 0)
-            };
-        });
-        
-        return availabilityData;
-        
-    } catch (error) {
-        console.error('Error getting availability:', error);
-        return null;
-    }
-}
-
-// Helper function to get mock data for testing if API fails
-function getMockAvailabilityData() {
-    return [
-        {
-            id: 'mock1',
-            name: 'Swimming Pool',
-            category: 'amenities',
-            icon: '🏊',
-            isActive: true,
-            basePrice: 500,
-            timeSlots: [
-                { time: '6:00 AM', capacity: 3, usedCapacity: 2, remainingCapacity: 1, percentageUsed: 66.7, isAvailable: true },
-                { time: '7:00 AM', capacity: 3, usedCapacity: 1, remainingCapacity: 2, percentageUsed: 33.3, isAvailable: true },
-                { time: '8:00 AM', capacity: 3, usedCapacity: 3, remainingCapacity: 0, percentageUsed: 100, isAvailable: false },
-                { time: '9:00 AM', capacity: 3, usedCapacity: 0, remainingCapacity: 3, percentageUsed: 0, isAvailable: true }
-            ],
-            totalCapacity: 12,
-            totalUsed: 6,
-            totalRemaining: 6
-        },
-        {
-            id: 'mock2',
-            name: 'Tee Time (9 Holes)',
-            category: 'golf',
-            icon: '⛳',
-            isActive: true,
-            basePrice: 2000,
-            timeSlots: [
-                { time: '6:00 AM', capacity: 5, usedCapacity: 4, remainingCapacity: 1, percentageUsed: 80, isAvailable: true },
-                { time: '7:00 AM', capacity: 5, usedCapacity: 5, remainingCapacity: 0, percentageUsed: 100, isAvailable: false },
-                { time: '8:00 AM', capacity: 5, usedCapacity: 3, remainingCapacity: 2, percentageUsed: 60, isAvailable: true }
-            ],
-            totalCapacity: 15,
-            totalUsed: 12,
-            totalRemaining: 3
-        }
-    ];
-}
-
 async function loadAvailabilityDashboard() {
-    console.log('📊 Loading availability dashboard...');
-    
     const token = getAuthToken();
     if (!token) return;
     
     try {
-        // Get all reservation types
-        const typesResponse = await fetch(`${API_URL}/reservation-types/admin/all`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        // Fetch types and bookings in parallel
+        const [typesResponse, bookingsResponse] = await Promise.all([
+            fetch(`${API_URL}/reservation-types/admin/all`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`${API_URL}/admin/reservations/calendar?year=${new Date().getFullYear()}&month=${new Date().getMonth() + 1}&filterType=all`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+        ]);
         
         if (!typesResponse.ok) throw new Error('Failed to fetch reservation types');
         const reservationTypes = await typesResponse.json();
-        
-        // Get all reservations for capacity calculation
-        const bookingsResponse = await fetch(`${API_URL}/admin/reservations/calendar?year=${new Date().getFullYear()}&month=${new Date().getMonth() + 1}&filterType=all`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
         
         let bookings = [];
         if (bookingsResponse.ok) {
@@ -2911,6 +2686,9 @@ async function loadAvailabilityDashboard() {
         
         renderAvailabilityDashboard(availabilityData);
         updateSummaryStats(availabilityData);
+        allAvailabilityData = availabilityData;
+        const countEl = document.getElementById('availabilityResultsCount');
+        if (countEl) countEl.textContent = `${availabilityData.length} type${availabilityData.length !== 1 ? 's' : ''}`;
         
     } catch (error) {
         console.error('Error loading availability dashboard:', error);
@@ -2919,7 +2697,10 @@ async function loadAvailabilityDashboard() {
         // Fallback to mock data for testing
         const mockData = getMockAvailabilityData();
         renderAvailabilityDashboard(mockData);
+        allAvailabilityData = mockData;
         updateSummaryStats(mockData);
+        const countElFallback = document.getElementById('availabilityResultsCount');
+        if (countElFallback) countElFallback.textContent = `${mockData.length} type${mockData.length !== 1 ? 's' : ''}`;
     }
 }
 
@@ -2949,7 +2730,7 @@ function updateSummaryStats(availabilityData) {
 function renderAvailabilityDashboard(availabilityData) {
     const container = document.getElementById('availabilityCardsContainer');
     if (!container) return;
-    
+
     if (!availabilityData || availabilityData.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="text-align: center; padding: 60px;">
@@ -2963,88 +2744,203 @@ function renderAvailabilityDashboard(availabilityData) {
         `;
         return;
     }
-    
-    container.innerHTML = availabilityData.map(type => {
-        const getProgressClass = (percentage) => {
-            if (percentage >= 90) return 'danger';
-            if (percentage >= 70) return 'warning';
-            return '';
-        };
-        
+
+    const getProgressClass = (percentage) => {
+        if (percentage >= 90) return 'danger';
+        if (percentage >= 70) return 'warning';
+        return '';
+    };
+
+    // Preserve which accordions are open across re-renders (filter changes)
+    const openIds = new Set(
+        [...container.querySelectorAll('.accordion-body.open')]
+            .map(el => el.dataset.id)
+    );
+
+    container.innerHTML = availabilityData.map((type, index) => {
+        const isOpen = openIds.has(type.id) || (openIds.size === 0 && index === 0);
+        const overallPct = type.overallPercentage.toFixed(1);
         const overallClass = getProgressClass(type.overallPercentage);
-        
+
+        // Pill shown in the header when collapsed
+        const headerPill = type.totalRemaining === 0
+            ? `<span class="slot-status full" style="font-size:11px;">🔴 FULL</span>`
+            : type.totalRemaining / (type.totalCapacity || 1) <= 0.3
+                ? `<span class="slot-status limited" style="font-size:11px;">⚠️ LIMITED</span>`
+                : `<span class="slot-status available" style="font-size:11px;">✅ AVAILABLE</span>`;
+
         return `
-            <div class="availability-card">
-                <div class="card-header-availability">
+            <div class="accordion-item" id="acc-${type.id}">
+                <button class="accordion-header" onclick="toggleAccordion('${type.id}')" aria-expanded="${isOpen}">
                     <div class="card-header-left">
                         <div class="card-icon">${type.icon}</div>
                         <div class="card-title">
                             <h3>${escapeHtml(type.name)}</h3>
-                            <span class="category-badge">${type.category}</span>
-                            ${!type.isActive ? '<span class="inactive-badge" style="margin-left: 10px;">Inactive</span>' : ''}
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:4px;">
+                                <span class="category-badge">${type.category}</span>
+                                ${!type.isActive ? '<span class="inactive-badge">Inactive</span>' : ''}
+                                ${headerPill}
+                            </div>
                         </div>
                     </div>
-                    <div class="card-stats">
+                    <div style="display:flex; align-items:center; gap:20px; flex-shrink:0;">
                         <div class="stat-badge">
                             <div class="stat-value">₱${type.basePrice.toLocaleString()}</div>
                             <div class="stat-label">Base Price</div>
                         </div>
+                        <div class="stat-badge">
+                            <div class="stat-value">${type.totalRemaining} / ${type.totalCapacity}</div>
+                            <div class="stat-label">Available</div>
+                        </div>
+                        <div class="stat-badge" style="min-width:60px; text-align:center;">
+                            <div class="stat-value">${overallPct}%</div>
+                            <div class="stat-label">Occupancy</div>
+                        </div>
+                        <span class="accordion-chevron ${isOpen ? 'open' : ''}">▼</span>
                     </div>
-                </div>
-                <div class="card-body-availability">
-                    ${type.timeSlots.map(slot => `
-                        <div class="time-slot-card">
-                            <div class="time-slot-header">
-                                <span class="slot-time">🕐 ${escapeHtml(slot.time)}</span>
-                                <span class="slot-status ${slot.statusClass}">
-                                    ${slot.statusClass === 'full' ? '🔴 FULL' : slot.statusClass === 'limited' ? '⚠️ LIMITED' : '✅ AVAILABLE'}
-                                </span>
-                            </div>
-                            
-                            <div class="progress-bar-container">
-                                <div class="progress-bar-fill ${getProgressClass(slot.percentageUsed)}" 
-                                     style="width: ${slot.percentageUsed}%;"></div>
-                            </div>
-                            
-                            <div class="slot-capacity-details">
-                                <div class="capacity-numbers">
-                                    <span>📊 ${slot.usedCapacity} / ${slot.capacity} booked</span>
-                                    <span>✅ ${slot.remainingCapacity} available</span>
+                </button>
+
+                <div class="accordion-body ${isOpen ? 'open' : ''}" data-id="${type.id}">
+                    <div class="card-body-availability">
+                        ${type.timeSlots.length === 0 ? `
+                            <div style="text-align:center; padding:30px; color:#999;">No time slots configured.</div>
+                        ` : type.timeSlots.map(slot => `
+                            <div class="time-slot-card">
+                                <div class="time-slot-header">
+                                    <span class="slot-time">🕐 ${escapeHtml(slot.time)}</span>
+                                    <span class="slot-status ${slot.statusClass}">
+                                        ${slot.statusClass === 'full' ? '🔴 FULL' : slot.statusClass === 'limited' ? '⚠️ LIMITED' : '✅ AVAILABLE'}
+                                    </span>
                                 </div>
-                                <div>${slot.percentageUsed.toFixed(1)}% full</div>
+
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill ${getProgressClass(slot.percentageUsed)}"
+                                         style="width: ${slot.percentageUsed}%;"></div>
+                                </div>
+
+                                <div class="slot-capacity-details">
+                                    <div class="capacity-numbers">
+                                        <span>📊 ${slot.usedCapacity} / ${slot.capacity} booked</span>
+                                        <span>✅ ${slot.remainingCapacity} available</span>
+                                    </div>
+                                    <div>${slot.percentageUsed.toFixed(1)}% full</div>
+                                </div>
+
+                                <div style="margin-top:10px; font-size:11px; color:#888; display:flex; gap:15px; flex-wrap:wrap;">
+                                    <span>📊 Total Capacity: <strong>${slot.capacity}</strong></span>
+                                    <span>🎟️ Used: <strong style="color:${slot.usedCapacity > 0 ? '#dc3545' : '#28a745'}">${slot.usedCapacity}</strong></span>
+                                    <span>✨ Remaining: <strong style="color:#28a745">${slot.remainingCapacity}</strong></span>
+                                </div>
                             </div>
-                            
-                            <!-- Detailed breakdown -->
-                            <div style="margin-top: 10px; font-size: 11px; color: #888; display: flex; gap: 15px; flex-wrap: wrap;">
-                                <span>📊 Total Capacity: <strong>${slot.capacity}</strong></span>
-                                <span>🎟️ Used: <strong style="color: ${slot.usedCapacity > 0 ? '#dc3545' : '#28a745'}">${slot.usedCapacity}</strong></span>
-                                <span>✨ Remaining: <strong style="color: #28a745">${slot.remainingCapacity}</strong></span>
+                        `).join('')}
+
+                        <div class="summary-bar">
+                            <div class="summary-item">
+                                <div class="summary-label">Total Slots</div>
+                                <div class="summary-value">${type.totalCapacity}</div>
                             </div>
-                        </div>
-                    `).join('')}
-                    
-                    <div class="summary-bar">
-                        <div class="summary-item">
-                            <div class="summary-label">Total Slots</div>
-                            <div class="summary-value">${type.totalCapacity}</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-label">Booked</div>
-                            <div class="summary-value" style="color: #dc3545;">${type.totalUsed}</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-label">Available</div>
-                            <div class="summary-value" style="color: #28a745;">${type.totalRemaining}</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-label">Occupancy</div>
-                            <div class="summary-value">${type.overallPercentage.toFixed(1)}%</div>
+                            <div class="summary-item">
+                                <div class="summary-label">Booked</div>
+                                <div class="summary-value" style="color:#dc3545;">${type.totalUsed}</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">Available</div>
+                                <div class="summary-value" style="color:#28a745;">${type.totalRemaining}</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">Occupancy</div>
+                                <div class="summary-value">${overallPct}%</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         `;
     }).join('');
+}
+
+function toggleAccordion(id) {
+    const body = document.querySelector(`.accordion-body[data-id="${id}"]`);
+    const header = document.querySelector(`#acc-${id} .accordion-header`);
+    const chevron = document.querySelector(`#acc-${id} .accordion-chevron`);
+    if (!body) return;
+
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    if (header) header.setAttribute('aria-expanded', String(!isOpen));
+    if (chevron) chevron.classList.toggle('open', !isOpen);
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Availability Cards Filtering
+// ──────────────────────────────────────────────────────────────────
+
+function filterAvailabilityCards() {
+    const searchInput = document.getElementById('availabilitySearchInput');
+    const categoryFilter = document.getElementById('availabilityCategoryFilter');
+    const statusFilter = document.getElementById('availabilityStatusFilter');
+    const activeFilter = document.getElementById('availabilityActiveFilter');
+
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const category = categoryFilter ? categoryFilter.value : 'all';
+    const status = statusFilter ? statusFilter.value : 'all';
+    const activeVal = activeFilter ? activeFilter.value : 'all';
+
+    const filtered = allAvailabilityData.filter(type => {
+        // Name search
+        if (query && !type.name.toLowerCase().includes(query)) return false;
+
+        // Category
+        if (category !== 'all' && type.category !== category) return false;
+
+        // Active/Inactive
+        if (activeVal === 'active' && !type.isActive) return false;
+        if (activeVal === 'inactive' && type.isActive) return false;
+
+        // Availability status
+        if (status !== 'all') {
+            const pct = type.overallPercentage;
+            const remaining = type.totalRemaining;
+            const capacity = type.totalCapacity;
+            const remainingPct = capacity > 0 ? (remaining / capacity) * 100 : 0;
+
+            if (status === 'full' && remaining > 0) return false;
+            if (status === 'available' && remaining === 0) return false;
+            if (status === 'limited' && !(remaining > 0 && remainingPct <= 30)) return false;
+        }
+
+        return true;
+    });
+
+    renderAvailabilityDashboard(filtered);
+
+    const countEl = document.getElementById('availabilityResultsCount');
+    if (countEl) {
+        const total = allAvailabilityData.length;
+        countEl.textContent = filtered.length === total
+            ? `${total} type${total !== 1 ? 's' : ''}`
+            : `${filtered.length} of ${total} type${total !== 1 ? 's' : ''}`;
+    }
+}
+
+function resetAvailabilityFilters() {
+    const searchInput = document.getElementById('availabilitySearchInput');
+    const categoryFilter = document.getElementById('availabilityCategoryFilter');
+    const statusFilter = document.getElementById('availabilityStatusFilter');
+    const activeFilter = document.getElementById('availabilityActiveFilter');
+
+    if (searchInput) searchInput.value = '';
+    if (categoryFilter) categoryFilter.value = 'all';
+    if (statusFilter) statusFilter.value = 'all';
+    if (activeFilter) activeFilter.value = 'all';
+
+    renderAvailabilityDashboard(allAvailabilityData);
+
+    const countEl = document.getElementById('availabilityResultsCount');
+    if (countEl) {
+        const total = allAvailabilityData.length;
+        countEl.textContent = `${total} type${total !== 1 ? 's' : ''}`;
+    }
 }
 
 // Mock data for testing when API fails
@@ -3132,26 +3028,6 @@ function getMockAvailabilityData() {
         }
     ];
 }
-
-// Override the showPage function to load availability when switching to reservations tab
-const originalShowPage = window.showPage;
-window.showPage = function(id) {
-    originalShowPage(id);
-    if (id === 'reservations') {
-        setTimeout(() => {
-            loadAvailabilityDashboard();
-        }, 100);
-    }
-};
-
-// Call this when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    // Only load if we're on reservations page or will be
-    const currentPage = localStorage.getItem('adminCurrentPage');
-    if (currentPage === 'reservations') {
-        setTimeout(loadAvailabilityDashboard, 500);
-    }
-});
 
 // Make functions global
 window.showPage = showPage;

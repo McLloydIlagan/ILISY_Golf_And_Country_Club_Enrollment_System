@@ -132,7 +132,7 @@
             </div>
         </div>
         
-        <!-- Summary Stats Cards -->
+        <!-- Summary Stats Cards --> 
         <div class="availability-stats-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
             <div class="stat-card" style="background: var(--deep-green); color: white;">
                 <div class="stat-num" id="totalTypesCount">0</div>
@@ -152,32 +152,104 @@
             </div>
         </div>
 
+        <!-- Availability Cards Filter Bar -->
+        <div style="background: white; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.07);">
+            <!-- Search by name -->
+            <div class="search-bar" style="background: #f5f5f5; border: 1px solid #ddd; flex: 1; min-width: 180px;">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="availabilitySearchInput" placeholder="Search by type name..." oninput="debouncedFilterAvailability()" style="width: 100%;">
+            </div>
+
+            <!-- Category filter -->
+            <select id="availabilityCategoryFilter" onchange="filterAvailabilityCards()" style="padding: 8px 14px; border-radius: 6px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif; font-size: 13px; min-width: 160px;">
+                <option value="all">📌 All Categories</option>
+                <option value="golf">⛳ Golf</option>
+                <option value="amenities">🍽️ Amenities</option>
+                <option value="events">🎉 Events</option>
+                <option value="accommodation">🏨 Accommodation</option>
+                <option value="premium">✨ Premium</option>
+            </select>
+
+            <!-- Availability status filter -->
+            <select id="availabilityStatusFilter" onchange="filterAvailabilityCards()" style="padding: 8px 14px; border-radius: 6px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif; font-size: 13px; min-width: 170px;">
+                <option value="all">📊 All Availability</option>
+                <option value="available">✅ Has Available Slots</option>
+                <option value="limited">⚠️ Limited (≤30% left)</option>
+                <option value="full">🔴 Fully Booked</option>
+            </select>
+
+            <!-- Active/Inactive filter -->
+            <select id="availabilityActiveFilter" onchange="filterAvailabilityCards()" style="padding: 8px 14px; border-radius: 6px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif; font-size: 13px; min-width: 140px;">
+                <option value="all">👁️ All Types</option>
+                <option value="active">✅ Active Only</option>
+                <option value="inactive">❌ Inactive Only</option>
+            </select>
+
+            <!-- Reset -->
+            <button class="reset-filter-btn" onclick="resetAvailabilityFilters()">🔄 Reset</button>
+
+            <!-- Results count -->
+            <span id="availabilityResultsCount" style="font-size: 12px; color: #888; margin-left: 4px;"></span>
+        </div>
+
         <!-- Availability Cards Grid -->
-        <div id="availabilityCardsContainer" style="display: flex; flex-direction: column; gap: 30px;">
+        <div id="availabilityCardsContainer" style="display: flex; flex-direction: column; gap: 12px;">
             <div class="loading-spinner" style="text-align: center; padding: 60px;">
                 ⏳ Loading availability data...
             </div>
         </div>
         
-        <!-- Old Reservations Table (keep for viewing applications) -->
+        <!-- Reservation Applications Table -->
         <div class="table-section" style="margin-top: 40px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="margin: 0;">📋 Reservation Applications</h3>
-                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                    <div class="search-bar" style="background: white; border: 1px solid #ddd;">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" id="reservationSearchInput" placeholder="Search by name, email, phone..." oninput="filterReservationsTable()" style="width: 220px;">
-                    </div>
-                    <select id="reservationStatusFilter" onchange="filterReservationsTable()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd; background: white;">
-                        <option value="all">📋 All Status</option>
-                        <option value="pending">⏳ Pending</option>
-                        <option value="approved">✓ Approved</option>
-                        <option value="confirmed">✓ Confirmed</option>
-                        <option value="rejected">✗ Rejected</option>
-                    </select>
-                    <button class="reset-filter-btn" onclick="resetReservationFilters()">🔄 Reset Filters</button>
-                </div>
+                <button class="refresh-btn" onclick="loadReservations()">🔄 Refresh</button>
             </div>
+
+            <!-- Filter Bar -->
+            <div style="background: white; border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.07);">
+                <!-- Search -->
+                <div class="search-bar" style="background: #f5f5f5; border: 1px solid #ddd; flex: 1; min-width: 200px;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="reservationSearchInput" placeholder="Search by name, email, phone..." oninput="debouncedFilterReservations()" style="width: 100%;">
+                </div>
+
+                <!-- Status Filter -->
+                <select id="reservationStatusFilter" onchange="filterReservationsTable()" style="padding: 8px 14px; border-radius: 6px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif; font-size: 13px; min-width: 150px;">
+                    <option value="all">📋 All Status</option>
+                    <option value="pending">⏳ Pending</option>
+                    <option value="approved">✓ Approved</option>
+                    <option value="confirmed">✓ Confirmed</option>
+                    <option value="rejected">✗ Rejected</option>
+                    <option value="cancelled">❌ Cancelled</option>
+                </select>
+
+                <!-- Type Filter -->
+                <select id="reservationTypeFilter" onchange="filterReservationsTable()" style="padding: 8px 14px; border-radius: 6px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif; font-size: 13px; min-width: 180px;">
+                    <option value="all">📌 All Types</option>
+                    <option value="membership">🏌️ Membership</option>
+                    <option value="reservation">📅 Reservation</option>
+                </select>
+
+                <!-- Date From -->
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #555;">
+                    <label for="reservationDateFrom" style="white-space: nowrap;">From:</label>
+                    <input type="date" id="reservationDateFrom" onchange="filterReservationsTable()" style="padding: 7px 10px; border-radius: 6px; border: 1px solid #ddd; font-family: 'Georgia', serif; font-size: 13px;">
+                </div>
+
+                <!-- Date To -->
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #555;">
+                    <label for="reservationDateTo" style="white-space: nowrap;">To:</label>
+                    <input type="date" id="reservationDateTo" onchange="filterReservationsTable()" style="padding: 7px 10px; border-radius: 6px; border: 1px solid #ddd; font-family: 'Georgia', serif; font-size: 13px;">
+                </div>
+
+                <!-- Reset -->
+                <button class="reset-filter-btn" onclick="resetReservationFilters()" style="white-space: nowrap;">🔄 Reset</button>
+            </div>
+
+            <!-- Results Count -->
+            <div id="resultsCount" style="font-size: 13px; color: #666; margin-bottom: 10px; padding-left: 4px;"></div>
+
             <div style="overflow-x: auto;">
                 <table class="data-table">
                     <thead>
@@ -211,7 +283,7 @@
             <table class="data-table">
                 <thead><tr><th>First Name</th><th>Last Name</th><th>Contacts</th><th>Membership</th><th>Membership Expiration</th><th>Actions</th></tr></thead>
                 <tbody id="accountsTbody">
-                    </table><td colspan="6" style="text-align:center;">Loading...</td></tr>
+                    <tr><td colspan="6" style="text-align:center;">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -235,7 +307,7 @@
                 <table class="data-table">
                     <thead><tr><th>First Name</th><th>Last Name</th><th>Payment Method</th><th>Account Number</th><th>Payment Amount</th><th>Payment Processed</th><th>Transaction Type</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody id="paymentsTbody">
-                        <tr><td colspan="8" style="text-align:center;">Loading...<\/td></tr>
+                        <tr><td colspan="9" style="text-align:center;">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>

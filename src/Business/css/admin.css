@@ -1981,3 +1981,62 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
         border-radius: 20px;
         font-size: 12px;
     }
+
+/* ═══════════════════════════════
+   AVAILABILITY ACCORDION
+═══════════════════════════════ */
+.accordion-item {
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    border: 1px solid #e0e6eb;
+    transition: box-shadow 0.2s;
+}
+
+.accordion-item:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.11);
+}
+
+.accordion-header {
+    width: 100%;
+    background: linear-gradient(135deg, var(--deep-green), #1a4a1a);
+    color: white;
+    border: none;
+    padding: 18px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    cursor: pointer;
+    text-align: left;
+    font-family: "Georgia", serif;
+    transition: background 0.2s;
+}
+
+.accordion-header:hover {
+    background: linear-gradient(135deg, #1a4a1a, var(--deep-green));
+}
+
+.accordion-chevron {
+    font-size: 14px;
+    color: var(--gold);
+    transition: transform 0.3s ease;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.accordion-chevron.open {
+    transform: rotate(180deg);
+}
+
+.accordion-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.3s ease;
+}
+
+.accordion-body.open {
+    max-height: 2000px;
+}
