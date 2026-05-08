@@ -1155,24 +1155,67 @@ function renderDynamicOptions() {
     }
     
     container.innerHTML = html;
-    calculateDynamicPrice();
+    calculateDynamicPrice(); // This should show the button if price > 0
 }
 
 function calculateDynamicPrice() {
-    if (!selectedReservationTypeData) return;
+    if (!selectedReservationTypeData) {
+        console.log('No reservation type selected');
+        return;
+    }
+    
+    console.log('=== PRICE CALCULATION DEBUG ===');
+    console.log('Reservation Type:', selectedReservationTypeData.name);
+    console.log('Base Price:', selectedReservationTypeData.basePrice);
+    
     let total = selectedReservationTypeData.basePrice || 0;
-    if (selectedReservationTypeData.options) {
+    let hasReplacementOption = false;
+    
+    if (selectedReservationTypeData.options && selectedReservationTypeData.options.length > 0) {
         selectedReservationTypeData.options.forEach(option => {
-            const select = document.getElementById(`opt_${option.optionName.replace(/\s/g, '_')}`);
+            const selectId = `opt_${option.optionName.replace(/\s/g, '_')}`;
+            const select = document.getElementById(selectId);
             if (select && select.selectedOptions[0]) {
-                total += parseInt(select.selectedOptions[0].dataset.price) || 0;
+                const selectedValue = select.selectedOptions[0];
+                const optionPrice = parseInt(selectedValue.dataset.price) || 0;
+                
+                // Check if this option should REPLACE or ADD to base price
+                // Common replacement options: "Session Type", "Treatment Type", "Room Type", "Package Type"
+                const replacementOptions = ['Session Type', 'Treatment Type', 'Room Type', 'Package Type', 'Service Type'];
+                
+                if (replacementOptions.includes(option.optionName)) {
+                    // Replace base price with option price
+                    total = optionPrice;
+                    hasReplacementOption = true;
+                    console.log(`Replacement option "${option.optionName}": ₱${optionPrice} (replaces base price)`);
+                } else {
+                    // Add to total for add-ons
+                    total += optionPrice;
+                    console.log(`Add-on option "${option.optionName}": +₱${optionPrice}`);
+                }
             }
         });
     }
-    dynamicTotalPrice = Math.round(total * getUserRateMultiplier());
-    document.getElementById('totalPrice').textContent = dynamicTotalPrice.toLocaleString();
-    document.getElementById('priceDisplay').style.display = 'block';
-    document.getElementById('submitReservationBtn').style.display = 'block';
+    
+    console.log('Total before member discount:', total);
+    
+    // Apply member discount (20% off if member)
+    const multiplier = getUserRateMultiplier();
+    dynamicTotalPrice = Math.round(total * multiplier);
+    
+    console.log('Member multiplier:', multiplier);
+    console.log('FINAL TOTAL PRICE:', dynamicTotalPrice);
+    console.log('===============================');
+    
+    // Update the display
+    const totalPriceSpan = document.getElementById('totalPrice');
+    if (totalPriceSpan) totalPriceSpan.textContent = dynamicTotalPrice.toLocaleString();
+    
+    const priceDisplay = document.getElementById('priceDisplay');
+    if (priceDisplay) priceDisplay.style.display = 'block';
+    
+    const submitBtn = document.getElementById('submitReservationBtn');
+    if (submitBtn) submitBtn.style.display = 'block';
 }
 
 function openDynamicCalendarPopup() {
@@ -1245,8 +1288,14 @@ function selectDynamicTimeSlot(time) {
 }
 
 function confirmDynamicDateTime() {
-    if (!dynamicSelectedDate) { showToast('Please select a date', 'error'); return; }
-    if (!dynamicSelectedTime) { showToast('Please select a time slot', 'error'); return; }
+    if (!dynamicSelectedDate) { 
+        showToast('Please select a date', 'error'); 
+        return; 
+    }
+    if (!dynamicSelectedTime) { 
+        showToast('Please select a time slot', 'error'); 
+        return; 
+    }
     
     const displayDiv = document.getElementById('selectedDateTimeDisplay');
     if (displayDiv) displayDiv.innerHTML = `Selected: ${dynamicSelectedDate} at ${dynamicSelectedTime}`;
@@ -1265,6 +1314,15 @@ function confirmDynamicDateTime() {
     
     closeDynamicCalendarPopup();
     showToast('Date and time confirmed!', 'success');
+    
+    // FORCE the submit button to show after confirmation
+    const submitBtn = document.getElementById('submitReservationBtn');
+    if (submitBtn) {
+        submitBtn.style.display = 'block';
+        // Also make sure price display is visible
+        const priceDisplay = document.getElementById('priceDisplay');
+        if (priceDisplay) priceDisplay.style.display = 'block';
+    }
 }
 
 function changeCalendarMonth(delta) {
@@ -1316,8 +1374,14 @@ function submitDynamicReservation() {
     }
     
     // Get selected payment method
-    const activeMethod = document.querySelector('#reservationPayment .pm-tab.active')?.textContent.trim() || 'BDO';
-    
+    const activeBtn = document.querySelector('#reservationPayment .pm-tab.active');
+let activeMethod = 'BDO';
+if (activeBtn) {
+    const methodText = activeBtn.innerText.trim();
+    if (methodText.includes('BDO')) activeMethod = 'BDO';
+    else if (methodText.includes('Metrobank')) activeMethod = 'Metrobank';
+    else if (methodText.includes('BPI')) activeMethod = 'BPI';
+}
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -1431,7 +1495,16 @@ async function submitDynamicReservationPayment(event) {
     }
     
     // Get payment form values
-    const activeMethod = document.querySelector('#reservationPayment .pm-tab.active')?.textContent.trim() || 'BDO';
+    const activeBtn = document.querySelector('#reservationPayment .pm-tab.active');
+let activeMethod = activeBtn?.getAttribute('data-clean-method') || 'BDO';
+// Fallback: if data attribute not set, extract from text
+if (!activeMethod || activeMethod === 'BDO' && !activeBtn?.innerText.includes('BDO')) {
+    const methodText = activeBtn?.innerText.trim() || 'BDO';
+    if (methodText.includes('BDO')) activeMethod = 'BDO';
+    else if (methodText.includes('Metrobank')) activeMethod = 'Metrobank';
+    else if (methodText.includes('BPI')) activeMethod = 'BPI';
+    else activeMethod = 'BDO';
+}
     const accountNumber = document.getElementById('resPaymentAccount')?.value.trim() || '';
     const expiry = document.getElementById('resExpiry')?.value.trim() || '';
     const cvc = document.getElementById('resCardCvc')?.value.trim() || '';
@@ -1715,15 +1788,30 @@ function pickMethod(btn) {
 function pickReservationMethod(btn) {
     document.querySelectorAll('#reservationPayment .pm-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    const method = btn.innerText.trim();
+    
+    // Store both display and clean method
+    const methodText = btn.innerText.trim();
+    let cleanMethod = methodText;
+    
+    // Extract just the bank name without emoji
+    if (methodText.includes('BDO')) cleanMethod = 'BDO';
+    else if (methodText.includes('Metrobank')) cleanMethod = 'Metrobank';
+    else if (methodText.includes('BPI')) cleanMethod = 'BPI';
+    
+    // Store clean method as data attribute for later use
+    btn.setAttribute('data-clean-method', cleanMethod);
+    
     const bankNameDisplay = document.getElementById('resMerchantBankName');
     const accountNoDisplay = document.getElementById('resMerchantAccountNumber');
     const inputLabel = document.getElementById('resLabelPaymentAccount');
-    if (bankNameDisplay) bankNameDisplay.innerText = method;
-    if (inputLabel) inputLabel.innerText = method + " Card number";
-    if (method.includes("BDO")) accountNoDisplay.innerText = "4512 3456 7890 1234";
-    else if (method.includes("Metrobank")) accountNoDisplay.innerText = "5123 9988 7766 5544";
-    else if (method.includes("BPI")) accountNoDisplay.innerText = "4213 0011 2233 4455";
+    
+    if (bankNameDisplay) bankNameDisplay.innerText = cleanMethod;
+    if (inputLabel) inputLabel.innerText = cleanMethod + " Card number";
+    
+    if (cleanMethod === "BDO") accountNoDisplay.innerText = "4512 3456 7890 1234";
+    else if (cleanMethod === "Metrobank") accountNoDisplay.innerText = "5123 9988 7766 5544";
+    else if (cleanMethod === "BPI") accountNoDisplay.innerText = "4213 0011 2233 4455";
+    
     const userAccountInput = document.getElementById('resPaymentAccount');
     if (userAccountInput) userAccountInput.value = "";
 }

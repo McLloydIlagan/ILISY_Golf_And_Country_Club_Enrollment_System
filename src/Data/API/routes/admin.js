@@ -71,6 +71,8 @@ router.get('/applications', async (req, res) => {
             email: res.email,
             phone: res.phone,
             type: 'reservation',
+            reservationTypeName: res.reservationTypeName || res.type || 'Reservation',  // ADD THIS
+            reservationCategory: res.category || 'golf',  // ADD THIS
             status: res.status,
             paymentStatus: res.paymentStatus || 'completed',
             amount: res.amount,
@@ -79,7 +81,6 @@ router.get('/applications', async (req, res) => {
                 timeSlot: res.timeSlot
             },
             createdAt: res.createdAt,
-            // Flag to know this came from Reservation collection
             source: 'reservation'
         }));
         

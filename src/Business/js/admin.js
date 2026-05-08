@@ -1244,7 +1244,19 @@ function renderReservationsTable() {
         
         const displayDate = app.details?.date ? new Date(app.details.date).toLocaleDateString() : 'N/A';
         const displayTime = app.details?.timeSlot || 'N/A';
-        const displayType = app.type === 'membership' ? '🏌️ Membership' : '📅 Reservation';
+        let displayType = '';
+if (app.type === 'membership') {
+    displayType = '🏌️ Membership';
+} else {
+    // Show specific reservation type if available
+    if (app.reservationTypeName) {
+        displayType = `📅 ${app.reservationTypeName}`;
+    } else if (app.details && app.details.reservationType) {
+        displayType = `📅 ${app.details.reservationType}`;
+    } else {
+        displayType = '📅 Reservation';
+    }
+}
         
         return `
             <tr>
@@ -1903,14 +1915,12 @@ function renderValidateModalContent(app) {
     modalBody.innerHTML = `
         <div class="app-detail-section">
             <h4>📋 Application Information</h4>
-            <div class="detail-row">
-                <span class="detail-label">Type:</span>
-                <span class="detail-value">
-                    <span class="status-badge status-pending">
-                        ${isMembership ? '🏌️ Membership' : '📅 Reservation'}
+                <div class="detail-row">
+                    <span class="detail-label">Type:</span>
+                    <span class="detail-value">
+                        ${app.type === 'membership' ? '🏌️ Membership' : `📅 ${app.reservationTypeName || app.details?.reservationType || 'Reservation'}`}
                     </span>
-                </span>
-            </div>
+                </div>
             <div class="detail-row">
                 <span class="detail-label">Status:</span>
                 <span class="detail-value"><span class="status-badge status-pending">Pending Verification</span></span>
