@@ -1779,3 +1779,205 @@ body { display: flex; height: 100vh; overflow: hidden; background: #1a1a1a; }
 .res-day.empty {
     cursor: default;
 }
+
+.availability-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #e0e6eb;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .availability-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+    
+    .card-header-availability {
+        background: linear-gradient(135deg, var(--deep-green), #1a4a1a);
+        color: white;
+        padding: 20px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .card-header-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .card-icon {
+        font-size: 36px;
+        background: rgba(255,255,255,0.15);
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .card-title h3 {
+        font-size: 22px;
+        margin: 0 0 5px 0;
+    }
+    
+    .card-title .category-badge {
+        font-size: 11px;
+        background: rgba(255,255,255,0.2);
+        padding: 3px 12px;
+        border-radius: 20px;
+        display: inline-block;
+    }
+    
+    .card-stats {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .stat-badge {
+        text-align: center;
+        padding: 8px 16px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 12px;
+    }
+    
+    .stat-badge .stat-value {
+        font-size: 20px;
+        font-weight: bold;
+    }
+    
+    .stat-badge .stat-label {
+        font-size: 10px;
+        opacity: 0.8;
+    }
+    
+    .card-body-availability {
+        padding: 25px;
+    }
+    
+    .time-slot-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 12px;
+        border-left: 4px solid var(--olive);
+    }
+    
+    .time-slot-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .slot-time {
+        font-weight: bold;
+        font-size: 16px;
+        color: var(--deep-green);
+    }
+    
+    .slot-status {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    
+    .slot-status.available {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .slot-status.full {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .slot-status.limited {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .progress-bar-container {
+        background: #e9ecef;
+        border-radius: 10px;
+        height: 12px;
+        overflow: hidden;
+        margin: 10px 0;
+    }
+    
+    .progress-bar-fill {
+        background: linear-gradient(90deg, var(--olive), #8ba878);
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.5s ease;
+    }
+    
+    .progress-bar-fill.warning {
+        background: linear-gradient(90deg, #ffc107, #ff9800);
+    }
+    
+    .progress-bar-fill.danger {
+        background: linear-gradient(90deg, #dc3545, #c82333);
+    }
+    
+    .slot-capacity-details {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #666;
+        margin-top: 8px;
+    }
+    
+    .capacity-numbers {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .capacity-numbers span {
+        font-weight: bold;
+        color: var(--deep-green);
+    }
+    
+    .summary-bar {
+        background: var(--sage);
+        border-radius: 12px;
+        padding: 15px 20px;
+        margin-top: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .summary-item {
+        text-align: center;
+    }
+    
+    .summary-item .summary-label {
+        font-size: 11px;
+        color: #666;
+    }
+    
+    .summary-item .summary-value {
+        font-size: 18px;
+        font-weight: bold;
+        color: var(--deep-green);
+    }
+    
+    .inactive-badge {
+        background: #6c757d;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+    }

@@ -102,106 +102,97 @@
     </div>
 
     <!-- ─── RESERVATIONS ──────────────────────── -->
-    <div class="page" id="page-reservations">
-        <div class="topbar">
-            <h1>Reservations</h1>
-            <div style="display:flex;align-items:center;gap:20px;">
-                <button class="refresh-btn" onclick="loadReservations()">🔄 Refresh</button>
-                <div class="admin-info">
-                    <div class="admin-avatar">👤</div>
-                    <div class="admin-text">admin <span>Admin</span></div>
-                </div>
-            </div>
-        </div>
-        <div class="page-body">
-            <!-- Calendar Section with Filter -->
-            <div class="res-calendar">
-                <div class="res-cal-header">
-                    <button class="cal-nav-btn" onclick="changeAdminMonth(-1)">◀</button>
-                    <span id="adminCalendarMonthYear">Loading...</span>
-                    <button class="cal-nav-btn" onclick="changeAdminMonth(1)">▶</button>
-                </div>
-                
-                <div style="padding: 10px 20px; background: var(--sage); border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <label style="font-size: 12px; font-weight: bold; color: #333;">📅 Calendar View:</label>
-                        <select id="calendarTypeFilter" onchange="loadAdminCalendar()" style="padding: 6px 12px; border-radius: 5px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif; font-size: 12px; min-width: 180px;">
-                            <option value="all">📌 All Reservations</option>
-                        </select>
-                    </div>
-                    <div style="font-size: 11px; color: #555;">
-                        <span>🟢 Available &nbsp;|&nbsp; 🟡 Partial &nbsp;|&nbsp; 🔴 Full</span>
-                    </div>
-                </div>
-                
-                <div class="res-cal-grid" id="adminCalGrid"></div>
-                <div class="legend-row">
-                    <div class="leg"><div class="leg-box" style="background:#28a745"></div>Available</div>
-                    <div class="leg"><div class="leg-box" style="background:var(--gold)"></div>Partial</div>
-                    <div class="leg"><div class="leg-box" style="background:var(--booked)"></div>Full</div>
-                </div>
-            </div>
-
-            <div class="table-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-                    <h3 style="margin: 0;">Reservation Applications</h3>
-                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                        <div class="search-bar" style="background: white; border: 1px solid #ddd;">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" id="reservationSearchInput" placeholder="Search by name, email, phone..." oninput="filterReservationsTable()" style="width: 220px;">
-                        </div>
-                        
-                        <select id="reservationStatusFilter" onchange="filterReservationsTable()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif;">
-                            <option value="all">📋 All Status</option>
-                            <option value="pending">⏳ Pending</option>
-                            <option value="approved">✓ Approved</option>
-                            <option value="confirmed">✓ Confirmed</option>
-                            <option value="rejected">✗ Rejected</option>
-                            <option value="cancelled">❌ Cancelled</option>
-                        </select>
-                        
-                        <select id="reservationTypeFilter" onchange="filterReservationsTable()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd; background: white; font-family: 'Georgia', serif; min-width: 160px;">
-                            <option value="all">📌 All Types</option>
-                            <option value="membership">🏌️ Membership</option>
-                            <option value="reservation">📅 Reservation</option>
-                            <option disabled style="background: #eee;">──────────</option>
-                            <option value="golf_category">⛳ Golf</option>
-                            <option value="amenities_category">🍽️ Amenities</option>
-                            <option value="events_category">🎉 Events</option>
-                            <option value="accommodation_category">🏨 Accommodation</option>
-                            <option value="premium_category">✨ Premium</option>
-                        </select>
-                        
-                        <button class="reset-filter-btn" onclick="resetReservationFilters()" style="background: var(--sage); color: #333; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-family: 'Georgia', serif;">
-                            🔄 Reset Filters
-                        </button>
-                    </div>
-                </div>
-                
-                <div style="overflow-x: auto;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Type</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="reservationAppTbody">
-                            <tr><td colspan="7" style="text-align:center;">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div id="reservationPagination" class="pagination-container" style="margin-top: 20px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;"></div>
-                <div id="resultsCount" style="text-align: center; margin-top: 15px; font-size: 12px; color: #666;"></div>
+    
+<div class="page" id="page-reservations">
+    <div class="topbar">
+        <h1>📊 Reservation Availability Dashboard</h1>
+        <div style="display:flex;align-items:center;gap:20px;">
+            <button class="refresh-btn" onclick="loadAvailabilityDashboard()">🔄 Refresh Data</button>
+            <div class="admin-info">
+                <div class="admin-avatar">👤</div>
+                <div class="admin-text">admin <span>Admin</span></div>
             </div>
         </div>
     </div>
+    <div class="page-body">
+        
+        <!-- Date Range Selector -->
+        <div class="date-range-selector" style="background: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <div>
+                <label style="font-weight: bold; margin-right: 10px;">📅 View Availability For:</label>
+                <select id="availabilityDateFilter" onchange="loadAvailabilityDashboard()" style="padding: 8px 15px; border-radius: 8px; border: 1px solid #ddd;">
+                    <option value="today">Today</option>
+                    <option value="tomorrow">Tomorrow</option>
+                    <option value="week" selected>Next 7 Days</option>
+                    <option value="month">Next 30 Days</option>
+                </select>
+            </div>
+            <div id="dateRangeDisplay" style="font-size: 12px; color: #666;">
+                Showing availability for: Next 7 days
+            </div>
+        </div>
+        
+        <!-- Summary Stats Cards -->
+        <div class="availability-stats-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
+            <div class="stat-card" style="background: var(--deep-green); color: white;">
+                <div class="stat-num" id="totalTypesCount">0</div>
+                <div class="stat-label">Active Reservation Types</div>
+            </div>
+            <div class="stat-card" style="background: var(--olive); color: white;">
+                <div class="stat-num" id="totalCapacityCount">0</div>
+                <div class="stat-label">Total Daily Capacity</div>
+            </div>
+            <div class="stat-card" style="background: var(--gold); color: var(--deep-green);">
+                <div class="stat-num" id="totalBookedCount">0</div>
+                <div class="stat-label">Booked (Next 7 Days)</div>
+            </div>
+            <div class="stat-card" style="background: #28a745; color: white;">
+                <div class="stat-num" id="totalAvailableCount">0</div>
+                <div class="stat-label">Still Available</div>
+            </div>
+        </div>
+
+        <!-- Availability Cards Grid -->
+        <div id="availabilityCardsContainer" style="display: flex; flex-direction: column; gap: 30px;">
+            <div class="loading-spinner" style="text-align: center; padding: 60px;">
+                ⏳ Loading availability data...
+            </div>
+        </div>
+        
+        <!-- Old Reservations Table (keep for viewing applications) -->
+        <div class="table-section" style="margin-top: 40px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <h3 style="margin: 0;">📋 Reservation Applications</h3>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <div class="search-bar" style="background: white; border: 1px solid #ddd;">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="reservationSearchInput" placeholder="Search by name, email, phone..." oninput="filterReservationsTable()" style="width: 220px;">
+                    </div>
+                    <select id="reservationStatusFilter" onchange="filterReservationsTable()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd; background: white;">
+                        <option value="all">📋 All Status</option>
+                        <option value="pending">⏳ Pending</option>
+                        <option value="approved">✓ Approved</option>
+                        <option value="confirmed">✓ Confirmed</option>
+                        <option value="rejected">✗ Rejected</option>
+                    </select>
+                    <button class="reset-filter-btn" onclick="resetReservationFilters()">🔄 Reset Filters</button>
+                </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Name</th><th>Date</th><th>Time</th><th>Type</th><th>Amount</th><th>Status</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="reservationAppTbody">
+                        <tr><td colspan="7" style="text-align:center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="reservationPagination" class="pagination-container" style="margin-top: 20px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;"></div>
+        </div>
+    </div>
+</div>
+
 
     <!-- ─── REGISTERED ACCOUNTS ───────────────── -->
     <div class="page" id="page-accounts">

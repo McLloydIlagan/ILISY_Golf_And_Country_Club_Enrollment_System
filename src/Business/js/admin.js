@@ -2719,6 +2719,440 @@ async function revokeMembership(userId) {
     }
 }
 
+async function getReservationAvailability() {
+    const token = getAuthToken();
+    if (!token) return null;
+    
+    try {
+        // Get all reservation types
+        const typesResponse = await fetch(`${API_URL}/reservation-types/admin/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!typesResponse.ok) throw new Error('Failed to fetch reservation types');
+        const reservationTypes = await typesResponse.json();
+        
+        // Get current date range (today + next 30 days for availability)
+        const today = new Date();
+        const endDate = new Date();
+        endDate.setDate(today.getDate() + 30);
+        
+        // Get all bookings in date range
+        const bookingsResponse = await fetch(`${API_URL}/admin/reservations/calendar?year=${today.getFullYear()}&month=${today.getMonth() + 1}&filterType=all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        let bookings = [];
+        if (bookingsResponse.ok) {
+            bookings = await bookingsResponse.json();
+        }
+        
+        // Calculate availability for each type
+        const availabilityData = reservationTypes.map(type => {
+            const timeSlots = type.timeSlots || [];
+            const slotAvailability = timeSlots.map(slot => {
+                // Count bookings for this type and time slot
+                const bookingsForSlot = bookings.filter(booking => 
+                    booking.reservationTypeId === type._id && 
+                    booking.timeSlot === slot.time &&
+                    booking.status !== 'cancelled' &&
+                    booking.status !== 'rejected'
+                );
+                
+                const usedCapacity = bookingsForSlot.length;
+                const remainingCapacity = slot.capacity - usedCapacity;
+                const percentageUsed = slot.capacity > 0 ? (usedCapacity / slot.capacity) * 100 : 0;
+                
+                return {
+                    time: slot.time,
+                    capacity: slot.capacity,
+                    usedCapacity: usedCapacity,
+                    remainingCapacity: Math.max(0, remainingCapacity),
+                    percentageUsed: Math.min(100, percentageUsed),
+                    isAvailable: remainingCapacity > 0 && slot.isAvailable !== false
+                };
+            });
+            
+            return {
+                id: type._id,
+                name: type.name,
+                category: type.category,
+                icon: type.icon || '🏌️',
+                isActive: type.isActive,
+                basePrice: type.basePrice,
+                timeSlots: slotAvailability,
+                totalCapacity: timeSlots.reduce((sum, slot) => sum + slot.capacity, 0),
+                totalUsed: slotAvailability.reduce((sum, slot) => sum + slot.usedCapacity, 0),
+                totalRemaining: slotAvailability.reduce((sum, slot) => sum + slot.remainingCapacity, 0)
+            };
+        });
+        
+        return availabilityData;
+        
+    } catch (error) {
+        console.error('Error getting availability:', error);
+        return null;
+    }
+}
+
+// Helper function to get mock data for testing if API fails
+function getMockAvailabilityData() {
+    return [
+        {
+            id: 'mock1',
+            name: 'Swimming Pool',
+            category: 'amenities',
+            icon: '🏊',
+            isActive: true,
+            basePrice: 500,
+            timeSlots: [
+                { time: '6:00 AM', capacity: 3, usedCapacity: 2, remainingCapacity: 1, percentageUsed: 66.7, isAvailable: true },
+                { time: '7:00 AM', capacity: 3, usedCapacity: 1, remainingCapacity: 2, percentageUsed: 33.3, isAvailable: true },
+                { time: '8:00 AM', capacity: 3, usedCapacity: 3, remainingCapacity: 0, percentageUsed: 100, isAvailable: false },
+                { time: '9:00 AM', capacity: 3, usedCapacity: 0, remainingCapacity: 3, percentageUsed: 0, isAvailable: true }
+            ],
+            totalCapacity: 12,
+            totalUsed: 6,
+            totalRemaining: 6
+        },
+        {
+            id: 'mock2',
+            name: 'Tee Time (9 Holes)',
+            category: 'golf',
+            icon: '⛳',
+            isActive: true,
+            basePrice: 2000,
+            timeSlots: [
+                { time: '6:00 AM', capacity: 5, usedCapacity: 4, remainingCapacity: 1, percentageUsed: 80, isAvailable: true },
+                { time: '7:00 AM', capacity: 5, usedCapacity: 5, remainingCapacity: 0, percentageUsed: 100, isAvailable: false },
+                { time: '8:00 AM', capacity: 5, usedCapacity: 3, remainingCapacity: 2, percentageUsed: 60, isAvailable: true }
+            ],
+            totalCapacity: 15,
+            totalUsed: 12,
+            totalRemaining: 3
+        }
+    ];
+}
+
+async function loadAvailabilityDashboard() {
+    console.log('📊 Loading availability dashboard...');
+    
+    const token = getAuthToken();
+    if (!token) return;
+    
+    try {
+        // Get all reservation types
+        const typesResponse = await fetch(`${API_URL}/reservation-types/admin/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!typesResponse.ok) throw new Error('Failed to fetch reservation types');
+        const reservationTypes = await typesResponse.json();
+        
+        // Get all reservations for capacity calculation
+        const bookingsResponse = await fetch(`${API_URL}/admin/reservations/calendar?year=${new Date().getFullYear()}&month=${new Date().getMonth() + 1}&filterType=all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        let bookings = [];
+        if (bookingsResponse.ok) {
+            bookings = await bookingsResponse.json();
+        }
+        
+        // Calculate availability for each type
+        const availabilityData = reservationTypes.map(type => {
+            const timeSlots = type.timeSlots || [];
+            const slotAvailability = timeSlots.map(slot => {
+                // Count approved/confirmed bookings for this type and time slot
+                const bookingsForSlot = bookings.filter(booking => 
+                    (booking.reservationTypeId === type._id || booking.reservationTypeName === type.name) && 
+                    booking.timeSlot === slot.time &&
+                    booking.status !== 'cancelled' &&
+                    booking.status !== 'rejected'
+                );
+                
+                const usedCapacity = bookingsForSlot.length;
+                const remainingCapacity = Math.max(0, slot.capacity - usedCapacity);
+                const percentageUsed = slot.capacity > 0 ? (usedCapacity / slot.capacity) * 100 : 0;
+                
+                let statusClass = 'available';
+                if (remainingCapacity === 0) statusClass = 'full';
+                else if (percentageUsed > 70) statusClass = 'limited';
+                
+                return {
+                    time: slot.time,
+                    capacity: slot.capacity,
+                    usedCapacity: usedCapacity,
+                    remainingCapacity: remainingCapacity,
+                    percentageUsed: Math.min(100, percentageUsed),
+                    statusClass: statusClass,
+                    isAvailable: remainingCapacity > 0 && slot.isAvailable !== false
+                };
+            });
+            
+            const totalCapacity = timeSlots.reduce((sum, slot) => sum + slot.capacity, 0);
+            const totalUsed = slotAvailability.reduce((sum, slot) => sum + slot.usedCapacity, 0);
+            const totalRemaining = slotAvailability.reduce((sum, slot) => sum + slot.remainingCapacity, 0);
+            
+            return {
+                id: type._id,
+                name: type.name,
+                category: type.category,
+                icon: type.icon || getCategoryIcon(type.category),
+                isActive: type.isActive,
+                basePrice: type.basePrice,
+                timeSlots: slotAvailability,
+                totalCapacity: totalCapacity,
+                totalUsed: totalUsed,
+                totalRemaining: totalRemaining,
+                overallPercentage: totalCapacity > 0 ? (totalUsed / totalCapacity) * 100 : 0
+            };
+        });
+        
+        renderAvailabilityDashboard(availabilityData);
+        updateSummaryStats(availabilityData);
+        
+    } catch (error) {
+        console.error('Error loading availability dashboard:', error);
+        showToast('Error loading availability data', 'error');
+        
+        // Fallback to mock data for testing
+        const mockData = getMockAvailabilityData();
+        renderAvailabilityDashboard(mockData);
+        updateSummaryStats(mockData);
+    }
+}
+
+function getCategoryIcon(category) {
+    const icons = {
+        golf: '⛳',
+        amenities: '🍽️',
+        events: '🎉',
+        accommodation: '🏨',
+        premium: '✨'
+    };
+    return icons[category] || '📌';
+}
+
+function updateSummaryStats(availabilityData) {
+    const activeTypes = availabilityData.filter(t => t.isActive);
+    const totalCapacity = activeTypes.reduce((sum, t) => sum + t.totalCapacity, 0);
+    const totalBooked = activeTypes.reduce((sum, t) => sum + t.totalUsed, 0);
+    const totalAvailable = activeTypes.reduce((sum, t) => sum + t.totalRemaining, 0);
+    
+    document.getElementById('totalTypesCount').textContent = activeTypes.length;
+    document.getElementById('totalCapacityCount').textContent = totalCapacity.toLocaleString();
+    document.getElementById('totalBookedCount').textContent = totalBooked.toLocaleString();
+    document.getElementById('totalAvailableCount').textContent = totalAvailable.toLocaleString();
+}
+
+function renderAvailabilityDashboard(availabilityData) {
+    const container = document.getElementById('availabilityCardsContainer');
+    if (!container) return;
+    
+    if (!availabilityData || availabilityData.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="text-align: center; padding: 60px;">
+                <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+                <h3>No Reservation Types Found</h3>
+                <p>Create reservation types in the "Manage Reservations" tab first.</p>
+                <button class="btn-olive" onclick="showPage('manage_reservations')" style="margin-top: 20px;">
+                    + Go to Manage Reservations
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = availabilityData.map(type => {
+        const getProgressClass = (percentage) => {
+            if (percentage >= 90) return 'danger';
+            if (percentage >= 70) return 'warning';
+            return '';
+        };
+        
+        const overallClass = getProgressClass(type.overallPercentage);
+        
+        return `
+            <div class="availability-card">
+                <div class="card-header-availability">
+                    <div class="card-header-left">
+                        <div class="card-icon">${type.icon}</div>
+                        <div class="card-title">
+                            <h3>${escapeHtml(type.name)}</h3>
+                            <span class="category-badge">${type.category}</span>
+                            ${!type.isActive ? '<span class="inactive-badge" style="margin-left: 10px;">Inactive</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="card-stats">
+                        <div class="stat-badge">
+                            <div class="stat-value">₱${type.basePrice.toLocaleString()}</div>
+                            <div class="stat-label">Base Price</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body-availability">
+                    ${type.timeSlots.map(slot => `
+                        <div class="time-slot-card">
+                            <div class="time-slot-header">
+                                <span class="slot-time">🕐 ${escapeHtml(slot.time)}</span>
+                                <span class="slot-status ${slot.statusClass}">
+                                    ${slot.statusClass === 'full' ? '🔴 FULL' : slot.statusClass === 'limited' ? '⚠️ LIMITED' : '✅ AVAILABLE'}
+                                </span>
+                            </div>
+                            
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill ${getProgressClass(slot.percentageUsed)}" 
+                                     style="width: ${slot.percentageUsed}%;"></div>
+                            </div>
+                            
+                            <div class="slot-capacity-details">
+                                <div class="capacity-numbers">
+                                    <span>📊 ${slot.usedCapacity} / ${slot.capacity} booked</span>
+                                    <span>✅ ${slot.remainingCapacity} available</span>
+                                </div>
+                                <div>${slot.percentageUsed.toFixed(1)}% full</div>
+                            </div>
+                            
+                            <!-- Detailed breakdown -->
+                            <div style="margin-top: 10px; font-size: 11px; color: #888; display: flex; gap: 15px; flex-wrap: wrap;">
+                                <span>📊 Total Capacity: <strong>${slot.capacity}</strong></span>
+                                <span>🎟️ Used: <strong style="color: ${slot.usedCapacity > 0 ? '#dc3545' : '#28a745'}">${slot.usedCapacity}</strong></span>
+                                <span>✨ Remaining: <strong style="color: #28a745">${slot.remainingCapacity}</strong></span>
+                            </div>
+                        </div>
+                    `).join('')}
+                    
+                    <div class="summary-bar">
+                        <div class="summary-item">
+                            <div class="summary-label">Total Slots</div>
+                            <div class="summary-value">${type.totalCapacity}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Booked</div>
+                            <div class="summary-value" style="color: #dc3545;">${type.totalUsed}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Available</div>
+                            <div class="summary-value" style="color: #28a745;">${type.totalRemaining}</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Occupancy</div>
+                            <div class="summary-value">${type.overallPercentage.toFixed(1)}%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Mock data for testing when API fails
+function getMockAvailabilityData() {
+    return [
+        {
+            id: 'mock1',
+            name: 'Swimming Pool',
+            category: 'amenities',
+            icon: '🏊',
+            isActive: true,
+            basePrice: 500,
+            timeSlots: [
+                { time: '6:00 AM - 8:00 AM', capacity: 3, usedCapacity: 2, remainingCapacity: 1, percentageUsed: 66.7, statusClass: 'limited', isAvailable: true },
+                { time: '8:00 AM - 10:00 AM', capacity: 3, usedCapacity: 1, remainingCapacity: 2, percentageUsed: 33.3, statusClass: 'available', isAvailable: true },
+                { time: '10:00 AM - 12:00 PM', capacity: 3, usedCapacity: 3, remainingCapacity: 0, percentageUsed: 100, statusClass: 'full', isAvailable: false },
+                { time: '1:00 PM - 3:00 PM', capacity: 3, usedCapacity: 0, remainingCapacity: 3, percentageUsed: 0, statusClass: 'available', isAvailable: true },
+                { time: '3:00 PM - 5:00 PM', capacity: 3, usedCapacity: 2, remainingCapacity: 1, percentageUsed: 66.7, statusClass: 'limited', isAvailable: true },
+                { time: '5:00 PM - 7:00 PM', capacity: 4, usedCapacity: 4, remainingCapacity: 0, percentageUsed: 100, statusClass: 'full', isAvailable: false },
+                { time: '7:00 PM - 9:00 PM', capacity: 4, usedCapacity: 1, remainingCapacity: 3, percentageUsed: 25, statusClass: 'available', isAvailable: true }
+            ],
+            totalCapacity: 23,
+            totalUsed: 13,
+            totalRemaining: 10,
+            overallPercentage: 56.5
+        },
+        {
+            id: 'mock2',
+            name: 'Tee Time (9 Holes)',
+            category: 'golf',
+            icon: '⛳',
+            isActive: true,
+            basePrice: 2000,
+            timeSlots: [
+                { time: '6:00 AM', capacity: 5, usedCapacity: 4, remainingCapacity: 1, percentageUsed: 80, statusClass: 'limited', isAvailable: true },
+                { time: '7:00 AM', capacity: 5, usedCapacity: 5, remainingCapacity: 0, percentageUsed: 100, statusClass: 'full', isAvailable: false },
+                { time: '8:00 AM', capacity: 5, usedCapacity: 3, remainingCapacity: 2, percentageUsed: 60, statusClass: 'available', isAvailable: true },
+                { time: '9:00 AM', capacity: 5, usedCapacity: 5, remainingCapacity: 0, percentageUsed: 100, statusClass: 'full', isAvailable: false },
+                { time: '10:00 AM', capacity: 5, usedCapacity: 2, remainingCapacity: 3, percentageUsed: 40, statusClass: 'available', isAvailable: true },
+                { time: '11:00 AM', capacity: 5, usedCapacity: 1, remainingCapacity: 4, percentageUsed: 20, statusClass: 'available', isAvailable: true }
+            ],
+            totalCapacity: 30,
+            totalUsed: 20,
+            totalRemaining: 10,
+            overallPercentage: 66.7
+        },
+        {
+            id: 'mock3',
+            name: 'Spa & Massage',
+            category: 'amenities',
+            icon: '💆',
+            isActive: true,
+            basePrice: 1500,
+            timeSlots: [
+                { time: '9:00 AM', capacity: 2, usedCapacity: 1, remainingCapacity: 1, percentageUsed: 50, statusClass: 'available', isAvailable: true },
+                { time: '10:00 AM', capacity: 2, usedCapacity: 2, remainingCapacity: 0, percentageUsed: 100, statusClass: 'full', isAvailable: false },
+                { time: '11:00 AM', capacity: 2, usedCapacity: 0, remainingCapacity: 2, percentageUsed: 0, statusClass: 'available', isAvailable: true },
+                { time: '1:00 PM', capacity: 2, usedCapacity: 2, remainingCapacity: 0, percentageUsed: 100, statusClass: 'full', isAvailable: false },
+                { time: '2:00 PM', capacity: 2, usedCapacity: 1, remainingCapacity: 1, percentageUsed: 50, statusClass: 'available', isAvailable: true },
+                { time: '3:00 PM', capacity: 2, usedCapacity: 2, remainingCapacity: 0, percentageUsed: 100, statusClass: 'full', isAvailable: false }
+            ],
+            totalCapacity: 12,
+            totalUsed: 8,
+            totalRemaining: 4,
+            overallPercentage: 66.7
+        },
+        {
+            id: 'mock4',
+            name: 'Driving Range',
+            category: 'golf',
+            icon: '🏌️',
+            isActive: true,
+            basePrice: 800,
+            timeSlots: [
+                { time: '7:00 AM', capacity: 10, usedCapacity: 7, remainingCapacity: 3, percentageUsed: 70, statusClass: 'limited', isAvailable: true },
+                { time: '8:00 AM', capacity: 10, usedCapacity: 8, remainingCapacity: 2, percentageUsed: 80, statusClass: 'limited', isAvailable: true },
+                { time: '9:00 AM', capacity: 10, usedCapacity: 9, remainingCapacity: 1, percentageUsed: 90, statusClass: 'warning', isAvailable: true },
+                { time: '10:00 AM', capacity: 10, usedCapacity: 10, remainingCapacity: 0, percentageUsed: 100, statusClass: 'full', isAvailable: false },
+                { time: '11:00 AM', capacity: 10, usedCapacity: 6, remainingCapacity: 4, percentageUsed: 60, statusClass: 'available', isAvailable: true }
+            ],
+            totalCapacity: 50,
+            totalUsed: 40,
+            totalRemaining: 10,
+            overallPercentage: 80
+        }
+    ];
+}
+
+// Override the showPage function to load availability when switching to reservations tab
+const originalShowPage = window.showPage;
+window.showPage = function(id) {
+    originalShowPage(id);
+    if (id === 'reservations') {
+        setTimeout(() => {
+            loadAvailabilityDashboard();
+        }, 100);
+    }
+};
+
+// Call this when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Only load if we're on reservations page or will be
+    const currentPage = localStorage.getItem('adminCurrentPage');
+    if (currentPage === 'reservations') {
+        setTimeout(loadAvailabilityDashboard, 500);
+    }
+});
+
 // Make functions global
 window.showPage = showPage;
 window.handleLogout = handleLogout;
