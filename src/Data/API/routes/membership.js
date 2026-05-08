@@ -9,11 +9,14 @@ const { authMiddleware } = require('../middleware/auth');
 router.post('/apply', authMiddleware, async (req, res) => {
     try {
         const { 
-            userId, firstName, lastName, email, phone, gender, age, address,
+            firstName, lastName, email, phone, gender, age, address,
             paymentMethod, accountNumber, referenceNumber, amount
         } = req.body;
 
-        if (!firstName || !lastName || !email || !phone || !userId) {
+        // Always use the authenticated user's ID — never trust userId from body
+        const userId = req.user.userId;
+
+        if (!firstName || !lastName || !email || !phone) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
@@ -40,6 +43,24 @@ router.post('/apply', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'User already has an active membership' });
         }
 
+        // Block duplicate pending applications
+        const existingPending = await Application.findOne({
+            userId,
+            type: 'membership',
+            status: { $in: ['pending', 'processing'] }
+        });
+        if (existingPending) {
+            return res.status(400).json({ message: 'You already have a pending membership application. Please wait for admin review.' });
+        }
+
+        // Validate amount — membership fee must be a positive number
+        // The canonical fee is stored in MembershipSettings; we do a basic sanity check here.
+        // Admin verifies the actual receipt, so this just blocks obviously wrong values.
+        const submittedAmount = Number(amount);
+        if (isNaN(submittedAmount) || submittedAmount <= 0) {
+            return res.status(400).json({ message: 'Invalid payment amount.' });
+        }
+
         // Create application with payment details (PENDING admin validation)
         const application = new Application({
             userId, firstName, lastName, email, phone,
@@ -48,7 +69,7 @@ router.post('/apply', authMiddleware, async (req, res) => {
             paymentMethod,
             accountNumber,
             referenceNumber,
-            amount,
+            amount: submittedAmount,
             status: 'pending',
             paymentStatus: 'pending'
         });
@@ -61,7 +82,8 @@ router.post('/apply', authMiddleware, async (req, res) => {
             status: 'pending_verification'
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Membership apply error:', error);
+        res.status(500).json({ message: 'An error occurred while submitting your application. Please try again.' });
     }
 });
 
@@ -77,60 +99,11 @@ router.get('/my-applications', authMiddleware, async (req, res) => {
     }
 });
 
-// 2.0 Process Membership Payment - Level 3: 3.8.1 Validate Payment Details
+// NOTE: The /payment route below is DISABLED — membership activation is handled
+// exclusively by admin via POST /api/admin/applications/:appId/verify-payment
+// Keeping the route stub to avoid 404 but it returns 403 to prevent bypass.
 router.post('/payment', authMiddleware, async (req, res) => {
-    try {
-        const { userId, applicationId, paymentMethod, accountNumber, amount, firstName, lastName } = req.body;
-
-        if (!paymentMethod || !amount || !userId || !applicationId) {
-            return res.status(400).json({ message: 'Invalid payment details' });
-        }
-
-        if (amount <= 0 || typeof amount !== 'number') {
-            return res.status(400).json({ message: 'Invalid payment amount' });
-        }
-
-        const validMethods = ['GCash', 'Maya', 'BPI', 'BDO', 'Cash'];
-        if (!validMethods.includes(paymentMethod)) {
-            return res.status(400).json({ message: 'Invalid payment method' });
-        }
-
-        const application = await Application.findById(applicationId);
-        if (!application || application.status !== 'pending') {
-            return res.status(400).json({ message: 'Invalid or already processed application' });
-        }
-
-        const payment = new Payment({
-            userId, firstName, lastName, paymentMethod, accountNumber, amount,
-            transactionType: 'membership',
-            paymentStatus: 'processing',
-            transactionId: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        });
-
-        await payment.save();
-
-        // Level 2: 2.0 - Validate payment > Payment data stored > D3: Payments
-        payment.paymentStatus = 'completed';
-        payment.processedAt = new Date();
-        await payment.save();
-
-        // Level 2: 2.0 - Membership recorded > Account Data Updated > D1: Registered Accounts
-        await User.findByIdAndUpdate(userId, {
-            membershipStatus: 'active',
-            membershipExpiration: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-        });
-
-        application.status = 'approved';
-        await application.save();
-
-        res.json({
-            message: 'Payment processed successfully. Receipt will be sent to your email.',
-            paymentId: payment._id,
-            transactionId: payment.transactionId
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    return res.status(403).json({ message: 'Direct payment processing is not allowed. Please submit an application and wait for admin verification.' });
 });
 
 module.exports = router;

@@ -1247,20 +1247,59 @@ section {
     cursor: not-allowed;
 }
 
+/* Past dates — slightly different from disabled */
+.calendar-day.past {
+    background: #f0f0f0;
+    color: #bbb;
+    cursor: not-allowed;
+    text-decoration: line-through;
+    opacity: .6;
+}
+
 .calendar-day.available {
     background: #d4edda;
     color: #155724;
+    cursor: pointer;
 }
 
 .calendar-day.booked {
     background: #f8d7da;
     color: #721c24;
     cursor: not-allowed;
+    position: relative;
+}
+
+/* Small "full" indicator dot on booked days */
+.calendar-day.booked::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #721c24;
 }
 
 .calendar-day.partial {
     background: #fff3cd;
     color: #856404;
+    cursor: pointer;
+    position: relative;
+}
+
+/* Small dot indicator on partial days */
+.calendar-day.partial::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #e6a817;
 }
 
 /* Time Slots */

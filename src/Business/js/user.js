@@ -415,20 +415,27 @@ async function loadConversationHistory() {
                         row.className = `msg-row ${conv.sender === 'user' ? 'right' : ''}`;
                         
                         if (conv.imageUrl) {
+                            // Build image bubble safely — no innerHTML with raw URL
+                            const bubble = document.createElement('div');
+                            bubble.className = 'msg-bubble image-message ' + (conv.sender === 'admin' ? 'received' : 'sent');
+                            const img = document.createElement('img');
+                            img.src = conv.imageUrl; // safe via .src
+                            img.alt = 'Receipt image';
+                            bubble.appendChild(img);
+                            bubble.onclick = () => viewFullImage(conv.imageUrl);
+
                             if (conv.sender === 'admin') {
-                                row.innerHTML = `
-                                    <div class="user-avatar">👤</div>
-                                    <div class="msg-bubble received image-message" onclick="viewFullImage('${conv.imageUrl}')">
-                                        <img src="${conv.imageUrl}" alt="Receipt image">
-                                    </div>
-                                `;
-                            } else {
-                                row.innerHTML = `
-                                    <div class="msg-bubble sent image-message" onclick="viewFullImage('${conv.imageUrl}')">
-                                        <img src="${conv.imageUrl}" alt="Receipt image">
-                                    </div>
-                                    <div class="avatar-right">👤</div>
-                                `;
+                                const avatar = document.createElement('div');
+                                avatar.className = 'user-avatar';
+                                avatar.textContent = '👤';
+                                row.appendChild(avatar);
+                            }
+                            row.appendChild(bubble);
+                            if (conv.sender === 'user') {
+                                const avatar = document.createElement('div');
+                                avatar.className = 'avatar-right';
+                                avatar.textContent = '👤';
+                                row.appendChild(avatar);
                             }
                         } else {
                             if (conv.sender === 'admin') {
@@ -531,41 +538,58 @@ function addImageToChat(imageUrl, type, isHistory = false) {
     const chatBody = document.getElementById('chatBody');
     const row = document.createElement('div');
     row.className = `msg-row ${type === 'sent' ? 'right' : ''}`;
-    
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble image-message ' + (type === 'received' ? 'received' : 'sent');
+    const img = document.createElement('img');
+    img.src = imageUrl; // safe via .src
+    img.alt = 'Receipt image';
+    bubble.appendChild(img);
+    bubble.onclick = () => viewFullImage(imageUrl);
+
     if (type === 'received') {
-        row.innerHTML = `
-            <div class="user-avatar">👤</div>
-            <div class="msg-bubble received image-message" onclick="viewFullImage('${imageUrl}')">
-                <img src="${imageUrl}" alt="Receipt image">
-            </div>
-        `;
+        const avatar = document.createElement('div');
+        avatar.className = 'user-avatar';
+        avatar.textContent = '👤';
+        row.appendChild(avatar);
+        row.appendChild(bubble);
     } else {
-        row.innerHTML = `
-            <div class="msg-bubble sent image-message" onclick="viewFullImage('${imageUrl}')">
-                <img src="${imageUrl}" alt="Receipt image">
-            </div>
-            <div class="avatar-right">👤</div>
-        `;
+        row.appendChild(bubble);
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar-right';
+        avatar.textContent = '👤';
+        row.appendChild(avatar);
     }
     
     const previewContainer = document.querySelector('.image-preview-container');
     if (previewContainer) previewContainer.remove();
     
     chatBody.appendChild(row);
-    if (!isHistory) {
-        scrollToBottom();
-    }
+    if (!isHistory) scrollToBottom();
 }
 
 function viewFullImage(imageUrl) {
     const modal = document.createElement('div');
     modal.className = 'image-viewer-modal';
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:flex;justify-content:center;align-items:center;z-index:20000;cursor:pointer;';
-    modal.innerHTML = `
-        <button style="position:absolute;top:20px;right:30px;color:white;font-size:40px;background:none;border:none;cursor:pointer;" onclick="this.parentElement.remove()">&times;</button>
-        <img src="${imageUrl}" style="max-width:90%;max-height:90%;object-fit:contain;border-radius:8px;">
-    `;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.style.cssText = 'position:absolute;top:20px;right:30px;color:white;font-size:40px;background:none;border:none;cursor:pointer;';
+    closeBtn.textContent = '×';
+    closeBtn.onclick = () => modal.remove();
+
+    const img = document.createElement('img');
+    img.src = imageUrl; // safe — set via .src not innerHTML
+    img.style.cssText = 'max-width:90%;max-height:90%;object-fit:contain;border-radius:8px;';
+    img.alt = 'Full size image';
+
+    modal.appendChild(closeBtn);
+    modal.appendChild(img);
     modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+
+    const closeHandler = (e) => { if (e.key === 'Escape') { modal.remove(); document.removeEventListener('keydown', closeHandler); } };
+    document.addEventListener('keydown', closeHandler);
+
     document.body.appendChild(modal);
 }
 
@@ -690,44 +714,93 @@ async function sendMessage() {
 }
 
 // ------------------------------------------------------------------
-// Calendar Functions (Static)
+// Calendar Functions — Real availability from API
 // ------------------------------------------------------------------
 
-function renderCal(containerId, titleId, date, booked, partial) {
+// Cache: { 'YYYY-MM': { 'YYYY-MM-DD': { status, bookedSlots, totalSlots } } }
+const calAvailabilityCache = {};
+
+async function fetchMonthAvailability(year, month) {
+    const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+    if (calAvailabilityCache[key]) return calAvailabilityCache[key];
+
+    const start = new Date(year, month, 1).toISOString();
+    const end   = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+
+    try {
+        const res = await apiFetch(`${API_URL}/reservations/availability/month?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+        if (res.ok) {
+            const data = await res.json();
+            calAvailabilityCache[key] = data;
+            return data;
+        }
+    } catch (e) {
+        console.warn('Could not fetch availability:', e);
+    }
+    return {};
+}
+
+// Static calendar (no-op if elements don't exist — kept for compatibility)
+async function renderCal(containerId, titleId, date) {
     const grid = document.getElementById(containerId);
     const title = document.getElementById(titleId);
     if (!grid || !title) return;
-    grid.innerHTML = '';
+
+    const year  = date.getFullYear();
+    const month = date.getMonth();
     title.textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date);
+    grid.innerHTML = '';
+
     ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d => {
         grid.innerHTML += `<div class="day-lbl">${d}</div>`;
     });
-    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
+
+    const availability = await fetchMonthAvailability(year, month);
+    const firstDay    = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today       = new Date(); today.setHours(0, 0, 0, 0);
+    const monthName   = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
+
     for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="day-box empty"></div>`;
+
     for (let d = 1; d <= daysInMonth; d++) {
-        let cls = booked.includes(d) ? 'booked' : partial.includes(d) ? 'partial' : '';
-        const click = cls !== 'booked' ? `openTimeModal(${d}, '${monthName}', ${date.getFullYear()})` : '';
-        grid.innerHTML += `<div class="day-box ${cls}" onclick="${click}">${d}</div>`;
+        const cellDate = new Date(year, month, d);
+        const isPast   = cellDate < today;
+        const dateKey  = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const info     = availability[dateKey];
+        const status   = info ? info.status : 'available';
+
+        let cls = '', tooltip = '';
+        if (isPast)              { cls = 'past';    tooltip = 'Past date'; }
+        else if (status === 'full')    { cls = 'booked';  tooltip = 'Fully booked'; }
+        else if (status === 'partial') { cls = 'partial'; tooltip = `${3 - (info.bookedSlots || 0)} slot(s) remaining`; }
+        else                           { tooltip = 'Available'; }
+
+        const clickable = !isPast && status !== 'full';
+        const onclick   = clickable ? `openTimeModal(${d}, '${monthName}', ${year})` : '';
+        grid.innerHTML += `<div class="day-box ${cls}" onclick="${onclick}" title="${tooltip}">${d}</div>`;
     }
 }
 
-function renderCalendars() {
+async function renderCalendars() {
     const next = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1);
-    renderCal('cal1', 'cal1Title', baseDate, [15, 20], [5, 10]);
-    renderCal('cal2', 'cal2Title', next, [], []);
+    await renderCal('cal1', 'cal1Title', baseDate);
+    await renderCal('cal2', 'cal2Title', next);
 }
 
-function changeMonth(n) { 
-    baseDate.setMonth(baseDate.getMonth() + n); 
-    renderCalendars(); 
+async function changeMonth(n) {
+    baseDate.setMonth(baseDate.getMonth() + n);
+    await renderCalendars();
 }
 
 function openTimeModal(day, month, year) {
-    selectedDate = `${year}-${String(baseDate.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    document.getElementById('modalTitle').textContent = `${month} ${day}, ${year}`;
-    document.getElementById('timeModal').style.display = 'flex';
+    // Resolve month number from name if needed
+    const monthNum = (typeof month === 'number') ? month : new Date(`${month} 1, ${year}`).getMonth() + 1;
+    selectedDate = `${year}-${String(monthNum).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const titleEl = document.getElementById('modalTitle');
+    if (titleEl) titleEl.textContent = `${month} ${day}, ${year}`;
+    const modal = document.getElementById('timeModal');
+    if (modal) modal.style.display = 'flex';
 }
 
 function selectTimeSlot() { 
@@ -1254,13 +1327,16 @@ function calculateDynamicPrice() {
     if (submitBtn) submitBtn.style.display = 'block';
 }
 
-function openDynamicCalendarPopup() {
+async function openDynamicCalendarPopup() {
     if (!selectedReservationTypeData) {
         showToast('Please select a reservation type first', 'error');
         return;
     }
     dynamicCurrentMonth = new Date();
-    renderDynamicCalendar();
+    // Invalidate cache for current month so we always get fresh data
+    const key = `${dynamicCurrentMonth.getFullYear()}-${String(dynamicCurrentMonth.getMonth() + 1).padStart(2, '0')}`;
+    delete calAvailabilityCache[key];
+    await renderDynamicCalendar();
     document.getElementById('dynamicCalendarModal').classList.add('show');
 }
 
@@ -1268,7 +1344,7 @@ function closeDynamicCalendarPopup() {
     document.getElementById('dynamicCalendarModal').classList.remove('show');
 }
 
-function renderDynamicCalendar() {
+async function renderDynamicCalendar() {
     const year = dynamicCurrentMonth.getFullYear();
     const month = dynamicCurrentMonth.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
@@ -1282,39 +1358,104 @@ function renderDynamicCalendar() {
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    // Fetch real availability for this month
+    const availability = await fetchMonthAvailability(year, month);
+
     for (let d = 1; d <= daysInMonth; d++) {
         const cellDate = new Date(year, month, d);
         const isPast = cellDate < today;
-        const isSelected = dynamicSelectedDate === `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const isSelected = dynamicSelectedDate === dateKey;
+        const info = availability[dateKey];
+        const status = info ? info.status : 'available';
+
         let statusClass = 'available';
-        if (isPast) statusClass = 'disabled';
-        
-        grid.innerHTML += `<div class="calendar-day ${statusClass} ${isSelected ? 'selected' : ''}" onclick="${!isPast ? `selectDynamicDate(${year}, ${month + 1}, ${d})` : ''}">${d}</div>`;
+        let tooltip = 'Available';
+        if (isPast) {
+            statusClass = 'disabled';
+            tooltip = 'Past date';
+        } else if (status === 'full') {
+            statusClass = 'booked';
+            tooltip = 'Fully booked — no slots available';
+        } else if (status === 'partial') {
+            statusClass = 'partial';
+            const remaining = 3 - (info.bookedSlots || 0);
+            tooltip = `${remaining} slot(s) remaining`;
+        }
+
+        const clickable = !isPast && status !== 'full';
+        grid.innerHTML += `<div class="calendar-day ${statusClass} ${isSelected ? 'selected' : ''}" 
+            title="${tooltip}"
+            onclick="${clickable ? `selectDynamicDate(${year}, ${month + 1}, ${d})` : ''}">${d}</div>`;
     }
+
+    // Legend
+    if (!document.getElementById('calLegend')) {
+        const legend = document.createElement('div');
+        legend.id = 'calLegend';
+        legend.style.cssText = 'display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;padding:0 4px;';
+        legend.innerHTML = `
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:14px;height:14px;border-radius:3px;background:#d4edda;display:inline-block;"></span> Available</span>
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:14px;height:14px;border-radius:3px;background:#fff3cd;display:inline-block;"></span> Partially booked</span>
+            <span style="display:flex;align-items:center;gap:5px;"><span style="width:14px;height:14px;border-radius:3px;background:#f8d7da;display:inline-block;"></span> Fully booked</span>
+        `;
+        grid.parentNode.insertBefore(legend, grid.nextSibling);
+    }
+
     if (dynamicSelectedDate) renderDynamicTimeSlots();
 }
 
-function selectDynamicDate(year, month, day) {
+async function selectDynamicDate(year, month, day) {
     const formattedMonth = String(month).padStart(2, '0');
     const formattedDay = String(day).padStart(2, '0');
     dynamicSelectedDate = `${year}-${formattedMonth}-${formattedDay}`;
     dynamicSelectedTime = null;
-    renderDynamicCalendar();
+    await renderDynamicCalendar();
     renderDynamicTimeSlots();
 }
 
-function renderDynamicTimeSlots() {
+async function renderDynamicTimeSlots() {
     const container = document.getElementById('dynamicTimeSlotsList');
     if (!container) return;
     const timeSlots = selectedReservationTypeData?.timeSlots || [];
     if (timeSlots.length === 0) {
-        container.innerHTML = '<p style="color:#999; text-align:center;">No time slots available</p>';
+        container.innerHTML = '<p style="color:#999; text-align:center;">No time slots configured for this type</p>';
         return;
     }
+
+    container.innerHTML = '<p style="color:#999;text-align:center;font-size:12px;">Checking availability…</p>';
+
+    // Fetch real-time booked slots for the selected date
+    let bookedSlotTimes = new Set();
+    if (dynamicSelectedDate) {
+        try {
+            const res = await apiFetch(`${API_URL}/reservations/availability/${dynamicSelectedDate}`);
+            if (res.ok) {
+                const data = await res.json();
+                // data.availableSlots = array of available slot strings
+                // We need booked = all slots minus available
+                const allSlotTimes = timeSlots.map(s => s.time);
+                const available = new Set(data.availableSlots || []);
+                allSlotTimes.forEach(t => { if (!available.has(t)) bookedSlotTimes.add(t); });
+            }
+        } catch (e) {
+            console.warn('Could not fetch slot availability:', e);
+        }
+    }
+
     container.innerHTML = '';
     timeSlots.forEach(slot => {
-        const isFull = slot.booked >= slot.capacity;
-        container.innerHTML += `<div class="time-slot ${dynamicSelectedTime === slot.time ? 'selected' : ''} ${isFull ? 'full' : ''}" onclick="${!isFull ? `selectDynamicTimeSlot('${slot.time}')` : ''}">${slot.time} ${isFull ? '(Full)' : `(${slot.capacity - slot.booked} slots left)`}</div>`;
+        const isBooked = bookedSlotTimes.has(slot.time);
+        const isSelected = dynamicSelectedTime === slot.time;
+        const slotsLeft = isBooked ? 0 : (slot.capacity - slot.booked);
+        const label = isBooked ? '(Fully booked)' : slotsLeft > 0 ? `(${slotsLeft} slot${slotsLeft !== 1 ? 's' : ''} left)` : '(Available)';
+        container.innerHTML += `
+            <div class="time-slot ${isSelected ? 'selected' : ''} ${isBooked ? 'full' : ''}" 
+                 onclick="${!isBooked ? `selectDynamicTimeSlot('${slot.time}')` : ''}"
+                 title="${isBooked ? 'This slot is fully booked' : slot.time}">
+                ${escapeHtml(slot.time)} <small style="opacity:.7;">${label}</small>
+            </div>`;
     });
 }
 
@@ -1361,9 +1502,9 @@ function confirmDynamicDateTime() {
     }
 }
 
-function changeCalendarMonth(delta) {
+async function changeCalendarMonth(delta) {
     dynamicCurrentMonth.setMonth(dynamicCurrentMonth.getMonth() + delta);
-    renderDynamicCalendar();
+    await renderDynamicCalendar();
 }
 
 // ========== RESERVATION PAYMENT FUNCTIONS ==========

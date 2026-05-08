@@ -3,13 +3,14 @@ const router = express.Router();
 const Reservation = require('../models/Reservation');
 const Payment = require('../models/Payment');
 const Application = require('../models/Application');
+const ReservationType = require('../models/ReservationType');
 const { authMiddleware } = require('../middleware/auth');
 
 
-// Get availability for a month
+// Get availability for a month — returns per-date slot status for calendar coloring
 router.get('/availability/month', authMiddleware, async (req, res) => {
     try {
-        const { start, end, typeId } = req.query;
+        const { start, end } = req.query;
         
         if (!start || !end) {
             return res.status(400).json({ message: 'Start and end dates required' });
@@ -17,22 +18,35 @@ router.get('/availability/month', authMiddleware, async (req, res) => {
         
         const startDate = new Date(start);
         const endDate = new Date(end);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+
+        // Total slots per day = 3 fixed time slots
+        const TOTAL_SLOTS_PER_DAY = 3;
         
-        // Get all confirmed reservations in date range
+        // Get all confirmed/approved reservations in date range
         const reservations = await Reservation.find({
             date: { $gte: startDate, $lte: endDate },
             status: { $in: ['confirmed', 'approved'] }
-        });
+        }).select('date timeSlot');
         
-        // Group by date
-        const availability = {};
+        // Group by date → count unique booked time slots
+        const slotsByDate = {};
         reservations.forEach(res => {
-            const dateKey = res.date.toISOString().split('T')[0];
-            if (!availability[dateKey]) {
-                availability[dateKey] = { bookedCount: 0, totalSlots: 10, reservations: [] };
-            }
-            availability[dateKey].bookedCount++;
-            availability[dateKey].reservations.push(res);
+            const dateKey = new Date(res.date).toISOString().split('T')[0];
+            if (!slotsByDate[dateKey]) slotsByDate[dateKey] = new Set();
+            slotsByDate[dateKey].add(res.timeSlot);
+        });
+
+        // Build response: available / partial / full
+        const availability = {};
+        Object.entries(slotsByDate).forEach(([dateKey, slots]) => {
+            const bookedCount = slots.size;
+            availability[dateKey] = {
+                bookedSlots: bookedCount,
+                totalSlots: TOTAL_SLOTS_PER_DAY,
+                status: bookedCount >= TOTAL_SLOTS_PER_DAY ? 'full' : bookedCount > 0 ? 'partial' : 'available'
+            };
         });
         
         res.json(availability);
@@ -65,9 +79,12 @@ router.get('/availability/:date', async (req, res) => {
 router.post('/apply', authMiddleware, async (req, res) => {
     try {
         const { 
-            userId, firstName, lastName, email, phone, date, timeSlot,
+            firstName, lastName, email, phone, date, timeSlot,
             paymentMethod, accountNumber, referenceNumber, amount, reservationTypeName  
         } = req.body;
+
+        // Always use the authenticated user's ID — never trust userId from body
+        const userId = req.user.userId;
 
         console.log('Received reservation application:', { 
             userId, firstName, lastName, email, phone, date, timeSlot,
@@ -75,7 +92,7 @@ router.post('/apply', authMiddleware, async (req, res) => {
         });
 
         if (!userId || !firstName || !lastName || !email || !phone || !date || !timeSlot) {
-            return res.status(400).json({ message: 'Missing required fields: userId, firstName, lastName, email, phone, date, timeSlot' });
+            return res.status(400).json({ message: 'Missing required fields: firstName, lastName, email, phone, date, timeSlot' });
         }
 
         if (!paymentMethod || !accountNumber || !referenceNumber || !amount) {
@@ -92,13 +109,49 @@ router.post('/apply', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Invalid phone number format' });
         }
 
-        // Check if time slot is still available
+        // Check if time slot is still available (use date range to avoid timezone issues)
+        const reservationDate = new Date(date);
+        const dayStart = new Date(reservationDate);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(reservationDate);
+        dayEnd.setHours(23, 59, 59, 999);
+
         const conflict = await Reservation.findOne({
-            date, timeSlot,
-            status: 'confirmed'
+            date: { $gte: dayStart, $lte: dayEnd },
+            timeSlot,
+            status: { $in: ['confirmed', 'approved'] }
         });
         if (conflict) {
-            return res.status(400).json({ message: 'Time slot not available' });
+            return res.status(400).json({ message: 'This time slot is already fully booked. Please choose a different time.' });
+        }
+
+        // Block duplicate pending reservation applications for same date+slot
+        const dupApp = await Application.findOne({
+            userId,
+            type: 'reservation',
+            status: { $in: ['pending', 'processing', 'approved'] },
+            'details.timeSlot': timeSlot,
+            'details.date': { $gte: dayStart, $lte: dayEnd }
+        });
+        if (dupApp) {
+            return res.status(400).json({ message: 'You already have a pending application for this date and time slot.' });
+        }
+
+        // Validate submitted amount against the reservation type's base price
+        // Prevents users from submitting a manipulated (lower) amount
+        const submittedAmount = Number(amount);
+        if (isNaN(submittedAmount) || submittedAmount <= 0) {
+            return res.status(400).json({ message: 'Invalid payment amount.' });
+        }
+        if (reservationTypeName) {
+            const rType = await ReservationType.findOne({ name: reservationTypeName, isActive: true });
+            if (rType) {
+                // Allow member discount (min 80% of base price) but reject anything lower
+                const minAcceptable = Math.floor(rType.basePrice * 0.75); // 25% tolerance for options/discounts
+                if (submittedAmount < minAcceptable) {
+                    return res.status(400).json({ message: 'Payment amount does not match the reservation price.' });
+                }
+            }
         }
 
         // Create application with payment details (PENDING admin validation)
@@ -114,7 +167,7 @@ router.post('/apply', authMiddleware, async (req, res) => {
             paymentMethod,
             accountNumber,
             referenceNumber,
-            amount: Number(amount),
+            amount: submittedAmount,
             status: 'pending',
             paymentStatus: 'pending',
             createdAt: new Date(),
@@ -126,16 +179,13 @@ router.post('/apply', authMiddleware, async (req, res) => {
         res.json({
             message: 'Reservation application submitted. Admin will verify your payment.',
             applicationId: application._id,
-            amount: amount,
+            amount: submittedAmount,
             status: 'pending_verification'
         });
     } catch (error) {
         console.error('❌ RESERVATION APPLY ERROR:', error);
-        console.error('Error stack:', error.stack);
-        res.status(500).json({ 
-            message: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        });
+        // Never leak stack traces to the client
+        res.status(500).json({ message: 'An error occurred while submitting your reservation. Please try again.' });
     }
 });
 

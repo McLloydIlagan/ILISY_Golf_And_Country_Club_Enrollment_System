@@ -4,6 +4,48 @@ const User = require('../models/User');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 
+// ── Simple in-memory rate limiter (no extra package needed) ──────
+// Tracks failed login attempts per IP. Resets after WINDOW_MS.
+const loginAttempts = new Map(); // ip -> { count, firstAttempt }
+const MAX_ATTEMPTS  = 10;        // max failures before lockout
+const WINDOW_MS     = 15 * 60 * 1000; // 15-minute window
+const LOCKOUT_MS    = 15 * 60 * 1000; // 15-minute lockout
+
+function getClientIp(req) {
+    return (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0].trim();
+}
+
+function checkLoginRateLimit(ip) {
+    const now = Date.now();
+    const record = loginAttempts.get(ip);
+    if (!record) return { blocked: false };
+    // Reset window if expired
+    if (now - record.firstAttempt > WINDOW_MS) {
+        loginAttempts.delete(ip);
+        return { blocked: false };
+    }
+    if (record.count >= MAX_ATTEMPTS) {
+        const remaining = Math.ceil((record.firstAttempt + LOCKOUT_MS - now) / 60000);
+        return { blocked: true, remaining };
+    }
+    return { blocked: false };
+}
+
+function recordFailedLogin(ip) {
+    const now = Date.now();
+    const record = loginAttempts.get(ip);
+    if (!record || now - record.firstAttempt > WINDOW_MS) {
+        loginAttempts.set(ip, { count: 1, firstAttempt: now });
+    } else {
+        record.count++;
+    }
+}
+
+function clearLoginAttempts(ip) {
+    loginAttempts.delete(ip);
+}
+// ─────────────────────────────────────────────────────────────────
+
 // 1.0 Register Account (Level 2 & Level 3: 1.3.1 Validate Credentials)
 router.post('/register', [
     body('firstName').notEmpty().withMessage('First name is required').trim(),
@@ -98,6 +140,12 @@ router.post('/register', [
 // 1.0 Login Account - Case-Insensitive Version
 router.post('/login', async (req, res) => {
     try {
+        const ip = getClientIp(req);
+        const { blocked, remaining } = checkLoginRateLimit(ip);
+        if (blocked) {
+            return res.status(429).json({ message: `Too many failed login attempts. Please try again in ${remaining} minute(s).` });
+        }
+
         const { username, password } = req.body;
 
         if (!username || !password) {
@@ -113,12 +161,18 @@ router.post('/login', async (req, res) => {
             ]
         });
 
-        console.log('Login attempt:', { input: username, normalized: normalizedInput });
-        console.log('User found:', user ? { username: user.username, email: user.email } : 'No user');
-
         if (!user || !(await user.comparePassword(password))) {
+            recordFailedLogin(ip);
             return res.status(401).json({ message: 'Invalid credentials' });
         }
+
+        // Check if user is blocked
+        if (user.isBlocked) {
+            return res.status(403).json({ message: `Your account has been blocked. Reason: ${user.blockReason || 'Contact admin for details.'}` });
+        }
+
+        // Successful login — clear failed attempts
+        clearLoginAttempts(ip);
 
         const token = jwt.sign(
             { userId: user._id, username: user.username, isAdmin: user.isAdmin },
@@ -200,17 +254,7 @@ router.post('/check-username', async (req, res) => {
     }
 });
 
-// DEBUG: Get all users (remove in production)
-router.get('/debug-users', async (req, res) => {
-    try {
-        const users = await User.find({}, 'email username firstName lastName phone isAdmin');
-        res.json({ 
-            count: users.length,
-            users: users 
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
+// DEBUG: Get all users — REMOVED for security
+// router.get('/debug-users', ...) — intentionally removed
 
 module.exports = router;
