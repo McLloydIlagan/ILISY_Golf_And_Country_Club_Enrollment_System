@@ -189,7 +189,6 @@
                         </div>
                     </div>
                     <div class="chat-footer">
-                        <span class="footer-icon">📎</span>
                         <input type="text" class="msg-input" id="msgInput" placeholder="Type your message here...">
                         <button class="send-btn" onclick="sendMessage()">➤</button>
                     </div>
@@ -198,103 +197,123 @@
         </div>
     </div>
 
+  
     <!-- TAB: RESERVATION -->
-<div class="tab-content" id="tab-reservation">
-    <div class="tab-inner">
-        <div class="reservation-card">
-            <p class="sub-title">Personal Details</p>
-            <div class="form-grid-4">
-                <div class="form-group"><label>First Name</label><input type="text" id="resFirstName"></div>
-                <div class="form-group"><label>Last Name</label><input type="text" id="resLastName"></div>
-                <div class="form-group"><label>Gender</label>
-                    <select id="resGender"><option></option><option>Male</option><option>Female</option></select>
+    <div class="tab-content" id="tab-reservation">
+        <div class="tab-inner">
+            <div class="reservation-card">
+                <p class="sub-title">Personal Details</p>
+                <div class="form-grid-4">
+                    <div class="form-group">
+                        <label>First Name *</label>
+                        <input type="text" id="resFirstName">
+                        <span id="resFirstNameError" style="font-size: 12px; display: block; margin-top: 4px;"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name *</label>
+                        <input type="text" id="resLastName">
+                        <span id="resLastNameError" style="font-size: 12px; display: block; margin-top: 4px;"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <select id="resGender">
+                            <option></option>
+                            <option>Male</option>
+                            <option>Female</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number *</label>
+                        <input type="tel" id="resPhone" placeholder="09123456789">
+                    </div>
                 </div>
-                <div class="form-group"><label>Phone Number</label><input type="tel" id="resPhone"></div>
-            </div>
-            <div class="form-grid-4" style="margin-bottom:24px;">
-                <div class="form-group" style="grid-column:span 2"><label>Email Address</label><input type="email" id="resEmail"></div>
-            </div>
-
-            <p class="sub-title">Select Reservation Type</p>
-            <div class="reservation-type-selector">
-                <select id="reservationTypeSelect" onchange="onReservationTypeChange()">
-                    <option value="">-- Select Reservation Type --</option>
-                </select>
-            </div>
-
-            <div id="dynamicOptionsContainer" style="margin-top: 20px;"></div>
-
-            <div id="dateTimeSelection" style="display: none; margin-top: 20px;">
-                <p class="sub-title">Select Date & Time</p>
-                <button type="button" class="btn-olive" style="width:100%; margin-bottom:15px;" onclick="openDynamicCalendarPopup()">
-                    📅 Choose Date & Time
-                </button>
-                <div id="selectedDateTimeDisplay" style="font-size:13px; color:#666; text-align:center; padding:10px; background:var(--sage); border-radius:5px;"></div>
-            </div>
-
-            <div id="priceDisplay" class="price-display" style="display: none; margin-top: 15px;">
-                <div class="member-rate">Total: ₱<span id="totalPrice">0</span></div>
-                <div class="guest-rate">Member discount available</div>
-            </div>
-
-            <button class="btn-olive" id="submitReservationBtn" style="display: none;" onclick="submitDynamicReservation()">Submit Reservation</button>
-        </div>
-
-        <!-- MODERN RESERVATION PAYMENT FORM -->
-        <div id="reservationPayment" style="display:none; margin-top:30px;">
-            <div class="section-card modern-checkout" style="max-width: 600px; margin: 0 auto;">
-                <div class="checkout-header">
-                    <h2>Complete Reservation Payment</h2>
+                <div class="form-grid-4" style="margin-bottom:24px;">
+                    <div class="form-group" style="grid-column:span 2">
+                        <label>Email Address *</label>
+                        <input type="email" id="resEmail" placeholder="email@example.com">
+                    </div>
                 </div>
 
-                <div class="payment-method-tabs">
-                    <button class="pm-tab method-btn active" onclick="pickReservationMethod(this)"><span class="pm-icon">🏦</span> BDO</button>
-                    <button class="pm-tab method-btn" onclick="pickReservationMethod(this)"><span class="pm-icon">🏦</span> Metrobank</button>
-                    <button class="pm-tab method-btn" onclick="pickReservationMethod(this)"><span class="pm-icon">🏦</span> BPI</button>
+                <p class="sub-title">Select Reservation Type</p>
+                <div class="reservation-type-selector">
+                    <select id="reservationTypeSelect" onchange="onReservationTypeChange()">
+                        <option value="">-- Select Reservation Type --</option>
+                    </select>
                 </div>
 
-                <div class="checkout-form">
-                    <div id="resMerchantInfoBox" style="background: #f8faff; border: 1px solid #5a67d8; padding: 15px; border-radius: 6px; margin-bottom: 20px; color: #4f566b;">
-                        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">This payment will be sent to:</div>
-                        <div style="font-size: 15px; color: #1a1f36;">
-                            <strong>ILISY Golf Club <span id="resMerchantBankName">BDO</span></strong><br>
-                            <span id="resMerchantAccountNumber" style="font-family: monospace; font-size: 18px; color: #5a67d8; display: inline-block; margin-top: 4px;">4512 3456 7890 1234</span>
-                        </div>
+                <div id="dynamicOptionsContainer" style="margin-top: 20px;"></div>
+
+                <div id="dateTimeSelection" style="display: none; margin-top: 20px;">
+                    <p class="sub-title">Select Date & Time</p>
+                    <button type="button" class="btn-olive" style="width:100%; margin-bottom:15px;" onclick="openDynamicCalendarPopup()">
+                        📅 Choose Date & Time
+                    </button>
+                    <div id="selectedDateTimeDisplay" style="font-size:13px; color:#666; text-align:center; padding:10px; background:var(--sage); border-radius:5px;"></div>
+                </div>
+
+                <div id="priceDisplay" class="price-display" style="display: none; margin-top: 15px;">
+                    <div class="member-rate">Total: ₱<span id="totalPrice">0</span></div>
+                    <div class="guest-rate">Member discount available</div>
+                </div>
+
+                <button class="btn-olive" id="submitReservationBtn" style="display: none; margin-top: 20px; width: 100%;" onclick="submitDynamicReservation()">Proceed to Payment</button>
+            </div>
+
+            <!-- RESERVATION PAYMENT FORM -->
+            <div id="reservationPayment" style="display:none; margin-top:30px;">
+                <div class="section-card modern-checkout" style="max-width: 600px; margin: 0 auto;">
+                    <div class="checkout-header">
+                        <h2>Complete Reservation Payment</h2>
                     </div>
 
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label id="resLabelPaymentAccount">BDO Card number</label>
-                        <div class="input-with-icon">
-                            <input type="text" placeholder="0000 0000 0000 0000" id="resPaymentAccount" maxlength="19" oninput="formatReservationCardNumber(this)">
-                            <div class="card-brands" id="resCardIcons">VISA &nbsp; MC</div>
-                        </div>
+                    <div class="payment-method-tabs">
+                        <button class="pm-tab method-btn active" onclick="pickReservationMethod(this)"><span class="pm-icon">🏦</span> BDO</button>
+                        <button class="pm-tab method-btn" onclick="pickReservationMethod(this)"><span class="pm-icon">🏦</span> Metrobank</button>
+                        <button class="pm-tab method-btn" onclick="pickReservationMethod(this)"><span class="pm-icon">🏦</span> BPI</button>
                     </div>
 
-                    <div class="form-row" id="resSecondaryRow" style="display: flex; gap: 15px;">
-                        <div class="form-group" style="flex: 1;">
-                            <label>Expiration date</label>
-                            <input type="text" placeholder="MM/YY" id="resExpiry" maxlength="5" oninput="formatReservationExpiry(this, event)">
+                    <div class="checkout-form">
+                        <div id="resMerchantInfoBox" style="background: #f8faff; border: 1px solid #5a67d8; padding: 15px; border-radius: 6px; margin-bottom: 20px; color: #4f566b;">
+                            <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">This payment will be sent to:</div>
+                            <div style="font-size: 15px; color: #1a1f36;">
+                                <strong>ILISY Golf Club <span id="resMerchantBankName">BDO</span></strong><br>
+                                <span id="resMerchantAccountNumber" style="font-family: monospace; font-size: 18px; color: #5a67d8; display: inline-block; margin-top: 4px;">4512 3456 7890 1234</span>
+                            </div>
                         </div>
-                        <div class="form-group" style="flex: 1;">
-                            <label>Security code</label>
-                            <input type="text" placeholder="CVC" id="resCardCvc" maxlength="4" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label id="resLabelPaymentAccount">BDO Card number</label>
+                            <div class="input-with-icon">
+                                <input type="text" placeholder="0000 0000 0000 0000" id="resPaymentAccount" maxlength="19" oninput="formatReservationCardNumber(this)">
+                                <div class="card-brands" id="resCardIcons">VISA &nbsp; MC</div>
+                            </div>
                         </div>
-                    </div>
 
-                    <hr class="divider" style="margin: 20px 0;">
-                    
-                    <div class="detail-row" style="margin-bottom: 15px;">
-                        <div><strong>Day of Reservation:</strong> <span id="selectedDateDisplayRes">Not selected</span></div>
-                        <div><strong>Time of Reservation:</strong> <span id="selectedTimeDisplayRes">Not selected</span></div>
-                        <div><strong>Total Amount:</strong> <strong style="color: var(--olive);">₱<span id="finalAmountRes">0</span></strong></div>
-                    </div>
+                        <div class="form-row" id="resSecondaryRow" style="display: flex; gap: 15px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label>Expiration date</label>
+                                <input type="text" placeholder="MM/YY" id="resExpiry" maxlength="5" oninput="formatReservationExpiry(this, event)">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Security code</label>
+                                <input type="text" placeholder="CVC" id="resCardCvc" maxlength="4" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
+                        </div>
 
-                    <button class="btn-pay-now" onclick="submitReservationPayment()">Pay Now</button>
+                        <hr class="divider" style="margin: 20px 0;">
+                        
+                        <div class="detail-row" style="margin-bottom: 15px;">
+                            <div><strong>Day of Reservation:</strong> <span id="selectedDateDisplayRes">Not selected</span></div>
+                            <div><strong>Time of Reservation:</strong> <span id="selectedTimeDisplayRes">Not selected</span></div>
+                            <div><strong>Total Amount:</strong> <strong style="color: var(--olive);">₱<span id="finalAmountRes">0</span></strong></div>
+                        </div>
+
+                        <button class="btn-pay-now" onclick="submitDynamicReservationPayment(event)">Pay Now</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 </section>
 
 <!-- Dynamic Calendar Modal -->
@@ -332,13 +351,11 @@
 
 <div class="modal-overlay" id="receiptPopup">
     <div class="popup-card" style="width: 450px; background: #f4f6f8;">
-        
         <div id="receiptImageArea" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); color: #1a1f36;">
             <div style="font-size: 48px; text-align: center; margin-bottom: 10px;">🧾</div>
             <h3 style="text-align: center; color: #1a1f36; margin: 0;">ILISY Golf Club</h3>
             <p style="text-align: center; color: #4a5568; margin-top: 5px; margin-bottom: 15px; font-size: 14px;">Official Payment Receipt</p>
             <hr style="border: 0; border-top: 1px dashed #a0aec0; margin-bottom: 20px;">
-            
             <div style="text-align: left; font-size: 14px; color: #1a1f36;">
                 <p style="margin-bottom: 12px; color: #1a1f36;"><strong style="color: #1a1f36;">Transact Ref:</strong> <span id="receiptTracking" style="color: #1a1f36; font-family: monospace; font-size: 16px; font-weight: 700; float: right;"></span></p>
                 <p style="margin-bottom: 12px; color: #1a1f36;"><strong style="color: #1a1f36;">Name:</strong> <span id="receiptName" style="color: #1a1f36; float: right; font-weight: 600;"></span></p>
@@ -347,7 +364,6 @@
                 <p style="font-size: 16px; color: #1a1f36;"><strong style="color: #1a1f36;">Amount Paid:</strong> <span style="float: right; color: #276749; font-weight: 800;">₱1,000,000</span></p>
             </div>
         </div>
-        
         <div style="display: flex; gap: 12px; justify-content: center; margin-top: 25px;">
             <button class="btn-olive" style="margin: 0; padding: 10px 20px;" onclick="downloadReceiptImage()">📥 Save as PNG</button>
             <button class="popup-close" style="margin: 0; padding: 10px 20px;" onclick="closeReceiptAndReset()">Done</button>

@@ -13,9 +13,22 @@ let membershipCheckInterval = null;
 let currentMembershipStatus = null;
 let hasShownApprovalNotification = false;
 
-// ──────────────────────────────────────────────────────────────────
+// Add this variable for storing reservation data between steps
+let pendingReservationData = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    selectedDate: null,
+    selectedTime: null,
+    totalPrice: 0,
+    reservationType: null,
+    paymentMethod: ''
+};
+
+// ------------------------------------------------------------------
 // Member Rate Detection
-// ──────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------
 
 function isUserMember() {
     const membershipStatus = localStorage.getItem('membershipStatus');
@@ -30,9 +43,9 @@ function getRateLabel() {
     return isUserMember() ? 'Member Rate (20% off)' : 'Guest Rate';
 }
 
-// ──────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------
 // Helper Functions
-// ──────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------
 
 function getAuthToken() {
     return localStorage.getItem('authToken');
@@ -146,9 +159,9 @@ function scrollToSection(id) {
     document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
 }
 
-// ──────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------
 // Tab Persistence Functions
-// ──────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------
 
 function saveCurrentTab(tabName) {
     localStorage.setItem('userCurrentTab', tabName);
@@ -174,27 +187,42 @@ function restoreTabScrollPosition(tabName) {
     }
 }
 
+function scrollToBottom() {
+    const chatContainer = document.getElementById('msgBody') || document.getElementById('chatBody');
+    if (!chatContainer) return;
+
+    const lastMessage = chatContainer.lastElementChild;
+    if (lastMessage) {
+        lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    setTimeout(() => {
+        const delayedLastMessage = chatContainer.lastElementChild;
+        if (delayedLastMessage) {
+            delayedLastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }, 300);
+}
+
 function switchTab(name, btn) {
-    // Save current scroll position before leaving
     const activeTab = document.querySelector('.tab-content.active');
     if (activeTab && activeTab.id) {
         const currentTabName = activeTab.id.replace('tab-', '');
         saveTabScrollPosition(currentTabName);
     }
     
-    // Save current tab to localStorage
     saveCurrentTab(name);
     
-    // Update UI
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     if (btn) btn.classList.add('active');
     
-    // Restore scroll position for new tab
     restoreTabScrollPosition(name);
     
-    // Load messages if switching to messages tab
     if (name === 'messages') {
         loadConversationHistory();
     }
@@ -204,7 +232,6 @@ async function loadLastVisitedTab() {
     try {
         let lastTab = localStorage.getItem('userCurrentTab') || 'membership';
         
-        // Force members to reservation tab, non-members to membership tab
         const isMember = localStorage.getItem('membershipStatus') === 'active';
         if (isMember && lastTab === 'membership') {
             lastTab = 'reservation';
@@ -213,7 +240,6 @@ async function loadLastVisitedTab() {
             lastTab = 'membership';
         }
         
-        // Find the button and switch
         const tabButtons = document.querySelectorAll('.tab-btn');
         let targetBtn = null;
         
@@ -229,24 +255,21 @@ async function loadLastVisitedTab() {
         if (targetBtn) {
             switchTab(lastTab, targetBtn);
         } else {
-            // Fallback to membership tab
             const defaultBtn = tabButtons[0];
             if (defaultBtn) {
                 switchTab('membership', defaultBtn);
             }
         }
-        console.log('✅ Restored tab:', lastTab);
     } catch (error) {
         console.error('Error loading last tab:', error);
-        // Fallback to membership tab
         const defaultBtn = document.querySelector('.tab-btn');
         if (defaultBtn) switchTab('membership', defaultBtn);
     }
 }
 
-// ──────────────────────────────────────────────────────────────────
-// Message Functions
-// ──────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------
+// Message Functions (keeping your existing message functions)
+// ------------------------------------------------------------------
 
 function addMsg(text, type, isHistory = false) {
     const chatBody = document.getElementById('chatBody');
@@ -267,53 +290,7 @@ function addMsg(text, type, isHistory = false) {
     
     chatBody.appendChild(row);
     if (!isHistory) {
-        chatBody.scrollTop = chatBody.scrollHeight;
-    }
-}
-
-async function sendMessage() {
-    if (!checkSession()) return;
-    
-    const input = document.getElementById('msgInput');
-    const text = input.value.trim();
-    if (!text) return;
-    
-    addMsg(text, 'sent');
-    input.value = '';
-    
-    try {
-        let response;
-        const existingConversationId = localStorage.getItem('currentConversationId');
-        const isValidObjectId = existingConversationId && /^[0-9a-fA-F]{24}$/.test(existingConversationId);
-        
-        if (isValidObjectId) {
-            response = await apiFetch(`${API_URL}/messages/followup/${existingConversationId}`, {
-                method: 'POST',
-                body: JSON.stringify({ message: text })
-            });
-        } else {
-            response = await apiFetch(`${API_URL}/messages/submit`, {
-                method: 'POST',
-                body: JSON.stringify({ 
-                    userId: localStorage.getItem('userId'), 
-                    userName: localStorage.getItem('userName') || 'Member', 
-                    message: text, 
-                    concernType: 'general' 
-                })
-            });
-        }
-        
-        const result = await response.json();
-        
-        if (result.concernId) {
-            currentConversationId = result.concernId;
-            localStorage.setItem('currentConversationId', currentConversationId);
-        }
-        
-        startPollingForResponses();
-    } catch(e) { 
-        console.error('Error sending message:', e);
-        showToast('Error sending message. Please try again.', 'error');
+        scrollToBottom();
     }
 }
 
@@ -383,6 +360,27 @@ async function checkForNewMessages() {
                     currentConversationId = latest._id;
                     localStorage.setItem('currentConversationId', currentConversationId);
                 }
+                
+                if (currentConversationId === latest._id) {
+                    const conversation = latest.conversation || [];
+                    if (conversation.length > 0) {
+                        const lastMessage = conversation[conversation.length - 1];
+                        const lastMessageId = `${lastMessage.timestamp}_${(lastMessage.message || lastMessage.imageUrl || '')}`;
+                        
+                        if (lastMessage.sender === 'admin') {
+                            const lastShown = localStorage.getItem(`last_shown_${latest._id}`);
+                            if (lastShown !== lastMessageId) {
+                                showToast(`New message from admin`, 'info');
+                                if (lastMessage.imageUrl) {
+                                    addImageToChat(lastMessage.imageUrl, 'received');
+                                } else {
+                                    addMsg(lastMessage.message, 'received');
+                                }
+                                localStorage.setItem(`last_shown_${latest._id}`, lastMessageId);
+                            }
+                        }
+                    }
+                }
             }
         }
     } catch (error) {
@@ -390,63 +388,94 @@ async function checkForNewMessages() {
     }
 }
 
-
-async function sendQuickReply(text) {
+async function loadConversationHistory() {
     if (!checkSession()) return;
     
-    const quickReplies = document.getElementById('quickReplies');
-    if (quickReplies) quickReplies.style.display = 'none';
-    
-    addMsg(text, 'sent');
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
     
     try {
-        let response;
-        const existingConversationId = localStorage.getItem('currentConversationId');
-        const isValidObjectId = existingConversationId && /^[0-9a-fA-F]{24}$/.test(existingConversationId);
+        const response = await apiFetch(`${API_URL}/messages/user/${userId}`);
         
-        if (isValidObjectId) {
-            response = await apiFetch(`${API_URL}/messages/followup/${existingConversationId}`, {
-                method: 'POST',
-                body: JSON.stringify({ message: text })
-            });
-        } else {
-            response = await apiFetch(`${API_URL}/messages/submit`, {
-                method: 'POST',
-                body: JSON.stringify({ 
-                    userId: localStorage.getItem('userId'), 
-                    userName: localStorage.getItem('userName') || 'Member', 
-                    message: text, 
-                    concernType: 'general' 
-                })
-            });
+        if (response.ok) {
+            const conversations = await response.json();
+            
+            if (conversations.length > 0) {
+                const latest = conversations[0];
+                currentConversationId = latest._id;
+                localStorage.setItem('currentConversationId', currentConversationId);
+                
+                const chatBody = document.getElementById('chatBody');
+                chatBody.innerHTML = '';
+                
+                if (latest.conversation && latest.conversation.length > 0) {
+                    latest.conversation.forEach(conv => {
+                        const row = document.createElement('div');
+                        row.className = `msg-row ${conv.sender === 'user' ? 'right' : ''}`;
+                        
+                        if (conv.imageUrl) {
+                            if (conv.sender === 'admin') {
+                                row.innerHTML = `
+                                    <div class="user-avatar">👤</div>
+                                    <div class="msg-bubble received image-message" onclick="viewFullImage('${conv.imageUrl}')">
+                                        <img src="${conv.imageUrl}" alt="Receipt image">
+                                    </div>
+                                `;
+                            } else {
+                                row.innerHTML = `
+                                    <div class="msg-bubble sent image-message" onclick="viewFullImage('${conv.imageUrl}')">
+                                        <img src="${conv.imageUrl}" alt="Receipt image">
+                                    </div>
+                                    <div class="avatar-right">👤</div>
+                                `;
+                            }
+                        } else {
+                            if (conv.sender === 'admin') {
+                                row.innerHTML = `
+                                    <div class="user-avatar">👤</div>
+                                    <div class="msg-bubble received">${escapeHtml(conv.message)}</div>
+                                `;
+                            } else {
+                                row.innerHTML = `
+                                    <div class="msg-bubble sent">${escapeHtml(conv.message)}</div>
+                                    <div class="avatar-right">👤</div>
+                                `;
+                            }
+                        }
+                        chatBody.appendChild(row);
+                    });
+                    
+                    const lastMessage = latest.conversation[latest.conversation.length - 1];
+                    if (lastMessage) {
+                        const lastMessageId = `${lastMessage.timestamp}_${(lastMessage.message || lastMessage.imageUrl || '')}`;
+                        localStorage.setItem(`last_shown_${latest._id}`, lastMessageId);
+                    }
+                }
+                
+                const quickRepliesDiv = document.createElement('div');
+                quickRepliesDiv.className = 'quick-replies';
+                quickRepliesDiv.id = 'quickReplies';
+                quickRepliesDiv.innerHTML = `
+                    <button class="quick-btn" onclick="sendQuickReply('I want to make a refund')">💰 I want to make a refund</button>
+                    <button class="quick-btn" onclick="sendQuickReply('My payment did not process')">💳 My payment did not process</button>
+                    <button class="quick-btn" onclick="sendQuickReply('I have an inquiry about my reservation')">📅 I have an inquiry about my reservation</button>
+                `;
+                chatBody.appendChild(quickRepliesDiv);
+                
+                scrollToBottom();
+            }
         }
-        
-        const result = await response.json();
-        
-        if (result.concernId) {
-            currentConversationId = result.concernId;
-            localStorage.setItem('currentConversationId', currentConversationId);
-        }
-        
-        startPollingForResponses();
-        
-    } catch(e) { 
-        console.error('Error sending quick reply:', e);
-        showToast('Error sending message. Please try again.', 'error');
+    } catch (error) {
+        console.error('Error loading conversation history:', error);
     }
 }
 
-function startPollingForResponses() {
-    if (pollingInterval) clearInterval(pollingInterval);
-    pollingInterval = setInterval(checkForNewMessages, 3000);
-}
-
-// ========== INSERT IMAGE UPLOAD FUNCTIONS HERE ==========
-// Image upload and preview variables
+// ------------------------------------------------------------------
+// Image Upload Functions
+// ------------------------------------------------------------------
 let pendingImageFile = null;
 let pendingImagePreview = null;
 
-// Handle image selection for receipt upload
 function uploadReceiptImage(input) {
     const file = input.files[0];
     if (!file) return;
@@ -487,7 +516,7 @@ function showImagePreviewInChat(previewUrl, filename) {
         <button class="remove-image-preview" onclick="removeImagePreview()">✕</button>
     `;
     chatBody.appendChild(previewContainer);
-    chatBody.scrollTop = chatBody.scrollHeight;
+    scrollToBottom();
 }
 
 function removeImagePreview() {
@@ -522,7 +551,9 @@ function addImageToChat(imageUrl, type, isHistory = false) {
     if (previewContainer) previewContainer.remove();
     
     chatBody.appendChild(row);
-    if (!isHistory) chatBody.scrollTop = chatBody.scrollHeight;
+    if (!isHistory) {
+        scrollToBottom();
+    }
 }
 
 function viewFullImage(imageUrl) {
@@ -632,7 +663,6 @@ async function sendTextMessage(text) {
     }
 }
 
-// Override sendMessage to handle images
 async function sendMessage() {
     if (!checkSession()) return;
     
@@ -655,219 +685,12 @@ async function sendMessage() {
         await sendTextMessage(text);
         input.value = '';
     }
+    scrollToBottom();
 }
 
-
-async function loadConversationHistory() {
-    if (!checkSession()) return;
-    
-    const userId = localStorage.getItem('userId');
-    if (!userId) return;
-    
-    try {
-        const response = await apiFetch(`${API_URL}/messages/user/${userId}`);
-        
-        if (response.ok) {
-            const conversations = await response.json();
-            
-            if (conversations.length > 0) {
-                const latest = conversations[0];
-                currentConversationId = latest._id;
-                localStorage.setItem('currentConversationId', currentConversationId);
-                
-                const chatBody = document.getElementById('chatBody');
-                chatBody.innerHTML = '';
-                
-                if (latest.conversation && latest.conversation.length > 0) {
-                    latest.conversation.forEach(conv => {
-                        const row = document.createElement('div');
-                        row.className = `msg-row ${conv.sender === 'user' ? 'right' : ''}`;
-                        if (conv.sender === 'admin') {
-                            row.innerHTML = `<div class="user-avatar">👤</div><div class="msg-bubble received">${escapeHtml(conv.message)}</div>`;
-                        } else {
-                            row.innerHTML = `<div class="msg-bubble sent">${escapeHtml(conv.message)}</div><div class="avatar-right">👤</div>`;
-                        }
-                        chatBody.appendChild(row);
-                    });
-                }
-                
-                const quickRepliesDiv = document.createElement('div');
-                quickRepliesDiv.className = 'quick-replies';
-                quickRepliesDiv.id = 'quickReplies';
-                quickRepliesDiv.innerHTML = `
-                    <button class="quick-btn" onclick="sendQuickReply('I want to make a refund')">💰 I want to make a refund</button>
-                    <button class="quick-btn" onclick="sendQuickReply('My payment did not process')">💳 My payment did not process</button>
-                    <button class="quick-btn" onclick="sendQuickReply('I have an inquiry about my reservation')">📅 I have an inquiry about my reservation</button>
-                `;
-                chatBody.appendChild(quickRepliesDiv);
-                chatBody.scrollTop = chatBody.scrollHeight;
-            }
-        }
-    } catch (error) {
-        console.error('Error loading conversation history:', error);
-    }
-}
-
-
-// Add this function - it's called from the reservation payment button
-async function submitReservationPayment() {
-    if (!checkSession()) return;
-    
-    // Get personal details
-    const firstName = document.getElementById('resFirstName').value.trim();
-    const lastName = document.getElementById('resLastName').value.trim();
-    const email = document.getElementById('resEmail').value.trim();
-    const phone = document.getElementById('resPhone').value.trim();
-    
-    // Get payment details from modern form
-    const activeMethod = document.querySelector('#reservationPayment .pm-tab.active');
-    let paymentMethod = 'BDO';
-    
-    if (activeMethod) {
-        const methodText = activeMethod.innerText.trim();
-        if (methodText.includes('BDO')) paymentMethod = 'BDO';
-        else if (methodText.includes('Metrobank')) paymentMethod = 'Metrobank';
-        else if (methodText.includes('BPI')) paymentMethod = 'BPI';
-        else paymentMethod = 'BDO';
-    }
-    
-    const accountNumber = document.getElementById('resPaymentAccount').value.trim();
-    const expiryInput = document.getElementById('resExpiry');
-    const expiry = expiryInput ? expiryInput.value.trim() : '';
-    const cvc = document.getElementById('resCardCvc') ? document.getElementById('resCardCvc').value.trim() : '';
-    
-    // Validate personal details
-    if (!firstName || !lastName) {
-        showToast('Please enter your first and last name', 'error');
-        return;
-    }
-    
-    if (!email) {
-        showToast('Please enter your email address', 'error');
-        return;
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        showToast('Please enter a valid email address', 'error');
-        return;
-    }
-    
-    if (!phone) {
-        showToast('Please enter your phone number', 'error');
-        return;
-    }
-    
-    const cleanPhone = phone.replace(/[\s-]/g, '');
-    const phoneRegex = /^(09\d{9}|\+639\d{9})$/;
-    if (!phoneRegex.test(cleanPhone)) {
-        showToast('Please enter a valid 11-digit mobile number', 'error');
-        return;
-    }
-    
-    // Validate card payment
-    if (!accountNumber) {
-        showToast('Please enter your card number', 'error');
-        return;
-    }
-    
-    const cleanCard = accountNumber.replace(/\s+/g, '');
-    if (!/^\d{16}$/.test(cleanCard)) {
-        showToast('Please enter a valid 16-digit card number', 'error');
-        return;
-    }
-    
-    if (!expiry || !/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) {
-        showToast('Please enter valid expiration date (MM/YY)', 'error');
-        return;
-    }
-    
-    if (!cvc || !/^\d{3,4}$/.test(cvc)) {
-        showToast('Please enter valid CVV code', 'error');
-        return;
-    }
-    
-    // Generate reference number
-    const referenceNumber = `RES-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-    
-    const data = {
-        userId: localStorage.getItem('userId'),
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
-        phone: cleanPhone,
-        date: dynamicSelectedDate || selectedDate,
-        timeSlot: dynamicSelectedTime || selectedTimeSlot,
-        reservationType: selectedReservationTypeData?.name,
-        paymentMethod: paymentMethod,
-        accountNumber: cleanCard,
-        referenceNumber: referenceNumber,
-        amount: dynamicTotalPrice || 500,
-        originalAmount: calculateOriginalPrice(),
-        isMember: isUserMember(),
-        memberDiscount: isUserMember() ? 0.2 : 0,
-        cardExpiry: expiry,
-        cardCvc: cvc
-    };
-    
-    console.log('📤 Submitting reservation:', data);
-    
-    const overlay = document.getElementById('processingOverlay');
-    overlay.style.display = 'flex';
-    document.getElementById('processingMsg').textContent = 'Submitting your reservation...';
-    
-    try {
-        const response = await apiFetch(`${API_URL}/reservations/apply`, {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-        
-        const result = await response.json();
-        console.log('📥 Server response:', response.status, result);
-        
-        if (response.ok) {
-            overlay.style.display = 'none';
-            const memberText = isUserMember() ? ' (Member discount applied!)' : '';
-            showToast(`Reservation submitted!${memberText} Admin will verify your payment.`, 'success');
-            
-            document.getElementById('receiptTracking').textContent = referenceNumber;
-            document.getElementById('receiptName').textContent = firstName + ' ' + lastName;
-            document.getElementById('receiptPopup').style.display = 'flex';
-            
-            // Reset form
-            document.getElementById('reservationPayment').style.display = 'none';
-            document.getElementById('reservationTypeSelect').value = '';
-            document.getElementById('dynamicOptionsContainer').innerHTML = '';
-            document.getElementById('dateTimeSelection').style.display = 'none';
-            document.getElementById('priceDisplay').style.display = 'none';
-            document.getElementById('submitReservationBtn').style.display = 'none';
-            
-            // Show the reservation card again
-            const reservationCard = document.querySelector('#tab-reservation .reservation-card');
-            if (reservationCard) reservationCard.style.display = 'block';
-            
-            // Reset payment form fields
-            document.getElementById('resPaymentAccount').value = '';
-            if (document.getElementById('resExpiry')) document.getElementById('resExpiry').value = '';
-            if (document.getElementById('resCardCvc')) document.getElementById('resCardCvc').value = '';
-            
-            dynamicSelectedDate = null;
-            dynamicSelectedTime = null;
-            selectedReservationTypeData = null;
-        } else {
-            overlay.style.display = 'none';
-            showToast(result.message || 'Reservation failed', 'error');
-        }
-    } catch (error) {
-        overlay.style.display = 'none';
-        console.error('Error:', error);
-        showToast('Connection error: ' + error.message, 'error');
-    }
-}
-
-// ──────────────────────────────────────────────────────────────────
-// Calendar Functions
-// ──────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------
+// Calendar Functions (Static)
+// ------------------------------------------------------------------
 
 function renderCal(containerId, titleId, date, booked, partial) {
     const grid = document.getElementById(containerId);
@@ -906,13 +729,30 @@ function openTimeModal(day, month, year) {
     document.getElementById('timeModal').style.display = 'flex';
 }
 
+function selectTimeSlot() { 
+    const slot1 = document.getElementById('modalSlot1'); 
+    const slot2 = document.getElementById('modalSlot2'); 
+    const slot3 = document.getElementById('modalSlot3'); 
+    
+    if (slot1 && slot1.checked) selectedTimeSlot = slot1.value; 
+    else if (slot2 && slot2.checked) selectedTimeSlot = slot2.value; 
+    else if (slot3 && slot3.checked) selectedTimeSlot = slot3.value; 
+    
+    if (selectedTimeSlot) {
+        showToast(`Selected: ${selectedTimeSlot}`, 'success');
+    } else {
+        showToast('Please select a time slot', 'error');
+    }
+}
+
 function confirmTimeSlot() {
     const slot1 = document.getElementById('modalSlot1');
     const slot2 = document.getElementById('modalSlot2');
     const slot3 = document.getElementById('modalSlot3');
-    if (slot1.checked) selectedTimeSlot = slot1.value;
-    else if (slot2.checked) selectedTimeSlot = slot2.value;
-    else if (slot3.checked) selectedTimeSlot = slot3.value;
+    
+    if (slot1 && slot1.checked) selectedTimeSlot = slot1.value;
+    else if (slot2 && slot2.checked) selectedTimeSlot = slot2.value;
+    else if (slot3 && slot3.checked) selectedTimeSlot = slot3.value;
     
     if (selectedTimeSlot) {
         document.getElementById('timeModal').style.display = 'none';
@@ -926,9 +766,9 @@ function confirmTimeSlot() {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------
 // Membership Functions
-// ──────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------
 
 async function submitMembership(event) {
     if (event) event.preventDefault();
@@ -1246,9 +1086,9 @@ function displayUserName() {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------
 // Dynamic Reservation System
-// ──────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------
 
 let availableReservationTypes = [];
 let selectedReservationTypeData = null;
@@ -1292,6 +1132,7 @@ function onReservationTypeChange() {
     document.getElementById('priceDisplay').style.display = 'none';
     dynamicSelectedDate = null;
     dynamicSelectedTime = null;
+    document.getElementById('selectedDateTimeDisplay').innerHTML = '';
 }
 
 function renderDynamicOptions() {
@@ -1364,16 +1205,20 @@ function renderDynamicCalendar() {
     for (let d = 1; d <= daysInMonth; d++) {
         const cellDate = new Date(year, month, d);
         const isPast = cellDate < today;
-        const isSelected = dynamicSelectedDate === `${year}-${month + 1}-${d}`;
+        const isSelected = dynamicSelectedDate === `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         let statusClass = 'available';
         if (isPast) statusClass = 'disabled';
+        
         grid.innerHTML += `<div class="calendar-day ${statusClass} ${isSelected ? 'selected' : ''}" onclick="${!isPast ? `selectDynamicDate(${year}, ${month + 1}, ${d})` : ''}">${d}</div>`;
     }
     if (dynamicSelectedDate) renderDynamicTimeSlots();
 }
 
 function selectDynamicDate(year, month, day) {
-    dynamicSelectedDate = `${year}-${month}-${day}`;
+    const formattedMonth = String(month).padStart(2, '0');
+    const formattedDay = String(day).padStart(2, '0');
+    dynamicSelectedDate = `${year}-${formattedMonth}-${formattedDay}`;
+    dynamicSelectedTime = null;
     renderDynamicCalendar();
     renderDynamicTimeSlots();
 }
@@ -1412,8 +1257,10 @@ function confirmDynamicDateTime() {
     
     const oldDateDisplay = document.getElementById('selectedDateDisplay');
     const oldTimeDisplay = document.getElementById('selectedTimeDisplay');
+    const finalAmountSpan = document.getElementById('finalAmount');
     if (oldDateDisplay) oldDateDisplay.innerHTML = `Day of Reservation: <strong>${dynamicSelectedDate}</strong>`;
     if (oldTimeDisplay) oldTimeDisplay.innerHTML = `Time of Reservation: <strong>${dynamicSelectedTime}</strong>`;
+    if (finalAmountSpan) finalAmountSpan.textContent = dynamicTotalPrice;
     
     closeDynamicCalendarPopup();
     showToast('Date and time confirmed!', 'success');
@@ -1424,91 +1271,346 @@ function changeCalendarMonth(delta) {
     renderDynamicCalendar();
 }
 
-async function submitDynamicReservation() {
+// ========== RESERVATION PAYMENT FUNCTIONS ==========
+
+function showPaymentError(buttonElement, message) {
+    const oldErr = document.getElementById('tempPayError');
+    if (oldErr) oldErr.remove();
+    const err = document.createElement('div');
+    err.id = 'tempPayError';
+    err.style.color = '#9c403d';
+    err.style.fontSize = '13px';
+    err.style.marginBottom = '12px';
+    err.style.textAlign = 'center';
+    err.style.fontWeight = 'bold';
+    err.textContent = '⚠ ' + message;
+    buttonElement.parentNode.insertBefore(err, buttonElement);
+    setTimeout(() => { if (err.parentNode) err.remove(); }, 4000);
+}
+
+// THIS FUNCTION SHOWS THE PAYMENT FORM (called by "Proceed to Payment" button)
+function submitDynamicReservation() {
+    console.log('=== submitDynamicReservation called ===');
+    
     if (!checkSession()) return;
-    if (!selectedReservationTypeData) { showToast('Please select a reservation type', 'error'); return; }
-    if (!dynamicSelectedDate || !dynamicSelectedTime) { showToast('Please select a date and time first', 'error'); return; }
+    
+    if (!selectedReservationTypeData) {
+        showToast('Please select a reservation type', 'error');
+        return;
+    }
+    
+    if (!dynamicSelectedDate || !dynamicSelectedTime) {
+        showToast('Please select a date and time first', 'error');
+        return;
+    }
     
     const firstName = document.getElementById('resFirstName').value.trim();
     const lastName = document.getElementById('resLastName').value.trim();
     const email = document.getElementById('resEmail').value.trim();
     const phone = document.getElementById('resPhone').value.trim();
     
-    if (!firstName || !lastName || !email || !phone) { showToast('Please fill in all personal details', 'error'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Please enter a valid email address', 'error'); return; }
-    const cleanPhone = phone.replace(/[\s-]/g, '');
-    if (!/^(09\d{9}|\+639\d{9})$/.test(cleanPhone)) { showToast('Please enter a valid 11-digit mobile number', 'error'); return; }
+    if (!firstName || !lastName || !email || !phone) {
+        showToast('Please fill in all personal details', 'error');
+        return;
+    }
     
+    // Get selected payment method
+    const activeMethod = document.querySelector('#reservationPayment .pm-tab.active')?.textContent.trim() || 'BDO';
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showToast('Please enter a valid email address', 'error');
+        return;
+    }
+    
+    // Validate phone
+    const cleanPhone = phone.replace(/[\s-]/g, '');
+    const phoneRegex = /^(09\d{9}|\+639\d{9})$/;
+    if (!phoneRegex.test(cleanPhone)) {
+        showToast('Please enter a valid 11-digit mobile number (e.g., 09123456789)', 'error');
+        return;
+    }
+    
+    // STORE data for step 2 - THIS IS CRITICAL
+    pendingReservationData = {
+        firstName: firstName,
+        lastName: lastName,
+        email: email.toLowerCase(),
+        phone: cleanPhone,
+        selectedDate: dynamicSelectedDate,
+        selectedTime: dynamicSelectedTime,
+        totalPrice: dynamicTotalPrice || 500,
+        reservationType: selectedReservationTypeData,
+        paymentMethod: activeMethod
+    };
+    
+    console.log('Saved pending reservation data:', pendingReservationData);
+    
+    // Hide the reservation card
     const reservationCard = document.querySelector('#tab-reservation .reservation-card');
     if (reservationCard) reservationCard.style.display = 'none';
     
+    // Update payment form with selected data
     const newDateDisplay = document.getElementById('selectedDateDisplayRes');
     const newTimeDisplay = document.getElementById('selectedTimeDisplayRes');
+    const finalAmountResSpan = document.getElementById('finalAmountRes');
+    
     if (newDateDisplay) newDateDisplay.innerHTML = dynamicSelectedDate;
     if (newTimeDisplay) newTimeDisplay.innerHTML = dynamicSelectedTime;
+    if (finalAmountResSpan) finalAmountResSpan.textContent = dynamicTotalPrice;
     
+    // Show the payment form
     const paymentSection = document.getElementById('reservationPayment');
     if (paymentSection) {
         paymentSection.style.display = 'block';
         paymentSection.scrollIntoView({ behavior: 'smooth' });
+        showToast('Please complete payment details', 'success');
+    } else {
+        showToast('Error: Payment form not found', 'error');
     }
 }
 
-async function submitDynamicReservationPayment() {
+function resetReservationForm() {
+    const personalInputs = ['resFirstName', 'resLastName', 'resEmail', 'resPhone'];
+    personalInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    
+    const paymentInputs = ['resPaymentAccount', 'resExpiry', 'resCardCvc'];
+    paymentInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    
+    const optsContainer = document.getElementById('dynamicOptionsContainer');
+    if (optsContainer) optsContainer.innerHTML = '';
+    
+    const dtSelection = document.getElementById('dateTimeSelection');
+    if (dtSelection) dtSelection.style.display = 'none';
+    
+    const priceDisp = document.getElementById('priceDisplay');
+    if (priceDisp) priceDisp.style.display = 'none';
+    
+    const submitBtn = document.getElementById('submitReservationBtn');
+    if (submitBtn) submitBtn.style.display = 'none';
+    
+    const paymentSection = document.getElementById('reservationPayment');
+    if (paymentSection) paymentSection.style.display = 'none';
+    
+    const reservationCard = document.querySelector('#tab-reservation .reservation-card');
+    if (reservationCard) reservationCard.style.display = 'block';
+    
+    dynamicSelectedDate = null;
+    dynamicSelectedTime = null;
+    selectedReservationTypeData = null;
+    
+    const typeSelect = document.getElementById('reservationTypeSelect');
+    if (typeSelect) typeSelect.value = '';
+    
+    const selectedDisplay = document.getElementById('selectedDateTimeDisplay');
+    if (selectedDisplay) selectedDisplay.innerHTML = '';
+}
+
+async function submitDynamicReservationPayment(event) {
+    if (event) event.preventDefault();
+    console.log('=== submitDynamicReservationPayment called ===');
+    
     if (!checkSession()) return;
     
-    const firstName = document.getElementById('resFirstName').value.trim();
-    const lastName = document.getElementById('resLastName').value.trim();
-    const email = document.getElementById('resEmail').value.trim();
-    const phone = document.getElementById('resPhone').value.trim();
-    const paymentMethod = document.querySelector('#reservationPayment .method-btn.active')?.textContent || 'GCash';
-    const accountNumber = document.getElementById('resPaymentAccount').value.trim();
-    const referenceNumber = document.getElementById('resReferenceNumber').value.trim();
+    // Check if we have pending data from step 1
+    if (!pendingReservationData.firstName) {
+        showToast('Please go back and fill in your reservation details first', 'error');
+        const reservationCard = document.querySelector('#tab-reservation .reservation-card');
+        if (reservationCard) reservationCard.style.display = 'block';
+        const paymentSection = document.getElementById('reservationPayment');
+        if (paymentSection) paymentSection.style.display = 'none';
+        return;
+    }
     
-    if (!accountNumber) { showToast('Please enter your account number', 'error'); return; }
-    if (!referenceNumber) { showToast('Please enter the reference/transaction ID', 'error'); return; }
+    // Get payment form values
+    const activeMethod = document.querySelector('#reservationPayment .pm-tab.active')?.textContent.trim() || 'BDO';
+    const accountNumber = document.getElementById('resPaymentAccount')?.value.trim() || '';
+    const expiry = document.getElementById('resExpiry')?.value.trim() || '';
+    const cvc = document.getElementById('resCardCvc')?.value.trim() || '';
     
+    // Get userId from localStorage
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        showToast('Session expired. Please login again.', 'error');
+        window.location.href = '../index.html';
+        return;
+    }
+    
+    // Generate transaction ID
+    const transactionId = `RES-${Date.now()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+    
+    // Validate payment details
+    if (!accountNumber) {
+        showToast('Please enter your card/account number', 'error');
+        return;
+    }
+    
+    const cleanCard = accountNumber.replace(/\s+/g, '');
+    if (!/^\d{16}$/.test(cleanCard)) {
+        showToast('Please enter a valid 16-digit card number', 'error');
+        return;
+    }
+    
+    if (!expiry || !/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) {
+        showToast('Please enter valid expiration date (MM/YY)', 'error');
+        return;
+    }
+    
+    if (!cvc || !/^\d{3,4}$/.test(cvc)) {
+        showToast('Please enter valid CVV code', 'error');
+        return;
+    }
+    
+    // Format date for MongoDB
+    let formattedDate;
+    try {
+        const dateStr = pendingReservationData.selectedDate;
+        
+        if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+            formattedDate = new Date(dateStr);
+        } else if (typeof dateStr === 'string' && dateStr.includes('/')) {
+            const parts = dateStr.split('/');
+            formattedDate = new Date(parts[2], parts[0] - 1, parts[1]);
+        } else if (dateStr instanceof Date) {
+            formattedDate = dateStr;
+        } else {
+            formattedDate = new Date(dateStr);
+        }
+        
+        if (isNaN(formattedDate.getTime())) {
+            throw new Error('Invalid date');
+        }
+        
+        formattedDate.setHours(0, 0, 0, 0);
+        
+    } catch (e) {
+        showToast('Invalid date format. Please go back and select a date again.', 'error');
+        return;
+    }
+    
+    // Prepare data for API - Send to /reservations/apply endpoint (which creates application for admin verification)
     const data = {
-        userId: localStorage.getItem('userId'),
-        firstName, lastName, email, phone,
-        date: dynamicSelectedDate, timeSlot: dynamicSelectedTime,
-        reservationType: selectedReservationTypeData?.name,
-        paymentMethod, accountNumber, referenceNumber,
-        amount: dynamicTotalPrice, originalAmount: calculateOriginalPrice(),
-        isMember: isUserMember(), memberDiscount: isUserMember() ? 0.2 : 0
+        userId: userId,
+        firstName: pendingReservationData.firstName,
+        lastName: pendingReservationData.lastName,
+        email: pendingReservationData.email,
+        phone: pendingReservationData.phone,
+        date: formattedDate.toISOString(),
+        timeSlot: pendingReservationData.selectedTime,
+        paymentMethod: activeMethod,
+        accountNumber: cleanCard,
+        referenceNumber: transactionId,
+        amount: pendingReservationData.totalPrice
     };
     
+    console.log('Submitting reservation application:', { 
+        ...data, 
+        accountNumber: '***', 
+        cvc: '***',
+        expiry: '***'
+    });
+    
     const overlay = document.getElementById('processingOverlay');
-    overlay.style.display = 'flex';
-    document.getElementById('processingMsg').textContent = 'Submitting your reservation...';
+    if (overlay) {
+        overlay.style.display = 'flex';
+        const msgEl = document.getElementById('processingMsg');
+        if (msgEl) msgEl.textContent = 'Submitting your reservation for admin verification...';
+    }
     
     try {
-        const response = await apiFetch(`${API_URL}/reservations/apply`, { method: 'POST', body: JSON.stringify(data) });
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/reservations/apply`, { 
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data) 
+        });
+        
         const result = await response.json();
+        console.log('Server response:', result);
+        
+        if (overlay) overlay.style.display = 'none';
         
         if (response.ok) {
-            overlay.style.display = 'none';
             const memberText = isUserMember() ? ' (Member discount applied!)' : '';
-            showToast(`Reservation submitted!${memberText} Admin will verify your payment.`, 'success');
-            document.getElementById('successMsg').innerHTML = `Reservation submitted.<br><br>Reservation ID: ${result.applicationId}<br><br>Amount: ₱${dynamicTotalPrice.toLocaleString()}${memberText}`;
-            document.getElementById('successPopup').style.display = 'flex';
-            document.getElementById('reservationPayment').style.display = 'none';
-            document.getElementById('reservationTypeSelect').value = '';
-            document.getElementById('dynamicOptionsContainer').innerHTML = '';
-            document.getElementById('dateTimeSelection').style.display = 'none';
-            document.getElementById('priceDisplay').style.display = 'none';
-            document.getElementById('submitReservationBtn').style.display = 'none';
-            dynamicSelectedDate = null;
-            dynamicSelectedTime = null;
-            selectedReservationTypeData = null;
+            showToast(`✅ Reservation application submitted!${memberText} Admin will verify your payment.`, 'success');
+            
+            // Store application ID for tracking
+            if (result.applicationId) {
+                localStorage.setItem('lastReservationAppId', result.applicationId);
+            }
+            
+            // Update receipt popup with payment method info
+            const receiptTracking = document.getElementById('receiptTracking');
+            const receiptName = document.getElementById('receiptName');
+            const receiptAmount = document.querySelector('#receiptPopup .popup-card p:last-child span');
+            const receiptStatus = document.getElementById('receiptStatus');
+            const receiptPaymentMethod = document.getElementById('receiptPaymentMethod');
+            
+            if (receiptTracking) receiptTracking.textContent = transactionId;
+            if (receiptName) receiptName.textContent = `${pendingReservationData.firstName} ${pendingReservationData.lastName}`;
+            if (receiptAmount) receiptAmount.textContent = `₱${pendingReservationData.totalPrice.toLocaleString()}`;
+            
+            // Add payment method display if element exists
+            if (receiptPaymentMethod) {
+                receiptPaymentMethod.textContent = activeMethod;
+                receiptPaymentMethod.style.display = 'block';
+            }
+            
+            // Update status to show pending verification
+            if (receiptStatus) {
+                receiptStatus.innerHTML = `⏳ <strong>Pending Admin Verification</strong><br><small>Payment via ${activeMethod} - Please wait for admin to verify</small>`;
+                receiptStatus.style.background = '#fff3cd';
+                receiptStatus.style.color = '#856404';
+            }
+            
+            // Show receipt popup
+            const receiptPopup = document.getElementById('receiptPopup');
+            if (receiptPopup) receiptPopup.style.display = 'flex';
+            
+            // Reset form
+            resetReservationForm();
+            
+            // Clear pending data
+            pendingReservationData = {
+                firstName: '',
+                lastName: '',
+                email: '',
+                phone: '',
+                selectedDate: null,
+                selectedTime: null,
+                totalPrice: 0,
+                reservationType: null,
+                paymentMethod: ''
+            };
+            
         } else {
-            overlay.style.display = 'none';
-            showToast(result.message || 'Reservation failed', 'error');
+            let errorMessage = result.message || 'Reservation failed. Please try again.';
+            
+            if (result.message && result.message.toLowerCase().includes('time slot')) {
+                errorMessage = 'This time slot is no longer available. Please go back and select another time.';
+                const reservationCard = document.querySelector('#tab-reservation .reservation-card');
+                if (reservationCard) reservationCard.style.display = 'block';
+                const paymentSection = document.getElementById('reservationPayment');
+                if (paymentSection) paymentSection.style.display = 'none';
+            }
+            
+            showToast(errorMessage, 'error');
         }
+        
     } catch (error) {
-        overlay.style.display = 'none';
-        console.error('Error:', error);
-        showToast('Connection error: ' + error.message, 'error');
+        if (overlay) overlay.style.display = 'none';
+        console.error('Error submitting reservation:', error);
+        showToast('Network error: ' + error.message, 'error');
     }
 }
 
@@ -1649,9 +1751,100 @@ function formatReservationExpiry(input, event) {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────
-// Navigation & Initialization
-// ──────────────────────────────────────────────────────────────────
+// Static Reservation Function (for the old calendar system)
+async function submitReservation() {
+    if (!checkSession()) return;
+    
+    const firstName = document.getElementById('resFirstName').value.trim();
+    const lastName = document.getElementById('resLastName').value.trim();
+    const email = document.getElementById('resEmail').value.trim();
+    const phone = document.getElementById('resPhone').value.trim();
+    const paymentMethod = document.querySelector('#reservationPayment .pm-tab.active')?.textContent || 'BDO';
+    const accountNumber = document.getElementById('resPaymentAccount').value.trim();
+    const referenceNumber = `RES-${Date.now()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+    
+    if (!firstName || !lastName || !email || !phone) {
+        showToast('Please fill in all personal details', 'error');
+        return;
+    }
+    
+    if (!accountNumber) {
+        showToast('Please enter your account number', 'error');
+        return;
+    }
+    
+    const cleanCard = accountNumber.replace(/\s+/g, '');
+    if (!/^\d{16}$/.test(cleanCard)) {
+        showToast('Please enter a valid 16-digit card number', 'error');
+        return;
+    }
+    
+    const cleanPhone = phone.replace(/[\s-]/g, '');
+    if (!/^(09\d{9}|\+639\d{9})$/.test(cleanPhone)) {
+        showToast('Please enter a valid 11-digit mobile number', 'error');
+        return;
+    }
+    
+    const data = { 
+        userId: localStorage.getItem('userId'), 
+        firstName: firstName, 
+        lastName: lastName, 
+        email: email, 
+        phone: cleanPhone, 
+        date: selectedDate, 
+        timeSlot: selectedTimeSlot,
+        paymentMethod: paymentMethod,
+        accountNumber: cleanCard,
+        referenceNumber: referenceNumber,
+        amount: 500
+    };
+    
+    const overlay = document.getElementById('processingOverlay');
+    if (overlay) overlay.style.display = 'flex';
+    const procMsg = document.getElementById('processingMsg');
+    if (procMsg) procMsg.textContent = 'Submitting your reservation...';
+    
+    try {
+        const response = await apiFetch(`${API_URL}/reservations/apply`, { 
+            method: 'POST', 
+            body: JSON.stringify(data) 
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) { 
+            currentReservationApplicationId = result.applicationId;
+            if (overlay) overlay.style.display = 'none';
+            showToast('Reservation submitted! Admin will verify your payment.', 'success');
+            
+            const receiptTracking = document.getElementById('receiptTracking');
+            const receiptName = document.getElementById('receiptName');
+            if (receiptTracking) receiptTracking.textContent = referenceNumber;
+            if (receiptName) receiptName.textContent = firstName + ' ' + lastName;
+            
+            const receiptPopup = document.getElementById('receiptPopup');
+            if (receiptPopup) receiptPopup.style.display = 'flex';
+            
+            const resPayment = document.getElementById('reservationPayment');
+            if (resPayment) resPayment.style.display = 'none';
+            
+            const resAcc = document.getElementById('resPaymentAccount');
+            if (resAcc) resAcc.value = '';
+            
+        } else {
+            if (overlay) overlay.style.display = 'none';
+            showToast(result.message || 'Reservation failed', 'error');
+        }
+    } catch(e) { 
+        if (overlay) overlay.style.display = 'none';
+        console.error('Error:', e);
+        showToast('Connection error: ' + e.message, 'error'); 
+    }
+}
+
+// ------------------------------------------------------------------
+// Event Listeners & Initialization
+// ------------------------------------------------------------------
 
 const sections = ['home', 'portal'];
 
@@ -1682,6 +1875,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const memFirstName = document.getElementById('memFirstName');
     const memLastName = document.getElementById('memLastName');
+    const resFirstName = document.getElementById('resFirstName'); 
+    const resLastName = document.getElementById('resLastName');   
     
     function validateMemberName(input, errorSpanId, fieldName) {
         const nameValue = input.value.trim();
@@ -1717,6 +1912,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (memLastName) {
         memLastName.addEventListener('input', () => validateMemberName(memLastName, 'memLastNameError', 'Last name'));
     }
+    if (resFirstName) {
+        resFirstName.addEventListener('input', () => validateMemberName(resFirstName, 'resFirstNameError', 'First name'));
+    }
+    if (resLastName) {
+        resLastName.addEventListener('input', () => validateMemberName(resLastName, 'resLastNameError', 'Last name'));
+    }
     
     document.querySelectorAll('.modal-overlay').forEach(o => {
         o.addEventListener('click', e => { if (e.target === o) o.classList.remove('show'); });
@@ -1741,9 +1942,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadLastVisitedTab();
 });
 
-// Window exports - add ALL functions that are called from HTML
-window.submitDynamicReservation = submitDynamicReservation;
-window.submitDynamicReservationPayment = submitDynamicReservationPayment;
+// ------------------------------------------------------------------
+// Window Exports
+// ------------------------------------------------------------------
+
 window.onReservationTypeChange = onReservationTypeChange;
 window.calculateDynamicPrice = calculateDynamicPrice;
 window.openDynamicCalendarPopup = openDynamicCalendarPopup;
@@ -1757,23 +1959,32 @@ window.sendMessage = sendMessage;
 window.sendQuickReply = sendQuickReply;
 window.submitMembership = submitMembership;
 window.proceedToMembershipPayment = proceedToMembershipPayment;
-window.submitReservation = submitReservation;  // ADD THIS - was missing
+window.submitReservation = submitReservation;
+window.submitDynamicReservation = submitDynamicReservation;
+window.submitDynamicReservationPayment = submitDynamicReservationPayment;
 window.pickMethod = pickMethod;
 window.selectTimeSlot = selectTimeSlot;
 window.changeMonth = changeMonth;
+window.openTimeModal = openTimeModal;
 window.confirmTimeSlot = confirmTimeSlot;
 window.handleLogout = handleLogout;
 window.switchTab = switchTab;
+window.loadLastVisitedTab = loadLastVisitedTab;
 window.pickReservationMethod = pickReservationMethod;
 window.formatReservationCardNumber = formatReservationCardNumber;
 window.formatReservationExpiry = formatReservationExpiry;
-window.submitReservationPayment = submitReservationPayment;
 window.downloadReceiptImage = downloadReceiptImage;
 window.closeReceiptAndReset = closeReceiptAndReset;
 window.showPaymentSection = showPaymentSection;
 window.closeMembershipApprovedModal = closeMembershipApprovedModal;
 window.formatCardNumber = formatCardNumber;
 window.formatExpiry = formatExpiry;
-window.uploadReceiptImage = uploadReceiptImage;  // ADD THIS for image upload
-window.viewFullImage = viewFullImage;  // ADD THIS for viewing images
-window.removeImagePreview = removeImagePreview;  // ADD THIS
+window.uploadReceiptImage = uploadReceiptImage;
+window.viewFullImage = viewFullImage;
+window.removeImagePreview = removeImagePreview;
+window.scrollToBottom = scrollToBottom;
+window.showToast = showToast;
+window.checkSession = checkSession;
+window.displayUserName = displayUserName;
+window.showPaymentError = showPaymentError;
+window.resetReservationForm = resetReservationForm;

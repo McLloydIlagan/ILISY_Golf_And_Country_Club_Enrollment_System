@@ -214,7 +214,7 @@ section { scroll-margin-top: var(--navbar-h); }
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    border-top: 3px solid var(--gold);
+    border: 10px solid var(--gold);
     display: flex;
     flex-direction: column;
     min-height: 550px;
@@ -768,8 +768,12 @@ section { scroll-margin-top: var(--navbar-h); }
 }
 
 .calendar-day.selected {
-    background: var(--olive);
+    background-color: var(rgba(5, 44, 20, 0.2)); /* Or whichever blue/green variable you use */
     color: white;
+    font-weight: bold;
+    border-radius: 50%;
+    transform: scale(1.1);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
 .calendar-day.disabled {
@@ -1305,3 +1309,4 @@ section { scroll-margin-top: var(--navbar-h); }
 .image-actions button:hover {
     color: var(--gold);
 }
+
