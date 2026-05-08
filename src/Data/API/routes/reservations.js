@@ -33,12 +33,17 @@ router.post('/apply', authMiddleware, async (req, res) => {
             paymentMethod, accountNumber, referenceNumber, amount
         } = req.body;
 
+        console.log('Received reservation application:', { 
+            userId, firstName, lastName, email, phone, date, timeSlot,
+            paymentMethod, amount: amount || 'NOT PROVIDED'
+        });
+
         if (!userId || !firstName || !lastName || !email || !phone || !date || !timeSlot) {
-            return res.status(400).json({ message: 'Missing required fields' });
+            return res.status(400).json({ message: 'Missing required fields: userId, firstName, lastName, email, phone, date, timeSlot' });
         }
 
         if (!paymentMethod || !accountNumber || !referenceNumber || !amount) {
-            return res.status(400).json({ message: 'Payment details are required' });
+            return res.status(400).json({ message: 'Payment details are required: paymentMethod, accountNumber, referenceNumber, amount' });
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -62,15 +67,21 @@ router.post('/apply', authMiddleware, async (req, res) => {
 
         // Create application with payment details (PENDING admin validation)
         const application = new Application({
-            userId, firstName, lastName, email, phone,
+            userId, 
+            firstName, 
+            lastName, 
+            email, 
+            phone,
             type: 'reservation',
             details: { date, timeSlot },
             paymentMethod,
             accountNumber,
             referenceNumber,
-            amount,
+            amount: Number(amount),
             status: 'pending',
-            paymentStatus: 'pending'
+            paymentStatus: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date()
         });
 
         await application.save();
@@ -78,11 +89,16 @@ router.post('/apply', authMiddleware, async (req, res) => {
         res.json({
             message: 'Reservation application submitted. Admin will verify your payment.',
             applicationId: application._id,
-            amount: 500,
+            amount: amount,
             status: 'pending_verification'
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('❌ RESERVATION APPLY ERROR:', error);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ 
+            message: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 

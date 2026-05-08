@@ -1498,17 +1498,17 @@ async function submitDynamicReservationPayment(event) {
     
     // Prepare data for API
     const data = {
-        userId: userId,
-        firstName: pendingReservationData.firstName,
-        lastName: pendingReservationData.lastName,
-        email: pendingReservationData.email,
-        phone: pendingReservationData.phone,
-        date: formattedDate.toISOString(),
-        timeSlot: pendingReservationData.selectedTime,
-        paymentMethod: activeMethod,
-        accountNumber: cleanCard,
-        referenceNumber: transactionId,
-        amount: pendingReservationData.totalPrice
+    userId: userId,
+    firstName: pendingReservationData.firstName,
+    lastName: pendingReservationData.lastName,
+    email: pendingReservationData.email,
+    phone: pendingReservationData.phone,
+    date: formattedDate.toISOString(),
+    timeSlot: pendingReservationData.selectedTime,
+    paymentMethod: activeMethod,
+    accountNumber: cleanCard,
+    referenceNumber: transactionId,
+    amount: Number(pendingReservationData.totalPrice)  // Ensure it's a number
     };
     
     console.log('Submitting reservation application:', { 
