@@ -504,47 +504,35 @@ function populateCalendarFilter() {
     
     let optionsHtml = '<option value="all">📌 All Reservations</option>';
     optionsHtml += '<option value="membership">🏌️ Membership Applications</option>';
+    optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
     
-    const uniqueCategories = [...new Set(calendarReservationTypes.map(type => type.category))];
-    
-    uniqueCategories.forEach(category => {
-        let icon = '📅';
-        let displayName = category.charAt(0).toUpperCase() + category.slice(1);
-        
-        switch(category) {
-            case 'golf':
-                icon = '🏌️';
-                displayName = 'Golf / Tee Time';
-                break;
-            case 'amenities':
-                icon = '🍽️';
-                displayName = 'Amenities (Spa, Dining, etc.)';
-                break;
-            case 'events':
-                icon = '🎉';
-                displayName = 'Events';
-                break;
-            case 'accommodation':
-                icon = '🏨';
-                displayName = 'Accommodation';
-                break;
-            case 'premium':
-                icon = '✨';
-                displayName = 'Premium Services';
-                break;
+    // Group by category
+    const categoryMap = new Map();
+    calendarReservationTypes.forEach(type => {
+        if (!categoryMap.has(type.category)) {
+            categoryMap.set(type.category, []);
         }
-        
-        optionsHtml += `<option value="${category}">${icon} ${displayName}</option>`;
+        categoryMap.get(type.category).push(type);
     });
     
-    if (calendarReservationTypes.length > 0) {
-        optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
-        
-        calendarReservationTypes.forEach(type => {
+    // Category icons and names
+    const categoryInfo = {
+        golf: { icon: '⛳', name: 'Golf / Tee Time' },
+        amenities: { icon: '🍽️', name: 'Amenities' },
+        events: { icon: '🎉', name: 'Events' },
+        accommodation: { icon: '🏨', name: 'Accommodation' },
+        premium: { icon: '✨', name: 'Premium' }
+    };
+    
+    for (const [category, types] of categoryMap) {
+        const info = categoryInfo[category] || { icon: '📌', name: category };
+        optionsHtml += `<option value="cat_${category}" style="font-weight: bold; background: #f0f0f0;">${info.icon} ${info.name} (All)</option>`;
+        types.forEach(type => {
             if (type.isActive) {
-                optionsHtml += `<option value="type_${type._id}">  📌 ${type.icon || '📌'} ${type.name}</option>`;
+                optionsHtml += `<option value="type_${type._id}" style="padding-left: 20px;">  ${type.icon || '📌'} ${type.name}</option>`;
             }
         });
+        optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
     }
     
     filterSelect.innerHTML = optionsHtml;
@@ -562,21 +550,35 @@ async function loadAdminCalendar() {
     
     if (selectedFilter === 'membership') {
         filterType = 'membership';
+        filterValue = '';
     } else if (selectedFilter === 'all') {
         filterType = 'all';
+        filterValue = '';
     } else if (selectedFilter.startsWith('cat_')) {
         filterType = 'category';
         filterValue = selectedFilter.replace('cat_', '');
     } else if (selectedFilter.startsWith('type_')) {
         filterType = 'type_id';
         filterValue = selectedFilter.replace('type_', '');
+    } else {
+        // Check if it's a category name directly
+        const categories = ['golf', 'amenities', 'events', 'accommodation', 'premium'];
+        if (categories.includes(selectedFilter)) {
+            filterType = 'category';
+            filterValue = selectedFilter;
+        }
     }
+    
+    console.log('Loading calendar with filter:', { filterType, filterValue, selectedFilter });
     
     try {
         const year = adminCurrentMonth.getFullYear();
         const month = adminCurrentMonth.getMonth() + 1;
         
-        const response = await fetch(`${API_URL}/admin/reservations/calendar?year=${year}&month=${month}&filterType=${filterType}&filterValue=${filterValue}`, {
+        const url = `${API_URL}/admin/reservations/calendar?year=${year}&month=${month}&filterType=${filterType}&filterValue=${encodeURIComponent(filterValue)}`;
+        console.log('Calendar URL:', url);
+        
+        const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -587,7 +589,11 @@ async function loadAdminCalendar() {
         
         if (response.ok) {
             adminCalendarData = await response.json();
-            console.log('Calendar data loaded:', adminCalendarData.length, 'filter:', selectedFilter);
+            console.log('Calendar data loaded:', adminCalendarData.length, 'records');
+            console.log('Sample data:', adminCalendarData.slice(0, 3));
+        } else {
+            console.error('Calendar response not ok:', response.status);
+            adminCalendarData = [];
         }
     } catch (error) {
         console.error('Error loading calendar:', error);
@@ -609,11 +615,7 @@ function renderAdminCalendar() {
     }
     
     const filterSelect = document.getElementById('calendarTypeFilter');
-    const currentFilter = filterSelect ? filterSelect.value : 'all';
-    let isMembershipFilter = currentFilter === 'membership';
-    let isSpecificTypeFilter = currentFilter.startsWith('type_');
-    let specificTypeId = isSpecificTypeFilter ? currentFilter.replace('type_', '') : null;
-    let categoryFilter = !isMembershipFilter && !isSpecificTypeFilter && currentFilter !== 'all' ? currentFilter : null;
+    const selectedFilterDisplay = filterSelect ? filterSelect.options[filterSelect.selectedIndex]?.text || 'All' : 'All';
     
     const grid = document.getElementById('adminCalGrid');
     if (!grid) return;
@@ -637,29 +639,15 @@ function renderAdminCalendar() {
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const isToday = cellDate.toDateString() === today.toDateString();
         
-        let dayReservations = adminCalendarData;
-        
-        if (isMembershipFilter) {
-            dayReservations = adminCalendarData.filter(res => res.type === 'membership');
-        } else if (isSpecificTypeFilter && specificTypeId) {
-            dayReservations = adminCalendarData.filter(res => 
-                res.reservationTypeId === specificTypeId || 
-                res.details?.reservationTypeId === specificTypeId
-            );
-        } else if (categoryFilter) {
-            dayReservations = adminCalendarData.filter(res => 
-                (res.category || res.reservationCategory || '').toLowerCase() === categoryFilter
-            );
-        }
-        
-        const dayReservationsFiltered = dayReservations.filter(res => {
+        // Filter reservations for this specific day
+        const dayReservations = adminCalendarData.filter(res => {
             const resDate = new Date(res.date);
             return resDate.getFullYear() === year && 
                    resDate.getMonth() === month && 
                    resDate.getDate() === d;
         });
         
-        const bookedCount = dayReservationsFiltered.length;
+        const bookedCount = dayReservations.length;
         let statusClass = 'available';
         
         if (bookedCount === 0) {
@@ -672,12 +660,13 @@ function renderAdminCalendar() {
         
         const todayClass = isToday ? 'today' : '';
         
+        // Build tooltip with reservation details
         let tooltipInfo = '';
         if (bookedCount > 0) {
-            const types = [...new Set(dayReservationsFiltered.map(r => r.reservationType || r.type || 'Reservation'))];
-            tooltipInfo = `data-info="${bookedCount} booking${bookedCount !== 1 ? 's' : ''} (${types.join(', ')})"`;
+            const types = [...new Set(dayReservations.map(r => r.reservationType || r.type || 'Reservation'))];
+            tooltipInfo = `data-info="${bookedCount} booking${bookedCount !== 1 ? 's' : ''}: ${types.join(', ')}"`;
         } else {
-            tooltipInfo = `data-info="No bookings"`;
+            tooltipInfo = `data-info="Available for ${selectedFilterDisplay}"`;
         }
         
         grid.innerHTML += `
@@ -1360,7 +1349,12 @@ async function viewReservationDetails(appId) {
                                 ${app.details?.timeSlot ? `
                                 <div class="detail-row"><span class="detail-label">Time Slot:</span><span class="detail-value">${escapeHtml(app.details.timeSlot)}</span></div>
                                 ` : ''}
-                                <div class="detail-row"><span class="detail-label">Type:</span><span class="detail-value">${app.type === 'membership' ? '🏌️ Membership' : '📅 Reservation'}</span></div>
+                                <div class="detail-row">
+    <span class="detail-label">Type:</span>
+    <span class="detail-value">
+        ${app.type === 'membership' ? '🏌️ Membership' : `📅 ${app.reservationTypeName || app.details?.reservationType || 'Reservation'}`}
+    </span>
+</div>
                                 <div class="detail-row"><span class="detail-label">Amount:</span><span class="detail-value"><strong>₱${(app.amount || 0).toLocaleString()}</strong></span></div>
                                 <div class="detail-row"><span class="detail-label">Status:</span><span class="detail-value"><span class="status-badge ${app.status === 'pending' ? 'status-pending' : app.status === 'rejected' ? 'status-rejected' : 'status-confirmed'}">${app.status || 'N/A'}</span></span></div>
                             </div>
@@ -1927,6 +1921,7 @@ function renderValidateModalContent(app) {
         }
     }
     
+    // Then use typeDisplay in the HTML
     modalBody.innerHTML = `
         <div class="app-detail-section">
             <h4>📋 Application Information</h4>
@@ -1937,8 +1932,7 @@ function renderValidateModalContent(app) {
                         ${typeDisplay}
                     </span>
                 </span>
-            </div>
-            <div class="detail-row">
+            </div>            <div class="detail-row">
                 <span class="detail-label">Status:</span>
                 <span class="detail-value"><span class="status-badge status-pending">Pending Verification</span></span>
             </div>
@@ -1947,7 +1941,7 @@ function renderValidateModalContent(app) {
                 <span class="detail-value">${new Date(app.createdAt).toLocaleString()}</span>
             </div>
         </div>
-                
+
         <div class="app-detail-section">
             <h4>👤 Personal Details</h4>
             <div class="detail-row">
