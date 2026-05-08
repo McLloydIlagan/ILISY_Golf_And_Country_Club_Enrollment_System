@@ -281,17 +281,19 @@ router.get('/messages', async (req, res) => {
 router.post('/messages/:messageId/respond', async (req, res) => {
     try {
         const { response, resolution, feedback } = req.body;
-        if (!response) return res.status(400).json({ message: 'Response is required' });
+        if (!response || !response.trim()) return res.status(400).json({ message: 'Response is required' });
+        if (response.trim().length > 2000) return res.status(400).json({ message: 'Response too long (max 2000 characters)' });
 
         const message = await Message.findByIdAndUpdate(
             req.params.messageId,
             {
-                $push: { conversation: { sender: 'admin', message: response, timestamp: new Date() } },
+                $push: { conversation: { sender: 'admin', message: response.trim(), timestamp: new Date() } },
                 $set: {
-                    response,
+                    response: response.trim(),
                     resolution: resolution || null,
                     status: resolution ? 'resolved' : 'acknowledged',
-                    resolvedAt: resolution ? new Date() : null
+                    resolvedAt: resolution ? new Date() : null,
+                    updatedAt: new Date()   // explicitly set so sidebar sort works
                 }
             },
             { new: true }

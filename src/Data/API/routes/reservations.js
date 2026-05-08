@@ -18,27 +18,27 @@ router.get('/availability/month', authMiddleware, async (req, res) => {
         
         const startDate = new Date(start);
         const endDate = new Date(end);
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(23, 59, 59, 999);
+        // Use UTC boundaries to avoid timezone shift
+        startDate.setUTCHours(0, 0, 0, 0);
+        endDate.setUTCHours(23, 59, 59, 999);
 
-        // Total slots per day = 3 fixed time slots
         const TOTAL_SLOTS_PER_DAY = 3;
         
-        // Get all confirmed/approved reservations in date range
         const reservations = await Reservation.find({
             date: { $gte: startDate, $lte: endDate },
             status: { $in: ['confirmed', 'approved'] }
         }).select('date timeSlot');
         
-        // Group by date → count unique booked time slots
+        // Group by LOCAL date string (YYYY-MM-DD) using UTC parts to avoid timezone shift
         const slotsByDate = {};
-        reservations.forEach(res => {
-            const dateKey = new Date(res.date).toISOString().split('T')[0];
+        reservations.forEach(r => {
+            const d = new Date(r.date);
+            // Build date key from UTC parts so it matches what the frontend sends
+            const dateKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
             if (!slotsByDate[dateKey]) slotsByDate[dateKey] = new Set();
-            slotsByDate[dateKey].add(res.timeSlot);
+            slotsByDate[dateKey].add(r.timeSlot);
         });
 
-        // Build response: available / partial / full
         const availability = {};
         Object.entries(slotsByDate).forEach(([dateKey, slots]) => {
             const bookedCount = slots.size;
@@ -55,21 +55,25 @@ router.get('/availability/month', authMiddleware, async (req, res) => {
     }
 });
 
-// Check reservation availability > D2: Reservations
+// Check reservation availability for a specific date > D2: Reservations
 router.get('/availability/:date', async (req, res) => {
     try {
-        const date = new Date(req.params.date);
-        const bookedSlots = await Reservation.find({
-            date: { $gte: date, $lt: new Date(date.getTime() + 24 * 60 * 60 * 1000) },
-            status: { $in: ['confirmed'] }
-        });
+        // Parse the date and build a UTC day range to avoid timezone issues
+        const dateStr = req.params.date; // expected: YYYY-MM-DD
+        const [year, month, day] = dateStr.split('-').map(Number);
+        const dayStart = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+        const dayEnd   = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
 
-        const slots = ['10:00 AM - 12:00 PM', '12:30 PM - 2:30 PM', '3:00 PM - 5:00 PM'];
-        const availableSlots = slots.filter(slot =>
-            !bookedSlots.some(r => r.timeSlot === slot)
-        );
+        const bookedDocs = await Reservation.find({
+            date: { $gte: dayStart, $lte: dayEnd },
+            status: { $in: ['confirmed', 'approved'] }
+        }).select('timeSlot');
 
-        res.json({ availableSlots, bookedSlots: bookedSlots.length });
+        const ALL_SLOTS = ['10:00 AM - 12:00 PM', '12:30 PM - 2:30 PM', '3:00 PM - 5:00 PM'];
+        const bookedSet = new Set(bookedDocs.map(r => r.timeSlot));
+        const availableSlots = ALL_SLOTS.filter(s => !bookedSet.has(s));
+
+        res.json({ availableSlots, bookedSlots: bookedSet.size });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -109,12 +113,10 @@ router.post('/apply', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Invalid phone number format' });
         }
 
-        // Check if time slot is still available (use date range to avoid timezone issues)
-        const reservationDate = new Date(date);
-        const dayStart = new Date(reservationDate);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(reservationDate);
-        dayEnd.setHours(23, 59, 59, 999);
+        // Check if time slot is still available — use UTC day boundaries to avoid timezone mismatch
+        const [yr, mo, dy] = new Date(date).toISOString().split('T')[0].split('-').map(Number);
+        const dayStart = new Date(Date.UTC(yr, mo - 1, dy, 0, 0, 0, 0));
+        const dayEnd   = new Date(Date.UTC(yr, mo - 1, dy, 23, 59, 59, 999));
 
         const conflict = await Reservation.findOne({
             date: { $gte: dayStart, $lte: dayEnd },

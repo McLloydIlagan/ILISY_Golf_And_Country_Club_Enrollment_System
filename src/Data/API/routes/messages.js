@@ -92,6 +92,7 @@ router.post('/submit', authMiddleware, async (req, res) => {
             });
             existingConversation.message = message;
             existingConversation.status = 'pending';
+            existingConversation.updatedAt = new Date();
             await existingConversation.save();
 
             return res.json({
@@ -180,6 +181,7 @@ router.post('/upload-image', authMiddleware, upload.single('image'), async (req,
                 timestamp: new Date()
             });
             message.status = 'pending';
+            message.updatedAt = new Date();
             await message.save();
         } else {
             // Create new conversation with image
@@ -255,6 +257,7 @@ router.post('/followup/:messageId', authMiddleware, async (req, res) => {
         });
         concern.message = message;
         concern.status = 'pending';
+        concern.updatedAt = new Date();
         await concern.save();
 
         res.json({ 

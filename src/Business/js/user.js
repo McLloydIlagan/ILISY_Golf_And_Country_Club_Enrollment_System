@@ -371,12 +371,44 @@ async function checkForNewMessages() {
                         if (lastMessage.sender === 'admin') {
                             const lastShown = localStorage.getItem(`last_shown_${latest._id}`);
                             if (lastShown !== lastMessageId) {
-                                showToast(`New message from admin`, 'info');
-                                if (lastMessage.imageUrl) {
-                                    addImageToChat(lastMessage.imageUrl, 'received');
-                                } else {
-                                    addMsg(lastMessage.message, 'received');
+                                // Only show toast notification — don't append to DOM
+                                // The full conversation is already rendered by loadConversationHistory
+                                // Re-render the full conversation to avoid duplicates
+                                const chatBody = document.getElementById('chatBody');
+                                if (chatBody) {
+                                    // Remove quick-replies temporarily
+                                    const qr = document.getElementById('quickReplies');
+                                    chatBody.innerHTML = '';
+                                    conversation.forEach(conv => {
+                                        const row = document.createElement('div');
+                                        row.className = `msg-row ${conv.sender === 'user' ? 'right' : ''}`;
+                                        if (conv.imageUrl) {
+                                            const bubble = document.createElement('div');
+                                            bubble.className = `msg-bubble ${conv.sender === 'user' ? 'sent' : 'received'} image-message`;
+                                            const img = document.createElement('img');
+                                            img.src = conv.imageUrl;
+                                            img.alt = 'Receipt image';
+                                            bubble.appendChild(img);
+                                            bubble.onclick = () => viewFullImage(conv.imageUrl);
+                                            if (conv.sender !== 'user') {
+                                                const av = document.createElement('div'); av.className = 'user-avatar'; av.textContent = '👤'; row.appendChild(av);
+                                            }
+                                            row.appendChild(bubble);
+                                            if (conv.sender === 'user') {
+                                                const av = document.createElement('div'); av.className = 'avatar-right'; av.textContent = '👤'; row.appendChild(av);
+                                            }
+                                        } else if (conv.sender === 'admin') {
+                                            row.innerHTML = `<div class="user-avatar">👤</div><div class="msg-bubble received">${escapeHtml(conv.message)}</div>`;
+                                        } else {
+                                            row.innerHTML = `<div class="msg-bubble sent">${escapeHtml(conv.message)}</div><div class="avatar-right">👤</div>`;
+                                        }
+                                        chatBody.appendChild(row);
+                                    });
+                                    // Re-append quick replies
+                                    if (qr) chatBody.appendChild(qr);
+                                    scrollToBottom();
                                 }
+                                showToast('New message from admin', 'info');
                                 localStorage.setItem(`last_shown_${latest._id}`, lastMessageId);
                             }
                         }
@@ -724,8 +756,9 @@ async function fetchMonthAvailability(year, month) {
     const key = `${year}-${String(month + 1).padStart(2, '0')}`;
     if (calAvailabilityCache[key]) return calAvailabilityCache[key];
 
-    const start = new Date(year, month, 1).toISOString();
-    const end   = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+    // Use UTC dates so the server's UTC-based date keys match
+    const start = new Date(Date.UTC(year, month, 1)).toISOString();
+    const end   = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59)).toISOString();
 
     try {
         const res = await apiFetch(`${API_URL}/reservations/availability/month?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
@@ -1333,9 +1366,8 @@ async function openDynamicCalendarPopup() {
         return;
     }
     dynamicCurrentMonth = new Date();
-    // Invalidate cache for current month so we always get fresh data
-    const key = `${dynamicCurrentMonth.getFullYear()}-${String(dynamicCurrentMonth.getMonth() + 1).padStart(2, '0')}`;
-    delete calAvailabilityCache[key];
+    // Always clear cache when opening so we get fresh availability
+    calAvailabilityCache[`${dynamicCurrentMonth.getFullYear()}-${String(dynamicCurrentMonth.getMonth() + 1).padStart(2, '0')}`] = null;
     await renderDynamicCalendar();
     document.getElementById('dynamicCalendarModal').classList.add('show');
 }
@@ -1403,7 +1435,7 @@ async function renderDynamicCalendar() {
         grid.parentNode.insertBefore(legend, grid.nextSibling);
     }
 
-    if (dynamicSelectedDate) renderDynamicTimeSlots();
+    if (dynamicSelectedDate) await renderDynamicTimeSlots();
 }
 
 async function selectDynamicDate(year, month, day) {
@@ -1412,49 +1444,57 @@ async function selectDynamicDate(year, month, day) {
     dynamicSelectedDate = `${year}-${formattedMonth}-${formattedDay}`;
     dynamicSelectedTime = null;
     await renderDynamicCalendar();
-    renderDynamicTimeSlots();
+    // renderDynamicCalendar already calls renderDynamicTimeSlots at the end
 }
 
 async function renderDynamicTimeSlots() {
     const container = document.getElementById('dynamicTimeSlotsList');
     if (!container) return;
-    const timeSlots = selectedReservationTypeData?.timeSlots || [];
-    if (timeSlots.length === 0) {
-        container.innerHTML = '<p style="color:#999; text-align:center;">No time slots configured for this type</p>';
-        return;
-    }
 
     container.innerHTML = '<p style="color:#999;text-align:center;font-size:12px;">Checking availability…</p>';
 
-    // Fetch real-time booked slots for the selected date
-    let bookedSlotTimes = new Set();
-    if (dynamicSelectedDate) {
-        try {
-            const res = await apiFetch(`${API_URL}/reservations/availability/${dynamicSelectedDate}`);
-            if (res.ok) {
-                const data = await res.json();
-                // data.availableSlots = array of available slot strings
-                // We need booked = all slots minus available
-                const allSlotTimes = timeSlots.map(s => s.time);
-                const available = new Set(data.availableSlots || []);
-                allSlotTimes.forEach(t => { if (!available.has(t)) bookedSlotTimes.add(t); });
-            }
-        } catch (e) {
-            console.warn('Could not fetch slot availability:', e);
+    if (!dynamicSelectedDate) {
+        container.innerHTML = '<p style="color:#999;text-align:center;">Please select a date first</p>';
+        return;
+    }
+
+    // The 3 fixed time slots used by the booking system
+    const FIXED_SLOTS = [
+        '10:00 AM - 12:00 PM',
+        '12:30 PM - 2:30 PM',
+        '3:00 PM - 5:00 PM'
+    ];
+
+    // Fetch real-time availability from the API
+    let availableSlots = new Set(FIXED_SLOTS); // default: all available
+    try {
+        const res = await apiFetch(`${API_URL}/reservations/availability/${dynamicSelectedDate}`);
+        if (res.ok) {
+            const data = await res.json();
+            // data.availableSlots is the array of slots NOT yet booked
+            availableSlots = new Set(data.availableSlots || FIXED_SLOTS);
         }
+    } catch (e) {
+        console.warn('Could not fetch slot availability, showing all as available:', e);
     }
 
     container.innerHTML = '';
-    timeSlots.forEach(slot => {
-        const isBooked = bookedSlotTimes.has(slot.time);
-        const isSelected = dynamicSelectedTime === slot.time;
-        const slotsLeft = isBooked ? 0 : (slot.capacity - slot.booked);
-        const label = isBooked ? '(Fully booked)' : slotsLeft > 0 ? `(${slotsLeft} slot${slotsLeft !== 1 ? 's' : ''} left)` : '(Available)';
+
+    if (availableSlots.size === 0) {
+        container.innerHTML = '<p style="color:#9c403d;text-align:center;font-weight:bold;">All time slots are fully booked for this date.</p>';
+        return;
+    }
+
+    FIXED_SLOTS.forEach(slotTime => {
+        const isAvailable = availableSlots.has(slotTime);
+        const isSelected  = dynamicSelectedTime === slotTime;
+        const label       = isAvailable ? '(Available)' : '(Fully booked)';
+
         container.innerHTML += `
-            <div class="time-slot ${isSelected ? 'selected' : ''} ${isBooked ? 'full' : ''}" 
-                 onclick="${!isBooked ? `selectDynamicTimeSlot('${slot.time}')` : ''}"
-                 title="${isBooked ? 'This slot is fully booked' : slot.time}">
-                ${escapeHtml(slot.time)} <small style="opacity:.7;">${label}</small>
+            <div class="time-slot ${isSelected ? 'selected' : ''} ${!isAvailable ? 'full' : ''}"
+                 onclick="${isAvailable ? `selectDynamicTimeSlot('${slotTime}')` : ''}"
+                 title="${!isAvailable ? 'This slot is fully booked' : 'Click to select'}">
+                ${escapeHtml(slotTime)} <small style="opacity:.7;">${label}</small>
             </div>`;
     });
 }

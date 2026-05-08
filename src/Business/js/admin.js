@@ -1224,8 +1224,8 @@ function renderReservationsTable() {
 
     tbody.innerHTML = html;
 
-    // Auto-expand pending and processing groups
-    ['pending', 'processing'].forEach(status => {
+    // Auto-expand pending, processing, approved, and confirmed groups
+    ['pending', 'processing', 'approved', 'confirmed'].forEach(status => {
         if (groups[status] && groups[status].length > 0) {
             const el = document.getElementById(`resGroup_${status}`);
             const chevron = document.getElementById(`resGroup_${status}_chevron`);
@@ -1761,7 +1761,9 @@ async function refreshCurrentConversation() {
         
         if (response.ok) {
             const messages = await response.json();
-            const updatedMessage = messages.find(m => m.userId === currentUserId);
+            // Match by message _id (most reliable) or fall back to userId string comparison
+            const currentId = String(currentMessage._id);
+            const updatedMessage = messages.find(m => String(m._id) === currentId);
             
             if (updatedMessage) {
                 const conversation = updatedMessage.conversation || [];
@@ -1793,21 +1795,27 @@ async function refreshCurrentConversation() {
                         row.className = `msg-row-wrap ${conv.sender === 'admin' ? 'sent' : ''}`;
                         
                         if (conv.imageUrl) {
-                            const safeUrl = escapeHtml(conv.imageUrl);
+                            // Safe image bubble — no raw URL in onclick attribute
+                            const bubble = document.createElement('div');
+                            bubble.className = `chat-bubble ${conv.sender === 'user' ? 'bubble-received' : 'bubble-sent'} image-message`;
+                            const img = document.createElement('img');
+                            img.src = conv.imageUrl;
+                            img.alt = 'Receipt image';
+                            bubble.appendChild(img);
+                            bubble.onclick = () => viewFullImage(conv.imageUrl);
+
                             if (conv.sender === 'user') {
-                                row.innerHTML = `
-                                    <div class="chat-avatar">👤</div>
-                                    <div class="chat-bubble bubble-received image-message" onclick="viewFullImage('${safeUrl}')">
-                                        <img src="${safeUrl}" alt="Receipt image">
-                                    </div>
-                                `;
-                            } else {
-                                row.innerHTML = `
-                                    <div class="chat-bubble bubble-sent image-message" onclick="viewFullImage('${safeUrl}')">
-                                        <img src="${safeUrl}" alt="Receipt image">
-                                    </div>
-                                    <div class="chat-avatar">👤</div>
-                                `;
+                                const avatar = document.createElement('div');
+                                avatar.className = 'chat-avatar';
+                                avatar.textContent = '👤';
+                                row.appendChild(avatar);
+                            }
+                            row.appendChild(bubble);
+                            if (conv.sender === 'admin') {
+                                const avatar = document.createElement('div');
+                                avatar.className = 'chat-avatar';
+                                avatar.textContent = '👤';
+                                row.appendChild(avatar);
                             }
                         } else {
                             if (conv.sender === 'user') {
@@ -1828,13 +1836,18 @@ async function refreshCurrentConversation() {
                     if (updatedMessage.imageUrl) {
                         const row = document.createElement('div');
                         row.className = 'msg-row-wrap';
-                        const safeUrl = escapeHtml(updatedMessage.imageUrl);
-                        row.innerHTML = `
-                            <div class="chat-avatar">👤</div>
-                            <div class="chat-bubble bubble-received image-message" onclick="viewFullImage('${safeUrl}')">
-                                <img src="${safeUrl}" alt="Receipt image">
-                            </div>
-                        `;
+                        const bubble = document.createElement('div');
+                        bubble.className = 'chat-bubble bubble-received image-message';
+                        const img = document.createElement('img');
+                        img.src = updatedMessage.imageUrl;
+                        img.alt = 'Receipt image';
+                        bubble.appendChild(img);
+                        bubble.onclick = () => viewFullImage(updatedMessage.imageUrl);
+                        const avatar = document.createElement('div');
+                        avatar.className = 'chat-avatar';
+                        avatar.textContent = '👤';
+                        row.appendChild(avatar);
+                        row.appendChild(bubble);
                         msgBody.appendChild(row);
                     } else {
                         msgBody.innerHTML = `<div class="chat-bubble bubble-received">${escapeHtml(updatedMessage.message || 'No message')}</div>`;
@@ -1866,22 +1879,27 @@ function selectContact(element, message) {
         message.conversation.forEach(conv => {
             const row = document.createElement('div');
             row.className = `msg-row-wrap ${conv.sender === 'admin' ? 'sent' : ''}`;
+
             if (conv.imageUrl) {
-                const safeUrl = escapeHtml(conv.imageUrl);
+                // Build safely — no raw URL in onclick attribute
+                const bubble = document.createElement('div');
+                bubble.className = `chat-bubble ${conv.sender === 'user' ? 'bubble-received' : 'bubble-sent'} image-message`;
+                const img = document.createElement('img');
+                img.src = conv.imageUrl;
+                img.alt = 'Receipt image';
+                bubble.appendChild(img);
+                bubble.onclick = () => viewFullImage(conv.imageUrl);
+
                 if (conv.sender === 'user') {
-                    row.innerHTML = `
-                        <div class="chat-avatar">👤</div>
-                        <div class="chat-bubble bubble-received image-message" onclick="viewFullImage('${safeUrl}')">
-                            <img src="${safeUrl}" alt="Receipt image">
-                        </div>
-                    `;
-                } else {
-                    row.innerHTML = `
-                        <div class="chat-bubble bubble-sent image-message" onclick="viewFullImage('${safeUrl}')">
-                            <img src="${safeUrl}" alt="Receipt image">
-                        </div>
-                        <div class="chat-avatar">👤</div>
-                    `;
+                    const av = document.createElement('div');
+                    av.className = 'chat-avatar'; av.textContent = '👤';
+                    row.appendChild(av);
+                }
+                row.appendChild(bubble);
+                if (conv.sender === 'admin') {
+                    const av = document.createElement('div');
+                    av.className = 'chat-avatar'; av.textContent = '👤';
+                    row.appendChild(av);
                 }
             } else if (conv.sender === 'user') {
                 row.innerHTML = `
@@ -1902,10 +1920,11 @@ function selectContact(element, message) {
     
     scrollToBottom();
     
+    // Mark last user message as seen
     if (message.conversation && message.conversation.length > 0) {
         const lastMessage = message.conversation[message.conversation.length - 1];
         if (lastMessage.sender === 'user') {
-            const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message}`;
+            const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message || lastMessage.imageUrl || ''}`;
             localStorage.setItem(`admin_last_shown_${message._id}`, lastMessageId);
         }
     }
