@@ -1,469 +1,881 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ILISY Golf Club | Admin Portal</title>
     <link rel="stylesheet" href="../css/admin.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="icon" href="data:,">
 </head>
+
 <body>
 
-<!-- ═══════════════════════════════════════════════
+
+    <!-- ═══════════════════════════════════════════════
      SIDEBAR
 ═══════════════════════════════════════════════ -->
-<aside class="sidebar">
-    <div class="sidebar-logo">
-        <img src="../Golfcourse_assets/colored logo.png" alt="ILISY Logo" style="width: 55px; height: auto;">
-    </div>
-    <div class="sidebar-divider"></div>
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="../Golfcourse_assets/colored logo.png" alt="ILISY Logo">
+            <div class="sidebar-logo-text">
+                <strong>ILISY</strong>
+                <span>Admin Portal</span>
+            </div>
+        </div>
 
-    <div class="nav-item active" onclick="showPage('dashboard')">Dashboard</div>
-    <div class="nav-item" onclick="showPage('reservations')">Reservations</div>
-    <div class="nav-item" onclick="showPage('accounts')">Registered Accounts</div>
-    <div class="nav-item" onclick="showPage('payments')">Payments</div>
-    <div class="nav-item" onclick="showPage('messages')">Customer Service</div>
-    <div class="nav-item" onclick="showPage('manage_reservations')">Manage Reservations</div>
+        <div class="sidebar-title">Navigation</div>
 
-    <div class="sidebar-spacer"></div>
-    <div class="sidebar-divider"></div>
-    <div class="nav-item logout" onclick="handleLogout()">Log out</div>
-</aside>
+        <div class="nav-item active" onclick="showPage('dashboard')">
+            <span>📊</span> Dashboard
+        </div>
+        <div class="nav-item" onclick="showPage('reservations')">
+            <span>📅</span> Reservations
+        </div>
+        <div class="nav-item" onclick="showPage('accounts')">
+            <span>👥</span> Accounts
+        </div>
+        <div class="nav-item" onclick="showPage('payments')">
+            <span>💳</span> Payments
+        </div>
+        <div class="nav-item" onclick="showPage('messages')">
+            <span>💬</span> Messages
+        </div>
+        <div class="nav-item" onclick="showPage('manage_reservations')">
+            <span>⚙️</span> Manage Types
+        </div>
 
+        <div class="sidebar-spacer"></div>
+        <div class="sidebar-divider"></div>
+        <div class="nav-item logout" onclick="handleLogout()">
+            <span>🚪</span> Log out
+        </div>
+    </aside>
 
-<!-- ═══════════════════════════════════════════════
+    <!-- ═══════════════════════════════════════════════
      MAIN CONTENT
 ═══════════════════════════════════════════════ -->
-<div class="main">
+    <div class="main">
 
-    <!-- ─── DASHBOARD ─────────────────────────── -->
-    <div class="page active" id="page-dashboard">
-        <div class="topbar">
-            <h1>Dashboard</h1>
-            <div class="admin-info">
-                <div class="admin-avatar">👤</div>
-                <div class="admin-text">admin <span>Admin</span></div>
-            </div>
-        </div>
-        <div class="page-body">
-            <!-- Stats Row -->
-            <div class="stats-row">
-                <div class="stat-card">
-                    <div class="stat-num">0</div>
-                    <div class="stat-label">Members</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-num">0</div>
-                    <div class="stat-label">Reservations</div>
-                </div>
-                <div class="stat-card highlighted">
-                    <div class="stat-num">0</div>
-                    <div class="stat-label">Income</div>
-                </div>
-            </div>
-            
-            <!-- Pending Verifications Section -->
-            <div class="table-section" id="pendingVerificationsSection">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3>⏳ Pending Payment Verifications</h3>
-                    <button class="refresh-btn" onclick="loadPendingApplications()" style="margin: 0;">🔄 Refresh</button>
-                </div>
-                <div style="overflow-x: auto;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Payment Method</th>
-                                <th>Reference #</th>
-                                <th>Amount</th>
-                                <th>Submitted</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pendingAppsTableBody">
-                            <tr><td colspan="8" style="text-align:center;">Loading pending applications...</tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Financial Chart Card -->
-            <div class="chart-card" style="margin-top: 25px;">
-                <h3 id="financialReportTitle">Loading Financial Report...</h3>
-                <div id="financialChart" class="chart-container">
-                    <div class="loading-spinner" style="padding: 40px; text-align: center;">
-                        <span>⏳</span> Loading financial data...
+        <!-- ─── DASHBOARD ─────────────────────────────── -->
+        <div class="page active" id="page-dashboard">
+            <div class="topbar">
+                <h1>Dashboard</h1>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button class="refresh-btn" onclick="showPage('dashboard')">🔄 Refresh</button>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- ─── RESERVATIONS ──────────────────────── -->
-    
-<div class="page" id="page-reservations">
-    <div class="topbar">
-        <h1>📊 Reservation Availability Dashboard</h1>
-        <div style="display:flex;align-items:center;gap:20px;">
-            <button class="refresh-btn" onclick="loadAvailabilityDashboard()">🔄 Refresh Data</button>
-            <div class="admin-info">
-                <div class="admin-avatar">👤</div>
-                <div class="admin-text">admin <span>Admin</span></div>
-            </div>
-        </div>
-    </div>
-    <div class="page-body">
-        
-        <!-- Date Range Selector -->
-        <div class="date-range-selector" style="background: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-            <div>
-                <label style="font-weight: bold; margin-right: 10px;">📅 View Availability For:</label>
-                <select id="availabilityDateFilter" onchange="loadAvailabilityDashboard()" style="padding: 8px 15px; border-radius: 8px; border: 1px solid #ddd;">
-                    <option value="today">Today</option>
-                    <option value="tomorrow">Tomorrow</option>
-                    <option value="week" selected>Next 7 Days</option>
-                    <option value="month">Next 30 Days</option>
-                </select>
-            </div>
-            <div id="dateRangeDisplay" style="font-size: 12px; color: #666;">
-                Showing availability for: Next 7 days
-            </div>
-        </div>
-        
-        <!-- Summary Stats Cards -->
-        <div class="availability-stats-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
-            <div class="stat-card" style="background: var(--deep-green); color: white;">
-                <div class="stat-num" id="totalTypesCount">0</div>
-                <div class="stat-label">Active Reservation Types</div>
-            </div>
-            <div class="stat-card" style="background: var(--olive); color: white;">
-                <div class="stat-num" id="totalCapacityCount">0</div>
-                <div class="stat-label">Total Daily Capacity</div>
-            </div>
-            <div class="stat-card" style="background: var(--gold); color: var(--deep-green);">
-                <div class="stat-num" id="totalBookedCount">0</div>
-                <div class="stat-label">Booked (Next 7 Days)</div>
-            </div>
-            <div class="stat-card" style="background: #28a745; color: white;">
-                <div class="stat-num" id="totalAvailableCount">0</div>
-                <div class="stat-label">Still Available</div>
-            </div>
-        </div>
+            <div class="page-body">
 
-        <!-- Availability Cards Grid -->
-        <div id="availabilityCardsContainer" style="display: flex; flex-direction: column; gap: 30px;">
-            <div class="loading-spinner" style="text-align: center; padding: 60px;">
-                ⏳ Loading availability data...
-            </div>
-        </div>
-        
-        <!-- Old Reservations Table (keep for viewing applications) -->
-        <div class="table-section" style="margin-top: 40px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-                <h3 style="margin: 0;">📋 Reservation Applications</h3>
-                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                    <div class="search-bar" style="background: white; border: 1px solid #ddd;">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" id="reservationSearchInput" placeholder="Search by name, email, phone..." oninput="filterReservationsTable()" style="width: 220px;">
+                <!-- Hero Stat Cards -->
+                <div class="hero-stats">
+                    <div class="hero-card accent-green">
+                        <div class="hero-card-header">
+                            <span class="hero-card-label">Active Members</span>
+                            <div class="hero-card-icon">🏌️</div>
+                        </div>
+                        <div class="hero-card-value" id="statMembers">—</div>
+                        <div class="hero-card-footer">
+                            <span class="hero-card-badge badge-up" id="statMembersGrowth">↑ —%</span>
+                            <span>vs last month</span>
+                        </div>
                     </div>
-                    <select id="reservationStatusFilter" onchange="filterReservationsTable()" style="padding: 8px 15px; border-radius: 5px; border: 1px solid #ddd; background: white;">
-                        <option value="all">📋 All Status</option>
-                        <option value="pending">⏳ Pending</option>
-                        <option value="approved">✓ Approved</option>
-                        <option value="confirmed">✓ Confirmed</option>
-                        <option value="rejected">✗ Rejected</option>
+
+                    <div class="hero-card accent-amber">
+                        <div class="hero-card-header">
+                            <span class="hero-card-label">Pending Enrollments</span>
+                            <div class="hero-card-icon">⏳</div>
+                        </div>
+                        <div class="hero-card-value" id="statPending">—</div>
+                        <div class="hero-card-footer">
+                            <span class="hero-card-badge badge-warn" id="statPendingLabel">Action required</span>
+                        </div>
+                    </div>
+
+                    <div class="hero-card accent-gold">
+                        <div class="hero-card-header">
+                            <span class="hero-card-label">Monthly Revenue</span>
+                            <div class="hero-card-icon">💰</div>
+                        </div>
+                        <div class="hero-card-value" id="statRevenue">—</div>
+                        <div class="hero-card-footer">
+                            <span class="hero-card-badge badge-up" id="statRevenueGrowth">↑ —%</span>
+                            <span>vs last month</span>
+                        </div>
+                    </div>
+
+                    <div class="hero-card accent-blue">
+                        <div class="hero-card-header">
+                            <span class="hero-card-label">Tee-Time Utilization</span>
+                            <div class="hero-card-icon">⛳</div>
+                        </div>
+                        <div class="hero-card-value" id="statUtilization">—%</div>
+                        <div class="hero-card-footer">
+                            <span id="statUtilizationLabel" class="hero-card-badge badge-up">of capacity booked</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="charts-row">
+                    <!-- Line Chart: Enrollment Trends -->
+                    <div class="chart-panel">
+                        <div class="chart-panel-header">
+                            <div>
+                                <div class="chart-panel-title">Enrollment Trends</div>
+                                <div class="chart-panel-sub">Revenue over the last 6 months</div>
+                            </div>
+                            <div class="chart-legend">
+                                <span class="legend-dot" style="--dot-color:#0d2b0f;">Membership</span>
+                                <span class="legend-dot" style="--dot-color:#6b7e5f;">Reservations</span>
+                            </div>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:220px;">
+                            <canvas id="enrollmentLineChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Doughnut Chart: Membership Types -->
+                    <div class="chart-panel">
+                        <div class="chart-panel-header">
+                            <div>
+                                <div class="chart-panel-title">Membership Types</div>
+                                <div class="chart-panel-sub">Distribution by category</div>
+                            </div>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:180px;position:relative;">
+                            <canvas id="membershipDoughnutChart"></canvas>
+                            <div class="doughnut-center">
+                                <div class="doughnut-center-value" id="doughnutTotal">—</div>
+                                <div class="doughnut-center-label">Total</div>
+                            </div>
+                        </div>
+                        <div class="chart-legend" style="justify-content:center;margin-top:14px;gap:12px;"
+                            id="doughnutLegend"></div>
+                    </div>
+                </div>
+
+                <!-- Pending Verifications -->
+                <div class="pending-panel" id="pendingVerificationsSection">
+                    <div class="pending-panel-header">
+                        <div class="pending-panel-title">
+                            ⏳ Pending Payment Verifications
+                            <span class="pending-count-badge" id="pendingCountBadge">0</span>
+                        </div>
+                        <button class="refresh-btn" onclick="loadPendingApplications()">🔄 Refresh</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Method</th>
+                                    <th>Reference #</th>
+                                    <th>Amount</th>
+                                    <th>Submitted</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pendingAppsTableBody">
+                                <tr>
+                                    <td colspan="8" style="text-align:center;padding:32px;color:var(--c-text-muted);">
+                                        Loading pending applications…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div><!-- end page-body -->
+        </div><!-- end page-dashboard -->
+
+        <!-- ─── RESERVATIONS ──────────────────────────── -->
+        <div class="page" id="page-reservations">
+            <div class="topbar">
+                <h1>📊 Reservation Availability</h1>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button class="refresh-btn" onclick="loadAvailabilityDashboard()">🔄 Refresh</button>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body">
+
+                <!-- Date filter -->
+                <div class="filter-bar" style="margin-bottom:20px;">
+                    <span style="font-size:13px;font-weight:600;color:var(--c-text-muted);">📅 View for:</span>
+                    <select id="availabilityDateFilter" class="filter-select" onchange="loadAvailabilityDashboard()">
+                        <option value="today">Today</option>
+                        <option value="tomorrow">Tomorrow</option>
+                        <option value="week" selected>Next 7 Days</option>
+                        <option value="month">Next 30 Days</option>
                     </select>
-                    <button class="reset-filter-btn" onclick="resetReservationFilters()">🔄 Reset Filters</button>
+                    <span id="dateRangeDisplay"
+                        style="font-size:12px;color:var(--c-text-muted);margin-left:auto;">Showing: Next 7 days</span>
                 </div>
-            </div>
-            <div style="overflow-x: auto;">
-                <table class="data-table">
-                    <thead>
-                        <tr><th>Name</th><th>Date</th><th>Time</th><th>Type</th><th>Amount</th><th>Status</th><th>Actions</th></tr>
-                    </thead>
-                    <tbody id="reservationAppTbody">
-                        <tr><td colspan="7" style="text-align:center;">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <div id="reservationPagination" class="pagination-container" style="margin-top: 20px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;"></div>
-        </div>
-    </div>
-</div>
 
-
-    <!-- ─── REGISTERED ACCOUNTS ───────────────── -->
-    <div class="page" id="page-accounts">
-        <div class="topbar">
-            <h1>Registered Accounts</h1>
-            <div style="display:flex;align-items:center;gap:20px;">
-                <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search" oninput="filterTable('accountsTbody', this.value)"></div>
-                <button class="refresh-btn" onclick="loadUsers()">🔄 Refresh</button>
-                <div class="admin-info">
-                    <div class="admin-avatar">👤</div>
-                    <div class="admin-text">admin <span>Admin</span></div>
-                </div>
-            </div>
-        </div>
-        <div class="page-body">
-            <table class="data-table">
-                <thead><tr><th>First Name</th><th>Last Name</th><th>Contacts</th><th>Membership</th><th>Membership Expiration</th><th>Actions</th></tr></thead>
-                <tbody id="accountsTbody">
-                    </table><td colspan="6" style="text-align:center;">Loading...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- ─── PAYMENTS ──────────────────────────── -->
-    <div class="page" id="page-payments">
-        <div class="topbar">
-            <h1>Payments</h1>
-            <div style="display:flex;align-items:center;gap:20px;">
-                <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search" oninput="filterTable('paymentsTbody', this.value)"></div>
-                <button class="refresh-btn" onclick="loadPayments()">🔄 Refresh</button>
-                <div class="admin-info">
-                    <div class="admin-avatar">👤</div>
-                    <div class="admin-text">admin <span>Admin</span></div>
-                </div>
-            </div>
-        </div>
-        <div class="page-body">
-            <div class="payments-table-wrap">
-                <table class="data-table">
-                    <thead><tr><th>First Name</th><th>Last Name</th><th>Payment Method</th><th>Account Number</th><th>Payment Amount</th><th>Payment Processed</th><th>Transaction Type</th><th>Status</th><th>Actions</th></tr></thead>
-                    <tbody id="paymentsTbody">
-                        <tr><td colspan="8" style="text-align:center;">Loading...<\/td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- ─── MESSAGES ──────────────────────────── -->
-    <div class="page" id="page-messages">
-        <div class="topbar">
-            <h1>Messages</h1>
-            <div style="display:flex;align-items:center;gap:20px;">
-                <div class="admin-info">
-                    <div class="admin-avatar">👤</div>
-                    <div class="admin-text">admin <span>Admin</span></div>
-                </div>
-            </div>
-        </div>
-        <div class="page-body" style="padding-bottom:0; display:flex; flex-direction:column; flex:1;">
-            <div class="msg-layout" style="flex:1;">
-                <div class="msg-sidebar" id="msgSidebar">
-                    <div style="padding:20px; text-align:center; color:#ccc;">Loading conversations...</div>
-                </div>
-                <div class="msg-window">
-                    <div class="msg-window-header" id="msgWindowHeader">Select a conversation</div>
-                    <div class="msg-body" id="msgBody">
-                        <div style="text-align:center; color:#888; padding:40px;">Select a message to start responding</div>
+                <!-- Summary stats -->
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+                    <div class="hero-card accent-green">
+                        <div class="hero-card-header"><span class="hero-card-label">Active Types</span>
+                            <div class="hero-card-icon">📌</div>
+                        </div>
+                        <div class="hero-card-value" id="totalTypesCount">0</div>
                     </div>
-                    <div class="msg-footer">
-                        <input type="text" class="msg-input" id="adminMsgInput" placeholder="Type a message...">
-                        <button class="send-btn" onclick="adminSendMsg()">➤</button>
+                    <div class="hero-card accent-blue">
+                        <div class="hero-card-header"><span class="hero-card-label">Daily Capacity</span>
+                            <div class="hero-card-icon">🎯</div>
+                        </div>
+                        <div class="hero-card-value" id="totalCapacityCount">0</div>
+                    </div>
+                    <div class="hero-card accent-amber">
+                        <div class="hero-card-header"><span class="hero-card-label">Booked</span>
+                            <div class="hero-card-icon">📋</div>
+                        </div>
+                        <div class="hero-card-value" id="totalBookedCount">0</div>
+                    </div>
+                    <div class="hero-card" style="--card-accent:#059669;">
+                        <div class="hero-card-header"><span class="hero-card-label">Available</span>
+                            <div class="hero-card-icon" style="background:rgba(5,150,105,.1);">✅</div>
+                        </div>
+                        <div class="hero-card-value" id="totalAvailableCount">0</div>
                     </div>
                 </div>
+
+                <!-- Availability cards -->
+                <div id="availabilityCardsContainer" style="display:flex;flex-direction:column;gap:24px;">
+                    <div class="loading-spinner">⏳ Loading availability data…</div>
+                </div>
+
+                <!-- Reservation Applications table -->
+                <div class="table-panel" style="margin-top:36px;">
+                    <div class="table-panel-header">
+                        <span class="table-panel-title">📋 Reservation Applications</span>
+                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                            <div class="filter-search" style="min-width:200px;">
+                                <span class="filter-search-icon">🔍</span>
+                                <input type="text" id="reservationSearchInput" placeholder="Search name, email, phone…"
+                                    oninput="filterReservationsTable()">
+                            </div>
+                            <select id="reservationStatusFilter" class="filter-select"
+                                onchange="filterReservationsTable()">
+                                <option value="all">All Status</option>
+                                <option value="pending">⏳ Pending</option>
+                                <option value="approved">✓ Approved</option>
+                                <option value="confirmed">✓ Confirmed</option>
+                                <option value="rejected">✗ Rejected</option>
+                            </select>
+                            <button class="reset-filter-btn" onclick="resetReservationFilters()">🔄 Reset</button>
+                            <span class="filter-results-count" id="resultsCount"></span>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reservationAppTbody">
+                                <tr>
+                                    <td colspan="7" style="text-align:center;padding:32px;color:var(--c-text-muted);">
+                                        Loading…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="reservationPagination" class="pagination-container"></div>
+                </div>
+
             </div>
         </div>
-    </div>
 
-    <!-- ─── MANAGE RESERVATIONS ───────────────────── -->
-    <div class="page" id="page-manage_reservations">
-        <div class="topbar">
-            <h1>Manage Reservation Types</h1>
-            <div style="display:flex;align-items:center;gap:20px;">
-                <button class="refresh-btn" onclick="loadReservationTypes()">🔄 Refresh</button>
-                <button class="add-type-btn" onclick="openAddReservationModal()">+ Add New Type</button>
-                <div class="admin-info">
-                    <div class="admin-avatar">👤</div>
-                    <div class="admin-text">admin <span>Admin</span></div>
+        <!-- ─── REGISTERED ACCOUNTS ───────────────────── -->
+        <div class="page" id="page-accounts">
+            <div class="topbar">
+                <h1>Registered Accounts</h1>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div class="search-bar">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" placeholder="Search accounts…"
+                            oninput="filterTable('accountsTbody', this.value)">
+                    </div>
+                    <button class="refresh-btn" onclick="loadUsers()">🔄 Refresh</button>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body">
+                <div class="table-panel">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Contacts</th>
+                                    <th>Membership</th>
+                                    <th>Expiration</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accountsTbody">
+                                <tr>
+                                    <td colspan="6" style="text-align:center;padding:32px;color:var(--c-text-muted);">
+                                        Loading…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="page-body">
-            <div class="reservation-cards" id="reservationCards">
-                <div class="empty-state">Loading reservation types...</div>
+
+        <!-- ─── PAYMENTS ──────────────────────────────── -->
+        <div class="page" id="page-payments">
+            <div class="topbar">
+                <h1>Payments</h1>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div class="search-bar">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" placeholder="Search payments…"
+                            oninput="filterTable('paymentsTbody', this.value)">
+                    </div>
+                    <button class="refresh-btn" onclick="loadPayments()">🔄 Refresh</button>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body">
+                <div class="table-panel">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Method</th>
+                                    <th>Account #</th>
+                                    <th>Amount</th>
+                                    <th>Processed</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTbody">
+                                <tr>
+                                    <td colspan="9" style="text-align:center;padding:32px;color:var(--c-text-muted);">
+                                        Loading…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div><!-- end .main -->
 
+        <!-- ─── MESSAGES ───────────────────────────────── -->
+        <div class="page" id="page-messages">
+            <div class="topbar">
+                <h1>Customer Service</h1>
+                <div class="admin-info">
+                    <div class="admin-avatar">👤</div>
+                    <div class="admin-text">Admin <span>Administrator</span></div>
+                </div>
+            </div>
+            <div class="page-body" style="padding-bottom:0;display:flex;flex-direction:column;flex:1;">
+                <div class="msg-layout" style="flex:1;">
+                    <div class="msg-sidebar" id="msgSidebar">
+                        <div class="msg-sidebar-header">Conversations</div>
+                        <div class="msg-contacts-list" id="msgContactsList">
+                            <div style="padding:20px;text-align:center;color:rgba(255,255,255,.4);font-size:13px;">
+                                Loading…</div>
+                        </div>
+                    </div>
+                    <div class="msg-window">
+                        <div class="msg-window-header" id="msgWindowHeader">Select a conversation</div>
+                        <div class="msg-body" id="msgBody">
+                            <div style="text-align:center;color:var(--c-text-muted);padding:48px;font-size:13px;">Select
+                                a message to start responding</div>
+                        </div>
+                        <div class="msg-footer">
+                            <input type="text" class="msg-input" id="adminMsgInput" placeholder="Type a message…">
+                            <button class="send-btn" onclick="adminSendMsg()">➤</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<!-- ═══════════════════════════════════════════════
+        <!-- ─── MANAGE RESERVATIONS ───────────────────── -->
+        <div class="page" id="page-manage_reservations">
+            <div class="topbar">
+                <h1>Manage Reservation Types</h1>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button class="refresh-btn" onclick="loadReservationTypes()">🔄 Refresh</button>
+                    <button class="add-type-btn" onclick="openAddReservationModal()">+ Add New Type</button>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body">
+                <div class="reservation-cards" id="reservationCards">
+                    <div class="empty-state">Loading reservation types…</div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end .main -->
+
+    <!-- ═══════════════════════════════════════════════
      MODALS
 ═══════════════════════════════════════════════ -->
 
-<!-- Remove User Modal -->
-<div class="modal-overlay" id="removeModal">
-    <div class="modal-card">
-        <div class="modal-icon">⛳</div>
-        <hr>
-        <p>Are you sure you want to remove this user?</p>
-        <div class="modal-btns">
-            <button class="btn-confirm-modal" onclick="confirmRemove()">Confirm</button>
-            <button class="btn-cancel-modal" onclick="closeModal('removeModal')">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<!-- Refund Confirm Modal -->
-<div class="modal-overlay" id="refundConfirmModal">
-    <div class="modal-card">
-        <div class="modal-icon">⛳</div>
-        <hr>
-        <p id="refundConfirmText">Make a refund for this user?<br>Refund will be made through original payment method.</p>
-        <div class="modal-btns">
-            <button class="btn-confirm-modal" onclick="openRefundReasons()">Confirm</button>
-            <button class="btn-cancel-modal" onclick="closeModal('refundConfirmModal')">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<!-- Refund Reasons Modal -->
-<div class="modal-overlay" id="refundReasonsModal">
-    <div class="refund-modal">
-        <div class="refund-header">
-            <h3 id="refundReasonTitle">Make a refund</h3>
-            <div class="refund-admin">
-                <div class="refund-admin-av"></div>
-                <div class="refund-admin-txt">admin<br><span style="color:#aaa;">Administrator</span></div>
-            </div>
-        </div>
-        <div class="refund-body">
-            <h4>Reason for Refund</h4>
-            <div class="refund-option"><input type="checkbox" id="reason1"> <label for="reason1">Unavailability</label></div>
-            <div class="refund-option"><input type="checkbox" id="reason2"> <label for="reason2">Poor Service</label></div>
-            <div class="refund-option"><input type="checkbox" id="reason3"> <label for="reason3">Email not received</label></div>
-            <div class="refund-option"><input type="checkbox" id="reason4"> <label for="reason4">Membership Cancellation</label></div>
-            <div class="refund-option"><input type="checkbox" id="reason5"> <label for="reason5">Reservation Cancellation</label></div>
-            <div class="refund-option"><input type="checkbox" id="reasonOther"> <label for="reasonOther">Other: <input type="text" class="refund-other-input" id="otherReason" placeholder="Specify reason"></label></div>
-            <button class="btn-refund-confirm" onclick="processRefund()">Confirm Refund</button>
-        </div>
-    </div>
-</div>
-
-<!-- Admin Reservation Detail Modal -->
-<div class="modal-overlay" id="resDetailModal">
-    <div class="res-detail-modal" style="width: 550px; max-width: 90%;">
-        <div class="res-detail-header" id="resDetailDate">Select a date</div>
-        <div class="res-detail-body" style="max-height: 70vh; overflow-y: auto; padding: 20px;">
-            <div style="text-align:center; padding:40px; color:#888;">
-                Click on a date to see reservations
+    <!-- Remove User -->
+    <div class="modal-overlay" id="removeModal">
+        <div class="modal-card">
+            <div class="modal-icon">⛳</div>
+            <hr>
+            <p>Are you sure you want to remove this user?</p>
+            <div class="modal-btns">
+                <button class="btn-confirm-modal" onclick="confirmRemove()">Confirm</button>
+                <button class="btn-cancel-modal" onclick="closeModal('removeModal')">Cancel</button>
             </div>
         </div>
     </div>
-</div>
 
-<script src="../js/admin.js"></script>
-
-<div class="modal-overlay" id="validatePaymentModal">
-    <div class="validate-modal">
-        <div class="validate-modal-header">
-            <h3>🔍 Verify Payment Application</h3>
-            <button class="close-modal-btn" onclick="closeValidateModal()">&times;</button>
-        </div>
-        <div class="validate-modal-body" id="validateModalBody">
-            <div class="loading-spinner">Loading application details...</div>
+    <!-- Refund Confirm -->
+    <div class="modal-overlay" id="refundConfirmModal">
+        <div class="modal-card">
+            <div class="modal-icon">⛳</div>
+            <hr>
+            <p id="refundConfirmText">Make a refund for this user?<br>Refund will be made through original payment
+                method.</p>
+            <div class="modal-btns">
+                <button class="btn-confirm-modal" onclick="openRefundReasons()">Confirm</button>
+                <button class="btn-cancel-modal" onclick="closeModal('refundConfirmModal')">Cancel</button>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="reservation-modal" id="reservationModal">
-    <div class="reservation-modal-content">
-        <div class="reservation-modal-header">
-            <h2 id="modalTitle">Add Reservation Type</h2>
-            <button class="close-modal-btn" onclick="closeReservationModal()">&times;</button>
-        </div>
-        <div class="reservation-modal-body">
-            <form id="reservationForm" onsubmit="saveReservationType(event)">
-                <input type="hidden" id="typeId">
-                
-                <div class="form-group">
-                    <label>Name *</label>
-                    <input type="text" id="typeName" required placeholder="e.g., Tee Time, Driving Range">
+    <!-- Refund Reasons -->
+    <div class="modal-overlay" id="refundReasonsModal">
+        <div class="refund-modal">
+            <div class="refund-header">
+                <h3 id="refundReasonTitle">Make a refund</h3>
+                <div class="refund-admin">
+                    <div class="refund-admin-av"></div>
+                    <div class="refund-admin-txt">admin<br><span style="color:#aaa;">Administrator</span></div>
                 </div>
-                
-                <div class="form-row">
+            </div>
+            <div class="refund-body">
+                <h4>Reason for Refund</h4>
+                <div class="refund-option"><input type="checkbox" id="reason1"><label
+                        for="reason1">Unavailability</label></div>
+                <div class="refund-option"><input type="checkbox" id="reason2"><label for="reason2">Poor Service</label>
+                </div>
+                <div class="refund-option"><input type="checkbox" id="reason3"><label for="reason3">Email not
+                        received</label></div>
+                <div class="refund-option"><input type="checkbox" id="reason4"><label for="reason4">Membership
+                        Cancellation</label></div>
+                <div class="refund-option"><input type="checkbox" id="reason5"><label for="reason5">Reservation
+                        Cancellation</label></div>
+                <div class="refund-option">
+                    <input type="checkbox" id="reasonOther">
+                    <label for="reasonOther">Other: <input type="text" class="refund-other-input" id="otherReason"
+                            placeholder="Specify reason"></label>
+                </div>
+                <button class="btn-refund-confirm" onclick="processRefund()">Confirm Refund</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reservation Detail -->
+    <div class="modal-overlay" id="resDetailModal">
+        <div class="res-detail-modal" style="width:560px;max-width:94%;">
+            <div class="res-detail-header" id="resDetailDate">Select a date</div>
+            <div class="res-detail-body" style="max-height:70vh;overflow-y:auto;padding:20px;">
+                <div style="text-align:center;padding:40px;color:var(--c-text-muted);">Click on a date to see
+                    reservations</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Validate Payment -->
+    <div class="modal-overlay" id="validatePaymentModal">
+        <div class="validate-modal">
+            <div class="validate-modal-header">
+                <h3>🔍 Verify Payment Application</h3>
+                <button class="close-modal-btn" onclick="closeValidateModal()">&times;</button>
+            </div>
+            <div class="validate-modal-body" id="validateModalBody">
+                <div class="loading-spinner">Loading application details…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add / Edit Reservation Type -->
+    <div class="reservation-modal" id="reservationModal">
+        <div class="reservation-modal-content">
+            <div class="reservation-modal-header">
+                <h2 id="modalTitle">Add Reservation Type</h2>
+                <button class="close-modal-btn" onclick="closeReservationModal()">&times;</button>
+            </div>
+            <div class="reservation-modal-body">
+                <form id="reservationForm" onsubmit="saveReservationType(event)">
+                    <input type="hidden" id="typeId">
                     <div class="form-group">
-                        <label>Category *</label>
-                        <select id="typeCategory" required>
-                            <option value="golf">Golf</option>
-                            <option value="amenities">Amenities</option>
-                            <option value="events">Events</option>
-                            <option value="accommodation">Accommodation</option>
-                            <option value="premium">Premium</option>
-                        </select>
+                        <label>Name *</label>
+                        <input type="text" id="typeName" required placeholder="e.g., Tee Time, Driving Range">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Category *</label>
+                            <select id="typeCategory" required>
+                                <option value="golf">Golf</option>
+                                <option value="amenities">Amenities</option>
+                                <option value="events">Events</option>
+                                <option value="accommodation">Accommodation</option>
+                                <option value="premium">Premium</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Icon (emoji)</label>
+                            <input type="text" id="typeIcon" placeholder="🏌️">
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Icon (emoji)</label>
-                        <input type="text" id="typeIcon" placeholder="🏌️">
+                        <label>Description</label>
+                        <textarea id="typeDescription" rows="2"
+                            placeholder="Describe this reservation type…"></textarea>
                     </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="typeDescription" rows="2" placeholder="Describe this reservation type..."></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label>Base Price (₱) *</label>
-                    <input type="number" id="typeBasePrice" required placeholder="0">
-                </div>
-                
-                <div class="form-group">
-                    <label>Time Slots (comma separated)</label>
-                    <input type="text" id="typeTimeSlots" placeholder="6:00 AM, 7:00 AM, 8:00 AM">
-                    <small>Example: 6:00 AM, 7:00 AM, 8:00 AM</small>
-                </div>
-                
-                <div class="form-group">
-                    <label>Default Capacity per Slot</label>
-                    <input type="number" id="typeCapacity" value="10">
-                </div>
-                
-                <div class="modal-buttons">
-                    <button type="submit" class="btn-save">Save</button>
-                    <button type="button" class="btn-cancel" onclick="closeReservationModal()">Cancel</button>
-                </div>
-            </form>
+                    <div class="form-group">
+                        <label>Base Price (₱) *</label>
+                        <input type="number" id="typeBasePrice" required placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Time Slots (comma separated)</label>
+                        <input type="text" id="typeTimeSlots" placeholder="6:00 AM, 7:00 AM, 8:00 AM">
+                        <small style="color:var(--c-text-muted);font-size:11px;">Example: 6:00 AM, 7:00 AM, 8:00
+                            AM</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Default Capacity per Slot</label>
+                        <input type="number" id="typeCapacity" value="10">
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="submit" class="btn-save">Save</button>
+                        <button type="button" class="btn-cancel" onclick="closeReservationModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Add Time Slot Modal -->
-<div class="reservation-modal" id="timeSlotModal">
-    <div class="reservation-modal-content">
-        <div class="reservation-modal-header">
-            <h2>Add Time Slot</h2>
-            <button class="close-modal-btn" onclick="closeTimeSlotModal()">&times;</button>
-        </div>
-        <div class="reservation-modal-body">
-            <form id="timeSlotForm" onsubmit="addTimeSlot(event)">
-                <input type="hidden" id="slotTypeId">
-                
-                <div class="form-group">
-                    <label>Time *</label>
-                    <input type="text" id="slotTime" required placeholder="9:00 AM">
-                </div>
-                
-                <div class="form-group">
-                    <label>Capacity *</label>
-                    <input type="number" id="slotCapacity" required value="10">
-                </div>
-                
-                <div class="modal-buttons">
-                    <button type="submit" class="btn-save">Add Slot</button>
-                    <button type="button" class="btn-cancel" onclick="closeTimeSlotModal()">Cancel</button>
-                </div>
-            </form>
+    <!-- Add Time Slot -->
+    <div class="reservation-modal" id="timeSlotModal">
+        <div class="reservation-modal-content">
+            <div class="reservation-modal-header">
+                <h2>Add Time Slot</h2>
+                <button class="close-modal-btn" onclick="closeTimeSlotModal()">&times;</button>
+            </div>
+            <div class="reservation-modal-body">
+                <form id="timeSlotForm" onsubmit="addTimeSlot(event)">
+                    <input type="hidden" id="slotTypeId">
+                    <div class="form-group">
+                        <label>Time *</label>
+                        <input type="text" id="slotTime" required placeholder="9:00 AM">
+                    </div>
+                    <div class="form-group">
+                        <label>Capacity *</label>
+                        <input type="number" id="slotCapacity" required value="10">
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="submit" class="btn-save">Add Slot</button>
+                        <button type="button" class="btn-cancel" onclick="closeTimeSlotModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
+    <script src="../js/admin.js"></script>
+    <script>
+        /* ─────────────────────────────────────────────────
+           Chart.js instances
+        ───────────────────────────────────────────────── */
+        let lineChartInstance = null;
+        let doughnutChartInstance = null;
+
+        /**
+         * Renders the Enrollment Trends line chart.
+         * Called by admin.js after payment data is fetched.
+         * Replaces the old renderFinancialChart() bar chart.
+         */
+        function renderFinancialChart(months, membershipData, reservationData) {
+            // Update the old plain-HTML chart container (kept for compatibility)
+            const legacyContainer = document.getElementById('financialChart');
+            if (legacyContainer) legacyContainer.innerHTML = '';
+
+            const canvas = document.getElementById('enrollmentLineChart');
+            if (!canvas) return;
+
+            if (lineChartInstance) lineChartInstance.destroy();
+
+            lineChartInstance = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'Membership',
+                            data: membershipData,
+                            borderColor: '#0d2b0f',
+                            backgroundColor: 'rgba(13,43,15,.08)',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#0d2b0f',
+                            pointRadius: 4,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Reservations',
+                            data: reservationData,
+                            borderColor: '#6b7e5f',
+                            backgroundColor: 'rgba(107,126,95,.08)',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#6b7e5f',
+                            pointRadius: 4,
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0d2b0f',
+                            titleColor: '#d4b36a',
+                            bodyColor: '#fff',
+                            padding: 12,
+                            callbacks: {
+                                label: ctx => ` ₱${ctx.parsed.y.toLocaleString()}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 12 }, color: '#64748b' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(0,0,0,.05)' },
+                            ticks: {
+                                font: { size: 11 },
+                                color: '#64748b',
+                                callback: v => '₱' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v)
+                            }
+                        }
+                    }
+                }
+            });
+
+            /* ── Update revenue stat card ── */
+            const total = [...membershipData, ...reservationData].reduce((a, b) => a + b, 0);
+            const el = document.getElementById('statRevenue');
+            if (el) el.textContent = '₱' + (total >= 1000000
+                ? (total / 1000000).toFixed(1) + 'M'
+                : total >= 1000 ? (total / 1000).toFixed(0) + 'k'
+                    : total.toLocaleString());
+        }
+
+        /**
+         * Renders the Membership Types doughnut chart.
+         * Derives data from the users array loaded by admin.js.
+         */
+        function renderMembershipDoughnut(users) {
+            const canvas = document.getElementById('membershipDoughnutChart');
+            if (!canvas) return;
+
+            /* Count by membership status as a proxy for "type" */
+            const counts = { Active: 0, Pending: 0, Expired: 0, None: 0 };
+            (users || []).forEach(u => {
+                const s = (u.membershipStatus || 'none').toLowerCase();
+                if (s === 'active') counts.Active++;
+                else if (s === 'pending') counts.Pending++;
+                else if (s === 'expired') counts.Expired++;
+                else counts.None++;
+            });
+
+            const labels = Object.keys(counts);
+            const data = Object.values(counts);
+            const total = data.reduce((a, b) => a + b, 0);
+            const colors = ['#0d2b0f', '#d4b36a', '#9c403d', '#6b7e5f'];
+
+            const totalEl = document.getElementById('doughnutTotal');
+            if (totalEl) totalEl.textContent = total;
+
+            /* Legend */
+            const legendEl = document.getElementById('doughnutLegend');
+            if (legendEl) {
+                legendEl.innerHTML = labels.map((l, i) =>
+                    `<span class="legend-dot" style="--dot-color:${colors[i]};">${l} (${data[i]})</span>`
+                ).join('');
+            }
+
+            if (doughnutChartInstance) doughnutChartInstance.destroy();
+
+            doughnutChartInstance = new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor: colors,
+                        borderWidth: 3,
+                        borderColor: '#fff',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '68%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#0d2b0f',
+                            titleColor: '#d4b36a',
+                            bodyColor: '#fff',
+                            padding: 10,
+                            callbacks: {
+                                label: ctx => ` ${ctx.label}: ${ctx.parsed} (${total ? ((ctx.parsed / total) * 100).toFixed(1) : 0}%)`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /* ─────────────────────────────────────────────────
+           Patch loadDashboardStats to populate hero cards
+           and trigger the doughnut chart
+        ───────────────────────────────────────────────── */
+        const _origLoadDashboardStats = window.loadDashboardStats;
+        window.loadDashboardStats = async function () {
+            if (_origLoadDashboardStats) await _origLoadDashboardStats();
+
+            /* Populate hero cards from the API */
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) return;
+
+                /* Members count */
+                const usersRes = await fetch(
+                    'https://ilisy-golf-and-country-club-enrollment.onrender.com/api/admin/users',
+                    { headers: { Authorization: 'Bearer ' + token } }
+                );
+                if (usersRes.ok) {
+                    const users = await usersRes.json();
+                    const active = users.filter(u => (u.membershipStatus || '').toLowerCase() === 'active').length;
+                    const pending = users.filter(u => (u.membershipStatus || '').toLowerCase() === 'pending').length;
+
+                    const mEl = document.getElementById('statMembers');
+                    if (mEl) mEl.textContent = active;
+
+                    const pEl = document.getElementById('statPending');
+                    if (pEl) pEl.textContent = pending;
+
+                    const pLabel = document.getElementById('statPendingLabel');
+                    if (pLabel) {
+                        pLabel.textContent = pending > 0 ? 'Action required' : 'All clear';
+                        pLabel.className = 'hero-card-badge ' + (pending > 0 ? 'badge-warn' : 'badge-up');
+                    }
+
+                    /* Doughnut */
+                    renderMembershipDoughnut(users);
+                }
+
+                /* Utilization from reservation types */
+                const typesRes = await fetch(
+                    'https://ilisy-golf-and-country-club-enrollment.onrender.com/api/reservation-types/admin/all',
+                    { headers: { Authorization: 'Bearer ' + token } }
+                );
+                if (typesRes.ok) {
+                    const types = await typesRes.json();
+                    const totalCap = types.reduce((s, t) =>
+                        s + (t.timeSlots || []).reduce((ss, sl) => ss + (sl.capacity || 0), 0), 0);
+                    const utilEl = document.getElementById('statUtilization');
+                    if (utilEl) utilEl.textContent = totalCap > 0 ? totalCap + ' slots' : '—';
+                }
+
+                /* Pending count badge */
+                const pendRes = await fetch(
+                    'https://ilisy-golf-and-country-club-enrollment.onrender.com/api/admin/pending-applications',
+                    { headers: { Authorization: 'Bearer ' + token } }
+                );
+                if (pendRes.ok) {
+                    const apps = await pendRes.json();
+                    const badge = document.getElementById('pendingCountBadge');
+                    if (badge) badge.textContent = apps.length;
+                }
+
+            } catch (e) { console.warn('Hero card patch error:', e); }
+        };
+
+        /* ─────────────────────────────────────────────────
+           Patch loadMonthlySummary to update growth badges
+        ───────────────────────────────────────────────── */
+        const _origLoadMonthlySummary = window.loadMonthlySummary;
+        window.loadMonthlySummary = async function () {
+            if (_origLoadMonthlySummary) await _origLoadMonthlySummary();
+
+            /* The original function already sets financialReportTitle.
+               We mirror the % change into the hero card badge. */
+            const titleEl = document.getElementById('financialReportTitle');
+            if (titleEl) {
+                const match = titleEl.textContent.match(/([\d.]+)%/);
+                if (match) {
+                    const pct = parseFloat(match[1]);
+                    const isUp = titleEl.textContent.includes('↑');
+                    const badge = document.getElementById('statRevenueGrowth');
+                    if (badge) {
+                        badge.textContent = (isUp ? '↑ ' : '↓ ') + pct.toFixed(1) + '%';
+                        badge.className = 'hero-card-badge ' + (isUp ? 'badge-up' : 'badge-down');
+                    }
+                }
+            }
+        };
+    </script>
 </body>
+
 </html>

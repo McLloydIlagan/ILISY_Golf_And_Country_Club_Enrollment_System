@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,189 +13,456 @@
             --navbar-h: 65px;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Georgia", serif; }
-        html { scroll-behavior: smooth; }
-        body { color: white; overflow-x: hidden; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Georgia", serif;
+        }
 
-        section { scroll-margin-top: var(--navbar-h); }
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            color: white;
+            overflow-x: hidden;
+        }
+
+        section {
+            scroll-margin-top: var(--navbar-h);
+        }
 
         .navbar {
-            position: fixed; top: 0; left: 0; right: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
             height: var(--navbar-h);
             padding: 0 60px;
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             z-index: 9999;
             background: transparent;
             transition: background 0.4s ease, box-shadow 0.4s ease;
         }
+
         .navbar.scrolled {
             background: var(--deep-green);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             border-bottom: 2px solid var(--gold);
         }
-        .logo img { width: 55px; cursor: pointer; transition: transform 0.3s; }
-        .logo img:hover { transform: scale(1.05); }
 
-        .nav-links { display: flex; gap: 30px; align-items: center; }
-        .nav-links a {
-            text-decoration: none; color: white; font-size: 14px;
-            cursor: pointer; transition: color 0.3s, transform 0.2s;
-            position: relative; padding-bottom: 3px;
+        .logo img {
+            width: 55px;
+            cursor: pointer;
+            transition: transform 0.3s;
         }
+
+        .logo img:hover {
+            transform: scale(1.05);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.3s, transform 0.2s;
+            position: relative;
+            padding-bottom: 3px;
+        }
+
         .nav-links a::after {
-            content: ''; position: absolute; bottom: 0; left: 0;
-            width: 0; height: 1px; background: var(--gold);
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--gold);
             transition: width 0.3s;
         }
-        .nav-links a:hover { color: var(--gold); }
-        .nav-links a:hover::after { width: 100%; }
+
+        .nav-links a:hover {
+            color: var(--gold);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
 
         .sign-in-btn {
             border: 1px solid var(--gold) !important;
-            padding: 6px 22px; border-radius: 20px;
+            padding: 6px 22px;
+            border-radius: 20px;
             transition: all 0.3s !important;
             color: white !important;
         }
+
         .sign-in-btn:hover {
             background: var(--gold) !important;
             color: black !important;
             transform: scale(1.05) !important;
         }
-        .sign-in-btn::after { display: none !important; }
+
+        .sign-in-btn::after {
+            display: none !important;
+        }
 
         #home {
             height: 100vh;
             background: url('Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
             position: relative;
-            display: flex; align-items: center;
+            display: flex;
+            align-items: center;
         }
+
         #home::before {
-            content: ""; position: absolute; inset: 0;
-            background: rgba(0,0,0,0.45);
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
         }
+
         .hero-content {
-            position: relative; z-index: 2;
-            max-width: 600px; padding: 0 60px;
+            position: relative;
+            z-index: 2;
+            max-width: 600px;
+            padding: 0 60px;
         }
-        .hero-content h1 { font-size: 72px; line-height: 1.1; margin-bottom: 20px; }
-        .gold-line { width: 450px; height: 2px; background: var(--gold); margin: 20px 0; }
-        .hero-content p { font-size: 18px; line-height: 1.6; margin-bottom: 30px; color: #ddd; }
-        .hero-btns { display: flex; gap: 15px; }
+
+        .hero-content h1 {
+            font-size: 72px;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .gold-line {
+            width: 450px;
+            height: 2px;
+            background: var(--gold);
+            margin: 20px 0;
+        }
+
+        .hero-content p {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            color: #ddd;
+        }
+
+        .hero-btns {
+            display: flex;
+            gap: 15px;
+        }
 
         .btn {
-            padding: 12px 26px; border: none; cursor: pointer;
-            font-size: 14px; font-family: "Georgia", serif;
-            text-decoration: none; display: inline-block;
+            padding: 12px 26px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: "Georgia", serif;
+            text-decoration: none;
+            display: inline-block;
             transition: all 0.3s ease;
         }
-        .btn-primary { background: var(--gold); color: black; font-weight: bold; }
+
+        .btn-primary {
+            background: var(--gold);
+            color: black;
+            font-weight: bold;
+        }
+
         .btn-primary:hover {
-            background: var(--gold-light); transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(212,179,106,0.4);
+            background: var(--gold-light);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(212, 179, 106, 0.4);
         }
+
         .btn-outline {
-            border: 1px solid var(--gold); color: var(--gold); background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            background: transparent;
         }
-        .btn-outline:hover { background: var(--gold); color: black; transform: translateY(-3px); }
+
+        .btn-outline:hover {
+            background: var(--gold);
+            color: black;
+            transform: translateY(-3px);
+        }
 
         #login {
             height: 100vh;
             display: flex;
         }
-        .login-left {
-            width: 50%; background: var(--deep-green);
-            display: flex; justify-content: center; align-items: center;
-        }
-        .login-box {
-            width: 70%; max-width: 400px; text-align: center;
-        }
-        .login-box .logo-img { width: 60px; margin-bottom: 15px; }
-        .login-box h1 { font-size: 40px; color: var(--gold); letter-spacing: 2px; margin-bottom: 10px; }
-        .login-box .sub { font-size: 14px; margin-bottom: 25px; color: #a4966a; }
 
-        .login-box form { text-align: left; }
-        .login-box label { display: block; margin: 15px 0 5px; font-size: 14px; color: #d4c17c; }
+        .login-left {
+            width: 50%;
+            background: var(--deep-green);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-box {
+            width: 70%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-box .logo-img {
+            width: 60px;
+            margin-bottom: 15px;
+        }
+
+        .login-box h1 {
+            font-size: 40px;
+            color: var(--gold);
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .login-box .sub {
+            font-size: 14px;
+            margin-bottom: 25px;
+            color: #a4966a;
+        }
+
+        .login-box form {
+            text-align: left;
+        }
+
+        .login-box label {
+            display: block;
+            margin: 15px 0 5px;
+            font-size: 14px;
+            color: #d4c17c;
+        }
+
         .login-box input {
-            width: 100%; padding: 12px; border: none; border-radius: 3px;
-            background: #d9d9d9; margin-bottom: 10px; font-family: "Georgia", serif;
-            outline: none; font-size: 14px;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 3px;
+            background: #d9d9d9;
+            margin-bottom: 10px;
+            font-family: "Georgia", serif;
+            outline: none;
+            font-size: 14px;
         }
+
         .login-box button:not(.pw-toggle) {
-            width: 100%; margin-top: 20px; padding: 12px;
-            background: #c5a96b; border: none; color: #000;
-            font-weight: bold; cursor: pointer; font-family: "Georgia", serif;
-            font-size: 14px; transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+            background: #c5a96b;
+            border: none;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: "Georgia", serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
         }
-        .login-box button:not(.pw-toggle):hover:not(:disabled) { background: var(--gold-light); transform: translateY(-2px); }
-        .login-box button:not(.pw-toggle):disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .login-box button:not(.pw-toggle):hover:not(:disabled) {
+            background: var(--gold-light);
+            transform: translateY(-2px);
+        }
+
+        .login-box button:not(.pw-toggle):disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
         .divider {
-            margin: 22px 0; display: flex; align-items: center; color: #c5a96b;
+            margin: 22px 0;
+            display: flex;
+            align-items: center;
+            color: #c5a96b;
         }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #c5a96b; }
-        .divider span { margin: 0 10px; font-size: 13px; }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #c5a96b;
+        }
+
+        .divider span {
+            margin: 0 10px;
+            font-size: 13px;
+        }
 
         .google-btn {
-            width: 100%; padding: 12px;
-            background: transparent; border: 1px solid #c5a96b;
-            color: #c5a96b; cursor: pointer; font-family: "Georgia", serif;
-            font-size: 14px; transition: all 0.3s;
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid #c5a96b;
+            color: #c5a96b;
+            cursor: pointer;
+            font-family: "Georgia", serif;
+            font-size: 14px;
+            transition: all 0.3s;
         }
-        .google-btn:hover { background: rgba(197,169,107,0.12); }
 
-        .signup-link { margin-top: 22px; font-size: 13px; color: white; }
+        .google-btn:hover {
+            background: rgba(197, 169, 107, 0.12);
+        }
+
+        .signup-link {
+            margin-top: 22px;
+            font-size: 13px;
+            color: white;
+        }
+
         .signup-link a {
-            color: #c5a96b; text-decoration: none; font-weight: bold;
+            color: #c5a96b;
+            text-decoration: none;
+            font-weight: bold;
             cursor: pointer;
         }
-        .signup-link a:hover { text-decoration: underline; }
+
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
 
         .login-right {
             width: 50%;
             background: url('Golfcourse_assets/golf_register_pic.jpg') no-repeat center/cover;
             position: relative;
         }
+
         .login-right nav {
-            position: absolute; top: 20px; right: 40px;
+            position: absolute;
+            top: 20px;
+            right: 40px;
         }
+
         .login-right nav a {
-            color: white; margin-left: 28px; text-decoration: none;
-            font-size: 14px; cursor: pointer; transition: color 0.3s;
+            color: white;
+            margin-left: 28px;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.3s;
         }
-        .login-right nav a:hover { color: var(--gold); }
+
+        .login-right nav a:hover {
+            color: var(--gold);
+        }
 
         #register {
             min-height: 100vh;
             background: url('Golfcourse_assets/golfcourse_bg.jpg') no-repeat center/cover;
             position: relative;
-            display: flex; justify-content: center; align-items: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        #register::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.65); }
-        .membership-ad-content { position: relative; z-index: 2; text-align: center; max-width: 860px; padding: 80px 60px; }
-        .membership-ad-eyebrow { font-size: 12px; letter-spacing: 4px; color: var(--gold); text-transform: uppercase; margin-bottom: 14px; }
-        .membership-ad-content h2 { font-size: 48px; line-height: 1.2; color: white; margin-bottom: 10px; }
-        .membership-ad-sub { font-size: 16px; color: #ccc; margin-bottom: 40px; }
-        .membership-perks {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
-            margin-bottom: 40px; text-align: left;
-        }
-        .perk-item {
-            display: flex; align-items: center; gap: 12px;
-            background: rgba(255,255,255,0.07); border: 1px solid rgba(212,179,106,0.25);
-            padding: 16px; border-radius: 8px; font-size: 14px; color: #ddd;
-        }
-        .perk-icon { font-size: 22px; flex-shrink: 0; }
 
-        .pw-wrap { position: relative; display: block; }
-        .pw-wrap input { padding-right: 40px; width: 100%; }
-        .login-box .pw-wrap input { margin-bottom: 10px; }
-        .pw-toggle {
-            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-            background: none; border: none; cursor: pointer;
-            font-size: 16px; padding: 0; line-height: 1; color: #666;
-            width: auto; margin: 0;
+        #register::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
         }
-        .login-box .pw-toggle { top: calc(50% - 5px); }
+
+        .membership-ad-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            max-width: 860px;
+            padding: 80px 60px;
+        }
+
+        .membership-ad-eyebrow {
+            font-size: 12px;
+            letter-spacing: 4px;
+            color: var(--gold);
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .membership-ad-content h2 {
+            font-size: 48px;
+            line-height: 1.2;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .membership-ad-sub {
+            font-size: 16px;
+            color: #ccc;
+            margin-bottom: 40px;
+        }
+
+        .membership-perks {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+            text-align: left;
+        }
+
+        .perk-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(212, 179, 106, 0.25);
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #ddd;
+        }
+
+        .perk-icon {
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .pw-wrap {
+            position: relative;
+            display: block;
+        }
+
+        .pw-wrap input {
+            padding-right: 40px;
+            width: 100%;
+        }
+
+        .login-box .pw-wrap input {
+            margin-bottom: 10px;
+        }
+
+        .pw-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            line-height: 1;
+            color: #666;
+            width: auto;
+            margin: 0;
+        }
+
+        .login-box .pw-toggle {
+            top: calc(50% - 5px);
+        }
 
         .captcha-container {
             display: flex;
@@ -202,6 +470,7 @@
             align-items: center;
             margin-top: 5px;
         }
+
         .captcha-code {
             background: #2a5a2a;
             color: var(--gold);
@@ -214,6 +483,7 @@
             text-align: center;
             flex: 1;
         }
+
         .refresh-captcha {
             background: var(--gold);
             border: none;
@@ -223,7 +493,10 @@
             font-size: 16px;
             transition: transform 0.2s;
         }
-        .refresh-captcha:hover { transform: rotate(15deg); }
+
+        .refresh-captcha:hover {
+            transform: rotate(15deg);
+        }
 
         .error-msg {
             color: #ff9999;
@@ -234,114 +507,483 @@
 
         /* Register Modal */
         .reg-modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
-            display: none; justify-content: center; align-items: center;
-            z-index: 10000; backdrop-filter: blur(3px);
-            overflow-y: auto; padding: 40px 20px;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(3px);
+            overflow-y: auto;
+            padding: 40px 20px;
         }
+
         .reg-card {
             position: relative;
-            background: rgba(13,43,15,0.97);
-            padding: 25px 35px; 
+            background: rgba(13, 43, 15, 0.97);
+            padding: 25px 35px;
             border-radius: 10px;
-            width: 100%; 
-            max-width: 600px; 
+            width: 100%;
+            max-width: 600px;
             border-top: 4px solid var(--gold);
             text-align: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
             margin: auto;
         }
-        .reg-card h2 { color: var(--gold); font-size: 26px; letter-spacing: 2px; margin-bottom: 8px; }
-        .reg-card .sub { font-size: 14px; margin-bottom: 15px; color: #ccc; } 
-        .reg-close-btn {
-            position: absolute; top: 14px; right: 18px;
-            background: none; border: none; color: #aaa;
-            font-size: 22px; cursor: pointer; line-height: 1;
+
+        .reg-card h2 {
+            color: var(--gold);
+            font-size: 26px;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
         }
-        .reg-close-btn:hover { color: white; }
-        
+
+        .reg-card .sub {
+            font-size: 14px;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+
+        .reg-close-btn {
+            position: absolute;
+            top: 14px;
+            right: 18px;
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 22px;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .reg-close-btn:hover {
+            color: white;
+        }
+
         .form-row {
             display: flex;
             gap: 15px;
         }
+
         .form-row .input-group {
-            flex: 1; 
+            flex: 1;
         }
 
-        .input-group { text-align: left; margin-bottom: 10px; } 
-        .input-group label { display: block; font-size: 12px; margin-bottom: 5px; color: var(--gold); }
+        .input-group {
+            text-align: left;
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: var(--gold);
+        }
+
         .input-group input {
-            width: 100%; padding: 8px 12px; border: none; 
-            background: #f0f0f0; border-radius: 3px; color: #000;
-            font-family: "Georgia", serif; font-size: 13px; outline: none;
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 3px;
+            color: #000;
+            font-family: "Georgia", serif;
+            font-size: 13px;
+            outline: none;
             transition: background 0.2s;
         }
-        .input-group input:focus { background: #e0e0e0; }
-        .reg-card .pw-wrap input { color: #000; }
+
+        .input-group input:focus {
+            background: #e0e0e0;
+        }
+
+        .reg-card .pw-wrap input {
+            color: #000;
+        }
+
         .btn-reg {
-            width: 100%; padding: 12px; background: var(--gold);
-            border: none; font-weight: bold; margin-top: 8px;
-            cursor: pointer; font-family: "Georgia", serif; font-size: 14px;
+            width: 100%;
+            padding: 12px;
+            background: var(--gold);
+            border: none;
+            font-weight: bold;
+            margin-top: 8px;
+            cursor: pointer;
+            font-family: "Georgia", serif;
+            font-size: 14px;
             transition: all 0.3s;
         }
-        .btn-reg:hover:not(:disabled) { background: var(--gold-light); transform: translateY(-2px); }
-        .btn-reg:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-google-reg {
-            width: 100%; padding: 12px;
-            background: transparent; border: 1px solid #c5a96b;
-            color: #c5a96b; cursor: pointer; font-family: "Georgia", serif;
-            font-size: 14px; transition: all 0.3s; margin-top: 8px;
-        }
-        .btn-google-reg:hover { background: rgba(197,169,107,0.1); }
-        .reg-divider {
-            margin: 18px 0; display: flex; align-items: center; color: #c5a96b;
-        }
-        .reg-divider::before, .reg-divider::after { content: ''; flex: 1; border-bottom: 1px solid #c5a96b; }
-        .reg-divider span { margin: 0 10px; font-size: 13px; }
-        .terms-row {
-            display: flex; align-items: flex-start; gap: 10px;
-            margin: 14px 0 6px; text-align: left;
-        }
-        .terms-row input[type="checkbox"] { accent-color: var(--gold); margin-top: 2px; flex-shrink: 0; }
-        .terms-row label { font-size: 12px; color: #ccc; }
-        .terms-row label a { color: var(--gold); text-decoration: none; cursor: pointer; }
-        .terms-row label a:hover { text-decoration: underline; }
-        .footer-link { margin-top: 18px; font-size: 13px; color: #ccc; }
-        .footer-link a { color: var(--gold); text-decoration: none; cursor: pointer; }
-        .footer-link a:hover { text-decoration: underline; }
 
-        #about, #contacts {
+        .btn-reg:hover:not(:disabled) {
+            background: var(--gold-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-reg:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-google-reg {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid #c5a96b;
+            color: #c5a96b;
+            cursor: pointer;
+            font-family: "Georgia", serif;
+            font-size: 14px;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+
+        .btn-google-reg:hover {
+            background: rgba(197, 169, 107, 0.1);
+        }
+
+        .reg-divider {
+            margin: 18px 0;
+            display: flex;
+            align-items: center;
+            color: #c5a96b;
+        }
+
+        .reg-divider::before,
+        .reg-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #c5a96b;
+        }
+
+        .reg-divider span {
+            margin: 0 10px;
+            font-size: 13px;
+        }
+
+        .terms-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 14px 0 6px;
+            text-align: left;
+        }
+
+        .terms-row input[type="checkbox"] {
+            accent-color: var(--gold);
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .terms-row label {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .terms-row label a {
+            color: var(--gold);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .terms-row label a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-link {
+            margin-top: 18px;
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .footer-link a {
+            color: var(--gold);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
+
+        #about,
+        #contacts {
             min-height: 60vh;
             background: var(--deep-green);
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            text-align: center; padding: 80px 60px;
-            border-top: 2px solid rgba(212,179,106,0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 80px 60px;
+            border-top: 2px solid rgba(212, 179, 106, 0.2);
         }
-        #about h2, #contacts h2 { font-size: 36px; color: var(--gold); margin-bottom: 18px; }
-        #about p, #contacts p { font-size: 16px; color: #ccc; max-width: 560px; line-height: 1.8; }
-        #contacts .contact-info { margin-top: 28px; font-size: 15px; color: #d4c17c; line-height: 2.2; }
+
+        #about h2,
+        #contacts h2 {
+            font-size: 36px;
+            color: var(--gold);
+            margin-bottom: 18px;
+        }
+
+        #about p,
+        #contacts p {
+            font-size: 16px;
+            color: #ccc;
+            max-width: 560px;
+            line-height: 1.8;
+        }
+
+        #contacts .contact-info {
+            margin-top: 28px;
+            font-size: 15px;
+            color: #d4c17c;
+            line-height: 2.2;
+        }
 
         .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
-            display: none; justify-content: center; align-items: center;
-            z-index: 10001; backdrop-filter: blur(3px);
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+            backdrop-filter: blur(3px);
         }
+
         .modal-box {
-            background: var(--deep-green); color: white;
-            border-radius: 10px; padding: 40px; max-width: 500px; width: 90%;
+            background: var(--deep-green);
+            color: white;
+            border-radius: 10px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
             border-top: 4px solid var(--gold);
         }
-        .modal-box h3 { color: var(--gold); font-size: 20px; margin-bottom: 16px; }
-        .modal-box p { font-size: 13px; line-height: 1.9; color: #ccc; }
-        .modal-close {
-            margin-top: 24px; padding: 10px 30px;
-            background: var(--gold); border: none; color: black;
-            cursor: pointer; border-radius: 4px;
-            font-family: "Georgia", serif; font-size: 14px;
-            transition: background 0.2s; display: block; margin-left: auto;
+
+        .modal-box h3 {
+            color: var(--gold);
+            font-size: 20px;
+            margin-bottom: 16px;
         }
-        .modal-close:hover { background: var(--gold-light); }
+
+        .modal-box p {
+            font-size: 13px;
+            line-height: 1.9;
+            color: #ccc;
+        }
+
+        .modal-close {
+            margin-top: 24px;
+            padding: 10px 30px;
+            background: var(--gold);
+            border: none;
+            color: black;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: "Georgia", serif;
+            font-size: 14px;
+            transition: background 0.2s;
+            display: block;
+            margin-left: auto;
+        }
+
+        .modal-close:hover {
+            background: var(--gold-light);
+        }
+
+        /* =============================================
+           RESPONSIVE — index.html
+        ============================================= */
+
+        /* Hamburger button */
+        .nav-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 4px;
+            z-index: 10000;
+        }
+
+        .nav-toggle span {
+            display: block;
+            width: 24px;
+            height: 2px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        @media (max-width: 900px) {
+            .navbar {
+                padding: 0 24px;
+            }
+
+            .nav-toggle {
+                display: flex;
+            }
+
+            .nav-links {
+                position: fixed;
+                top: var(--navbar-h);
+                left: 0;
+                right: 0;
+                background: var(--deep-green);
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0;
+                padding: 0;
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.35s ease, border-bottom 0.35s;
+                border-bottom: 0px solid var(--gold);
+            }
+
+            .nav-links.open {
+                max-height: 400px;
+                border-bottom: 2px solid var(--gold);
+            }
+
+            .nav-links a {
+                width: 100%;
+                padding: 14px 24px;
+                font-size: 15px;
+                border-bottom: 1px solid rgba(212, 179, 106, 0.15);
+            }
+
+            .nav-links a::after {
+                display: none;
+            }
+
+            .sign-in-btn {
+                margin: 10px 24px 14px !important;
+                width: calc(100% - 48px) !important;
+                text-align: center !important;
+                border-radius: 4px !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-content {
+                padding: 0 24px;
+            }
+
+            .hero-content h1 {
+                font-size: clamp(36px, 9vw, 60px);
+            }
+
+            .gold-line {
+                width: 100%;
+                max-width: 320px;
+            }
+
+            .hero-content p {
+                font-size: 15px;
+            }
+
+            .hero-btns {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            #login {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+            }
+
+            .login-left {
+                width: 100%;
+                padding: 50px 0 40px;
+            }
+
+            .login-right {
+                width: 100%;
+                height: 220px;
+            }
+
+            .login-box {
+                width: 88%;
+            }
+
+            .login-box h1 {
+                font-size: 30px;
+            }
+
+            .membership-ad-content {
+                padding: 60px 24px;
+            }
+
+            .membership-ad-content h2 {
+                font-size: clamp(26px, 6vw, 40px);
+            }
+
+            .membership-perks {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+
+            #about,
+            #contacts {
+                padding: 60px 24px;
+            }
+
+            #about h2,
+            #contacts h2 {
+                font-size: 28px;
+            }
+
+            #about p,
+            #contacts p {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .membership-perks {
+                grid-template-columns: 1fr;
+            }
+
+            .login-right {
+                height: 160px;
+            }
+        }
+
+        /* Register modal responsive */
+        @media (max-width: 640px) {
+            .reg-card {
+                padding: 20px 18px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .reg-card h2 {
+                font-size: 22px;
+            }
+
+            .captcha-container {
+                flex-wrap: wrap;
+            }
+
+            .captcha-container input {
+                margin-left: 0 !important;
+                margin-top: 8px;
+                width: 100%;
+            }
+        }
 
         /* Toast notification */
         .toast {
@@ -355,800 +997,850 @@
             border-left: 4px solid var(--gold);
             z-index: 10001;
             animation: slideIn 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
-        .toast.error { border-left-color: #9c403d; }
-        .toast.success { border-left-color: #4caf50; }
+
+        .toast.error {
+            border-left-color: #9c403d;
+        }
+
+        .toast.success {
+            border-left-color: #4caf50;
+        }
+
         @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
     </style>
 </head>
+
 <body>
 
-<nav class="navbar" id="mainNav">
-    <div class="logo" onclick="goTo('home')">
-        <img src="Golfcourse_assets/colored logo.png" alt="ILISY Logo">
-    </div>
-    <div class="nav-links">
-        <a onclick="goTo('home')">Home</a>
-        <a onclick="goTo('about')">About Us</a>
-        <a onclick="goTo('contacts')">Contacts</a>
-        <a onclick="goTo('register')">Membership</a>
-        <a onclick="goTo('login')" class="sign-in-btn">Sign In</a>
-    </div>
-</nav>
+    <nav class="navbar" id="mainNav">
+        <div class="logo" onclick="goTo('home')">
+            <img src="Golfcourse_assets/colored logo.png" alt="ILISY Logo">
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" onclick="toggleNav()">
+            <span></span><span></span><span></span>
+        </button>
+        <div class="nav-links" id="navLinks">
+            <a onclick="goTo('home'); closeNav()">Home</a>
+            <a onclick="goTo('about'); closeNav()">About Us</a>
+            <a onclick="goTo('contacts'); closeNav()">Contacts</a>
+            <a onclick="goTo('register'); closeNav()">Membership</a>
+            <a onclick="goTo('login'); closeNav()" class="sign-in-btn">Sign In</a>
+        </div>
+    </nav>
 
-<div class="modal-overlay" id="termsModal">
-    <div class="modal-box">
-        <h3>Terms &amp; Conditions</h3>
-        <p>By registering, you agree to abide by the rules and regulations of ILISY Golf and Country Club. Membership is subject to approval. All fees are non-refundable unless otherwise stated. Members must conduct themselves with decorum at all times on club premises. ILISY reserves the right to revoke membership for violations of club policy.</p>
-        <button class="modal-close" onclick="document.getElementById('termsModal').style.display='none'">I Understand</button>
-    </div>
-</div>
-
-<section id="home">
-    <div class="hero-content">
-        <h1>Private<br>Golf Club</h1>
-        <div class="gold-line"></div>
-        <p>Enjoy one of the most popular leisure activities with high-quality equipment, a well-maintained environment, and refreshing amenities.</p>
-        <div class="hero-btns">
-            <a class="btn btn-primary" onclick="openRegisterModal()">Register Now</a>
-            <a class="btn btn-outline" onclick="goTo('about')">Learn More</a>
+    <div class="modal-overlay" id="termsModal">
+        <div class="modal-box">
+            <h3>Terms &amp; Conditions</h3>
+            <p>By registering, you agree to abide by the rules and regulations of ILISY Golf and Country Club.
+                Membership is subject to approval. All fees are non-refundable unless otherwise stated. Members must
+                conduct themselves with decorum at all times on club premises. ILISY reserves the right to revoke
+                membership for violations of club policy.</p>
+            <button class="modal-close" onclick="document.getElementById('termsModal').style.display='none'">I
+                Understand</button>
         </div>
     </div>
-</section>
 
-<section id="login">
-    <div class="login-left">
-        <div class="login-box">
-            <img src="Golfcourse_assets/colored logo.png" class="logo-img" alt="Logo">
-            <h1>LOGIN</h1>
-            <p class="sub">Please enter your personal details below.</p>
-            
-            <div id="loginError" style="background: #9c403d; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 13px;"></div>
-            
-            <form onsubmit="handleLogin(event)">
-                <label>Email / Username</label>
-                <input type="text" id="loginEmail" required placeholder="email@example.com or username">
-                <label>Password</label>
-                <div class="pw-wrap">
-                    <input type="password" id="loginPass" required placeholder="••••••••">
-                    <button type="button" class="pw-toggle" onmousedown="event.preventDefault()" onclick="togglePw('loginPass', this)">👁</button>
+    <section id="home">
+        <div class="hero-content">
+            <h1>Private<br>Golf Club</h1>
+            <div class="gold-line"></div>
+            <p>Enjoy one of the most popular leisure activities with high-quality equipment, a well-maintained
+                environment, and refreshing amenities.</p>
+            <div class="hero-btns">
+                <a class="btn btn-primary" onclick="openRegisterModal()">Register Now</a>
+                <a class="btn btn-outline" onclick="goTo('about')">Learn More</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="login">
+        <div class="login-left">
+            <div class="login-box">
+                <img src="Golfcourse_assets/colored logo.png" class="logo-img" alt="Logo">
+                <h1>LOGIN</h1>
+                <p class="sub">Please enter your personal details below.</p>
+
+                <div id="loginError"
+                    style="background: #9c403d; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 13px;">
                 </div>
-                
-                <button type="submit" id="loginBtn">
-                    <span id="loginBtnText">Login</span>
-                    <span id="loginLoader" style="display: none;">⏳ Processing...</span>
+
+                <form onsubmit="handleLogin(event)">
+                    <label>Email / Username</label>
+                    <input type="text" id="loginEmail" required placeholder="email@example.com or username">
+                    <label>Password</label>
+                    <div class="pw-wrap">
+                        <input type="password" id="loginPass" required placeholder="••••••••">
+                        <button type="button" class="pw-toggle" onmousedown="event.preventDefault()"
+                            onclick="togglePw('loginPass', this)">👁</button>
+                    </div>
+
+                    <button type="submit" id="loginBtn">
+                        <span id="loginBtnText">Login</span>
+                        <span id="loginLoader" style="display: none;">⏳ Processing...</span>
+                    </button>
+                </form>
+                <div class="divider"><span>or</span></div>
+
+                <p class="signup-link">Don't have an account? <a onclick="openRegisterModal()">Click here</a></p>
+            </div>
+        </div>
+        <div class="login-right">
+        </div>
+    </section>
+
+    <!-- Register Modal -->
+    <div class="reg-modal-overlay" id="registerModal">
+        <div class="reg-card">
+            <button class="reg-close-btn" onclick="closeRegisterModal()">&times;</button>
+            <h2>REGISTER</h2>
+            <p class="sub">Please enter your personal details below.</p>
+            <div id="regError"
+                style="background: #9c403d; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 13px;">
+            </div>
+            <form onsubmit="handleRegister(event)">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Full Name (Ex: Wilmar Lipata)</label>
+                        <input type="text" id="regFullName" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Username *</label>
+                        <input type="text" id="regUsername" placeholder="Choose a username" required>
+                        <span class="error-msg" id="usernameError"></span>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Email Address *</label>
+                        <input type="email" id="regEmail" placeholder="email@example.com" required>
+                        <span class="error-msg" id="emailError"></span>
+                    </div>
+                    <div class="input-group">
+                        <label>Phone Number *</label>
+                        <input type="tel" id="regPhone" placeholder="09123456789" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="input-group">
+                        <label>Password *</label>
+                        <div class="pw-wrap">
+                            <input type="password" id="regPassword" placeholder="Min 6 chars" required>
+                            <button type="button" class="pw-toggle" onmousedown="event.preventDefault()"
+                                onclick="togglePw('regPassword', this)">👁</button>
+                        </div>
+                        <span class="error-msg" id="passwordError"></span>
+                    </div>
+                    <div class="input-group">
+                        <label>Confirm Password *</label>
+                        <div class="pw-wrap">
+                            <input type="password" id="regConfirmPassword" placeholder="••••••••" required>
+                            <button type="button" class="pw-toggle" onmousedown="event.preventDefault()"
+                                onclick="togglePw('regConfirmPassword', this)">👁</button>
+                        </div>
+                        <span class="error-msg" id="confirmError"></span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>CAPTCHA *</label>
+                    <div class="captcha-container">
+                        <div class="captcha-code" id="captchaCode">ABCD12</div>
+                        <button type="button" class="refresh-captcha" onclick="refreshCaptcha()">⟳</button>
+                        <input type="text" id="captchaInput" placeholder="Enter the code above" required
+                            style="margin-top:0; margin-left: 10px; flex: 2;">
+                    </div>
+                </div>
+
+                <div class="terms-row">
+                    <input type="checkbox" id="terms" required>
+                    <label for="terms">By clicking the checkbox, you <a
+                            onclick="document.getElementById('termsModal').style.display='flex'">Accept the Terms &amp;
+                            Conditions</a></label>
+                </div>
+
+                <button type="submit" class="btn-reg" id="registerBtn">
+                    <span id="registerBtnText">Sign Up</span>
+                    <span id="registerLoader" style="display:none;">⏳ Processing...</span>
                 </button>
             </form>
-            <div class="divider"><span>or</span></div>
+            <div class="reg-divider"><span>or</span></div>
 
-            <p class="signup-link">Don't have an account? <a onclick="openRegisterModal()">Click here</a></p>
+            <div class="footer-link">Already have an account? <a onclick="closeRegisterModal()">Sign in</a></div>
         </div>
     </div>
-    <div class="login-right">
-    </div>
-</section>
 
-<!-- Register Modal -->
-<div class="reg-modal-overlay" id="registerModal">
-    <div class="reg-card">
-        <button class="reg-close-btn" onclick="closeRegisterModal()">&times;</button>
-        <h2>REGISTER</h2>
-        <p class="sub">Please enter your personal details below.</p>
-        <div id="regError" style="background: #9c403d; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 13px;"></div>
-        <form onsubmit="handleRegister(event)">
-            <div class="form-row">
-                <div class="input-group">
-                    <label>Full Name (Ex: Wilmar Lipata)</label>
-                    <input type="text" id="regFullName" placeholder="Enter your full name" required>
+    <section id="register">
+        <div class="membership-ad-content">
+            <p class="membership-ad-eyebrow">Exclusive Membership</p>
+            <h2>Become a Member of<br>ILISY Golf &amp; Country Club</h2>
+            <div class="gold-line" style="width:300px; margin: 18px auto;"></div>
+            <p class="membership-ad-sub">Join an elite community of golf enthusiasts and enjoy world-class privileges.
+            </p>
+            <div class="membership-perks">
+                <div class="perk-item"><span class="perk-icon">🌲</span><span>Well-maintained greens &amp;
+                        environment</span></div>
+                <div class="perk-item"><span class="perk-icon">🏌️</span><span>High-quality equipment &amp;
+                        facilities</span></div>
+                <div class="perk-item"><span class="perk-icon">📅</span><span>Priority reservation booking</span></div>
+                <div class="perk-item"><span class="perk-icon">💰</span><span>20% member discount on all
+                        reservations</span></div>
+                <div class="perk-item"><span class="perk-icon">🏠</span><span>Access to exclusive club amenities</span>
                 </div>
-                <div class="input-group">
-                    <label>Username *</label>
-                    <input type="text" id="regUsername" placeholder="Choose a username" required>
-                    <span class="error-msg" id="usernameError"></span>
-                </div>
+                <div class="perk-item"><span class="perk-icon">😊</span><span>Dedicated accommodating staff</span></div>
             </div>
-
-            <div class="form-row">
-                <div class="input-group">
-                    <label>Email Address *</label>
-                    <input type="email" id="regEmail" placeholder="email@example.com" required>
-                    <span class="error-msg" id="emailError"></span>
-                </div>
-                <div class="input-group">
-                    <label>Phone Number *</label>
-                    <input type="tel" id="regPhone" placeholder="09123456789" required>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="input-group">
-                    <label>Password *</label>
-                    <div class="pw-wrap">
-                        <input type="password" id="regPassword" placeholder="Min 6 chars" required>
-                        <button type="button" class="pw-toggle" onmousedown="event.preventDefault()" onclick="togglePw('regPassword', this)">👁</button>
-                    </div>
-                    <span class="error-msg" id="passwordError"></span>
-                </div>
-                <div class="input-group">
-                    <label>Confirm Password *</label>
-                    <div class="pw-wrap">
-                        <input type="password" id="regConfirmPassword" placeholder="••••••••" required>
-                        <button type="button" class="pw-toggle" onmousedown="event.preventDefault()" onclick="togglePw('regConfirmPassword', this)">👁</button>
-                    </div>
-                    <span class="error-msg" id="confirmError"></span>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label>CAPTCHA *</label>
-                <div class="captcha-container">
-                    <div class="captcha-code" id="captchaCode">ABCD12</div>
-                    <button type="button" class="refresh-captcha" onclick="refreshCaptcha()">⟳</button>
-                    <input type="text" id="captchaInput" placeholder="Enter the code above" required style="margin-top:0; margin-left: 10px; flex: 2;">
-                </div>
-            </div>
-
-            <div class="terms-row">
-                <input type="checkbox" id="terms" required>
-                <label for="terms">By clicking the checkbox, you <a onclick="document.getElementById('termsModal').style.display='flex'">Accept the Terms &amp; Conditions</a></label>
-            </div>
-            
-            <button type="submit" class="btn-reg" id="registerBtn">
-                <span id="registerBtnText">Sign Up</span>
-                <span id="registerLoader" style="display:none;">⏳ Processing...</span>
-            </button>
-        </form>
-        <div class="reg-divider"><span>or</span></div>
-
-        <div class="footer-link">Already have an account? <a onclick="closeRegisterModal()">Sign in</a></div>
-    </div>
-</div>
-
-<section id="register">
-    <div class="membership-ad-content">
-        <p class="membership-ad-eyebrow">Exclusive Membership</p>
-        <h2>Become a Member of<br>ILISY Golf &amp; Country Club</h2>
-        <div class="gold-line" style="width:300px; margin: 18px auto;"></div>
-        <p class="membership-ad-sub">Join an elite community of golf enthusiasts and enjoy world-class privileges.</p>
-        <div class="membership-perks">
-            <div class="perk-item"><span class="perk-icon">🌲</span><span>Well-maintained greens &amp; environment</span></div>
-            <div class="perk-item"><span class="perk-icon">🏌️</span><span>High-quality equipment &amp; facilities</span></div>
-            <div class="perk-item"><span class="perk-icon">📅</span><span>Priority reservation booking</span></div>
-            <div class="perk-item"><span class="perk-icon">💰</span><span>20% member discount on all reservations</span></div>
-            <div class="perk-item"><span class="perk-icon">🏠</span><span>Access to exclusive club amenities</span></div>
-            <div class="perk-item"><span class="perk-icon">😊</span><span>Dedicated accommodating staff</span></div>
+            <a class="btn btn-primary" onclick="goTo('login')">Sign In to Apply</a>
         </div>
-        <a class="btn btn-primary" onclick="goTo('login')">Sign In to Apply</a>
-    </div>
-</section>
+    </section>
 
-<section id="about">
-    <h2>About Us</h2>
-    <p>ILISY Golf and Country Club is a premier private golf destination offering world-class facilities, meticulously maintained greens, and an atmosphere of refined leisure. Founded with a passion for the sport, we welcome members who share our commitment to excellence.</p>
-</section>
+    <section id="about">
+        <h2>About Us</h2>
+        <p>ILISY Golf and Country Club is a premier private golf destination offering world-class facilities,
+            meticulously maintained greens, and an atmosphere of refined leisure. Founded with a passion for the sport,
+            we welcome members who share our commitment to excellence.</p>
+    </section>
 
-<section id="contacts">
-    <h2>Contact Us</h2>
-    <p>We'd love to hear from you. Reach out to our team for inquiries about membership, reservations, or any other matters.</p>
-    <div class="contact-info">
-        <div>📧 ILISYGolfClub@gmail.com</div>
-        <div>📞 123-456-789</div>
-        <div>📍 ILISY Golf and Country Club, Philippines</div>
-    </div>
-</section>
+    <section id="contacts">
+        <h2>Contact Us</h2>
+        <p>We'd love to hear from you. Reach out to our team for inquiries about membership, reservations, or any other
+            matters.</p>
+        <div class="contact-info">
+            <div>📧 ILISYGolfClub@gmail.com</div>
+            <div>📞 123-456-789</div>
+            <div>📍 ILISY Golf and Country Club, Philippines</div>
+        </div>
+    </section>
 
-<script>
-    // API Configuration
-    const API_URL = 'https://ilisy-golf-and-country-club-enrollment.onrender.com/api';
-    
-    // Rate limiting variables
-    let loginAttempts = 0;
-    let lastLoginAttempt = 0;
-    const MAX_LOGIN_ATTEMPTS = 5;
-    const LOCKOUT_TIME = 15 * 60 * 1000;
-    
-    // Current CAPTCHA value
-    let currentCaptcha = '';
+    <script>
+        // API Configuration
+        const API_URL = 'https://ilisy-golf-and-country-club-enrollment.onrender.com/api';
 
-    // Debounce timers for email and username validation
-    let emailCheckTimer = null;
-    let usernameCheckTimer = null;
-    
-    // Track which fields have been validated
-    let isEmailAvailable = false;
-    let isUsernameAvailable = false;
-    
-    // Generate random CAPTCHA
-    function generateCaptcha() {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
-        let result = '';
-        for (let i = 0; i < 6; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        currentCaptcha = result;
-        const captchaElement = document.getElementById('captchaCode');
-        if (captchaElement) {
-            captchaElement.textContent = result;
-        }
-        return result;
-    }
-    
-    function togglePw(inputId, btn) {
-        const input = document.getElementById(inputId);
-        input.type = input.type === 'password' ? 'text' : 'password';
-        btn.textContent = input.type === 'password' ? '👁' : '⊘';
-        input.focus();
-    }
+        // Rate limiting variables
+        let loginAttempts = 0;
+        let lastLoginAttempt = 0;
+        const MAX_LOGIN_ATTEMPTS = 5;
+        const LOCKOUT_TIME = 15 * 60 * 1000;
 
-    function refreshCaptcha() {
-        generateCaptcha();
-        document.getElementById('captchaInput').value = '';
-    }
-    
-    // Show toast notification
-    function showToast(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
-    
-    // Validate password strength
-    function validatePassword(password) {
-        if (password.length < 6) {
-            return 'Password must be at least 6 characters';
-        }
-        return null;
-    }
+        // Current CAPTCHA value
+        let currentCaptcha = '';
 
-    // Check if email is already registered in database
-    async function checkEmailAvailability(email) {
-        if (!email || !email.includes('@')) {
-            document.getElementById('emailError').textContent = '';
-            isEmailAvailable = false;
-            return false;
+        // Debounce timers for email and username validation
+        let emailCheckTimer = null;
+        let usernameCheckTimer = null;
+
+        // Track which fields have been validated
+        let isEmailAvailable = false;
+        let isUsernameAvailable = false;
+
+        // Generate random CAPTCHA
+        function generateCaptcha() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            currentCaptcha = result;
+            const captchaElement = document.getElementById('captchaCode');
+            if (captchaElement) {
+                captchaElement.textContent = result;
+            }
+            return result;
         }
 
-        try {
-            console.log('🔍 Checking email availability:', email);
-            const response = await fetch(`${API_URL}/auth/check-email`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email.toLowerCase() })
-            });
+        function togglePw(inputId, btn) {
+            const input = document.getElementById(inputId);
+            input.type = input.type === 'password' ? 'text' : 'password';
+            btn.textContent = input.type === 'password' ? '👁' : '⊘';
+            input.focus();
+        }
 
-            console.log('📡 Email check response status:', response.status);
-            const data = await response.json();
-            console.log('📊 Email check data:', data);
+        function refreshCaptcha() {
+            generateCaptcha();
+            document.getElementById('captchaInput').value = '';
+        }
 
-            const emailErrorDiv = document.getElementById('emailError');
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
 
-            if (response.ok) {
-                if (data.available === false) {
-                    emailErrorDiv.textContent = '✗ This email is already registered';
-                    emailErrorDiv.style.color = '#ff9999';
-                    isEmailAvailable = false;
-                    console.log('❌ Email already exists in database');
-                    return false;
-                } else {
-                    emailErrorDiv.textContent = '✓ Email is available';
-                    emailErrorDiv.style.color = '#90EE90';
-                    isEmailAvailable = true;
-                    console.log('✅ Email is available');
-                    return true;
-                }
-            } else {
-                console.error('❌ Email check error status:', response.status);
-                emailErrorDiv.textContent = '⚠ Unable to verify email. Please try again.';
-                emailErrorDiv.style.color = '#ff9999';
+        // Validate password strength
+        function validatePassword(password) {
+            if (password.length < 6) {
+                return 'Password must be at least 6 characters';
+            }
+            return null;
+        }
+
+        // Check if email is already registered in database
+        async function checkEmailAvailability(email) {
+            if (!email || !email.includes('@')) {
+                document.getElementById('emailError').textContent = '';
                 isEmailAvailable = false;
                 return false;
             }
-        } catch (error) {
-            console.error('❌ Email check error:', error);
-            document.getElementById('emailError').textContent = '⚠ Connection error. Please try again.';
-            document.getElementById('emailError').style.color = '#ff9999';
-            isEmailAvailable = false;
-            return false;
-        }
-    }
 
-    // Check if username is already taken in database
-    async function checkUsernameAvailability(username) {
-        if (!username || username.length < 3) {
-            document.getElementById('usernameError').textContent = 'Username must be at least 3 characters';
-            isUsernameAvailable = false;
-            return false;
-        }
+            try {
+                console.log('🔍 Checking email availability:', email);
+                const response = await fetch(`${API_URL}/auth/check-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email.toLowerCase() })
+                });
 
-        try {
-            console.log('🔍 Checking username availability:', username);
-            const response = await fetch(`${API_URL}/auth/check-username`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username.toLowerCase() })
-            });
+                console.log('📡 Email check response status:', response.status);
+                const data = await response.json();
+                console.log('📊 Email check data:', data);
 
-            console.log('📡 Username check response status:', response.status);
-            const data = await response.json();
-            console.log('📊 Username check data:', data);
+                const emailErrorDiv = document.getElementById('emailError');
 
-            const usernameErrorDiv = document.getElementById('usernameError');
-
-            if (response.ok) {
-                if (data.available === false) {
-                    usernameErrorDiv.textContent = '✗ This username is already taken';
-                    usernameErrorDiv.style.color = '#ff9999';
-                    isUsernameAvailable = false;
-                    console.log('❌ Username already exists in database');
-                    return false;
+                if (response.ok) {
+                    if (data.available === false) {
+                        emailErrorDiv.textContent = '✗ This email is already registered';
+                        emailErrorDiv.style.color = '#ff9999';
+                        isEmailAvailable = false;
+                        console.log('❌ Email already exists in database');
+                        return false;
+                    } else {
+                        emailErrorDiv.textContent = '✓ Email is available';
+                        emailErrorDiv.style.color = '#90EE90';
+                        isEmailAvailable = true;
+                        console.log('✅ Email is available');
+                        return true;
+                    }
                 } else {
-                    usernameErrorDiv.textContent = '✓ Username is available';
-                    usernameErrorDiv.style.color = '#90EE90';
-                    isUsernameAvailable = true;
-                    console.log('✅ Username is available');
-                    return true;
+                    console.error('❌ Email check error status:', response.status);
+                    emailErrorDiv.textContent = '⚠ Unable to verify email. Please try again.';
+                    emailErrorDiv.style.color = '#ff9999';
+                    isEmailAvailable = false;
+                    return false;
                 }
-            } else {
-                console.error('❌ Username check error status:', response.status);
-                usernameErrorDiv.textContent = '⚠ Unable to verify username. Please try again.';
-                usernameErrorDiv.style.color = '#ff9999';
+            } catch (error) {
+                console.error('❌ Email check error:', error);
+                document.getElementById('emailError').textContent = '⚠ Connection error. Please try again.';
+                document.getElementById('emailError').style.color = '#ff9999';
+                isEmailAvailable = false;
+                return false;
+            }
+        }
+
+        // Check if username is already taken in database
+        async function checkUsernameAvailability(username) {
+            if (!username || username.length < 3) {
+                document.getElementById('usernameError').textContent = 'Username must be at least 3 characters';
                 isUsernameAvailable = false;
                 return false;
             }
-        } catch (error) {
-            console.error('❌ Username check error:', error);
-            document.getElementById('usernameError').textContent = '⚠ Connection error. Please try again.';
-            document.getElementById('usernameError').style.color = '#ff9999';
-            isUsernameAvailable = false;
-            return false;
-        }
-    }
-    
-    // Real-time validation
-    document.addEventListener('DOMContentLoaded', () => {
-    generateCaptcha();
-    
-    const emailInput = document.getElementById('regEmail');
-    const passwordInput = document.getElementById('regPassword');
-    const confirmInput = document.getElementById('regConfirmPassword');
-    const usernameInput = document.getElementById('regUsername');
-    const fullNameInput = document.getElementById('regFullName');
-    
-    // ========== NEW: Real-time name validation ==========
-    if (fullNameInput) {
-        const nameErrorSpan = document.createElement('span');
-        nameErrorSpan.className = 'error-msg';
-        nameErrorSpan.id = 'nameError';
-        fullNameInput.parentNode.appendChild(nameErrorSpan);
-        
-        fullNameInput.addEventListener('input', () => {
-            const nameValue = fullNameInput.value.trim();
-            const nameRegex = /^[A-Za-z\s\-']*$/; // * allows empty during typing
-            const nameErrorSpan = document.getElementById('nameError');
-            
-            if (nameValue && !nameRegex.test(nameValue)) {
-                nameErrorSpan.textContent = '✗ Only letters, spaces, hyphens, and apostrophes allowed';
-                nameErrorSpan.style.color = '#ff9999';
-                fullNameInput.style.border = '1px solid #ff9999';
-            } else if (nameValue && nameValue.length < 2) {
-                nameErrorSpan.textContent = '✗ Name must be at least 2 characters';
-                nameErrorSpan.style.color = '#ff9999';
-                fullNameInput.style.border = '1px solid #ff9999';
-            } else {
-                nameErrorSpan.textContent = '✓ Valid name';
-                nameErrorSpan.style.color = '#90EE90';
-                fullNameInput.style.border = '1px solid #90EE90';
-            }
-            
-            if (!nameValue) {
-                nameErrorSpan.textContent = '';
-                fullNameInput.style.border = '';
-            }
-        });
-    }
-        
-        // Email real-time validation with debounce
-        if (emailInput) {
-            emailInput.addEventListener('input', () => {
-                clearTimeout(emailCheckTimer);
-                const emailErrorDiv = document.getElementById('emailError');
-                
-                if (!emailInput.value) {
-                    emailErrorDiv.textContent = '';
-                    isEmailAvailable = false;
-                    return;
-                }
 
-                emailErrorDiv.textContent = '⏳ Checking...';
-                emailErrorDiv.style.color = '#c5a96b';
-                
-                emailCheckTimer = setTimeout(() => {
-                    checkEmailAvailability(emailInput.value.trim());
-                }, 500);
-            });
-        }
-        
-        // Username real-time validation with debounce
-        if (usernameInput) {
-            usernameInput.addEventListener('input', () => {
-                clearTimeout(usernameCheckTimer);
+            try {
+                console.log('🔍 Checking username availability:', username);
+                const response = await fetch(`${API_URL}/auth/check-username`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username.toLowerCase() })
+                });
+
+                console.log('📡 Username check response status:', response.status);
+                const data = await response.json();
+                console.log('📊 Username check data:', data);
+
                 const usernameErrorDiv = document.getElementById('usernameError');
-                
-                if (!usernameInput.value) {
-                    usernameErrorDiv.textContent = '';
-                    isUsernameAvailable = false;
-                    return;
-                }
 
-                if (usernameInput.value.length < 3) {
-                    usernameErrorDiv.textContent = 'Username must be at least 3 characters';
+                if (response.ok) {
+                    if (data.available === false) {
+                        usernameErrorDiv.textContent = '✗ This username is already taken';
+                        usernameErrorDiv.style.color = '#ff9999';
+                        isUsernameAvailable = false;
+                        console.log('❌ Username already exists in database');
+                        return false;
+                    } else {
+                        usernameErrorDiv.textContent = '✓ Username is available';
+                        usernameErrorDiv.style.color = '#90EE90';
+                        isUsernameAvailable = true;
+                        console.log('✅ Username is available');
+                        return true;
+                    }
+                } else {
+                    console.error('❌ Username check error status:', response.status);
+                    usernameErrorDiv.textContent = '⚠ Unable to verify username. Please try again.';
                     usernameErrorDiv.style.color = '#ff9999';
                     isUsernameAvailable = false;
-                    return;
+                    return false;
                 }
-
-                usernameErrorDiv.textContent = '⏳ Checking...';
-                usernameErrorDiv.style.color = '#c5a96b';
-                
-                usernameCheckTimer = setTimeout(() => {
-                    checkUsernameAvailability(usernameInput.value.trim());
-                }, 500);
-            });
-        }
-        
-        if (passwordInput) {
-            passwordInput.addEventListener('input', () => {
-                const error = validatePassword(passwordInput.value);
-                document.getElementById('passwordError').textContent = error || '';
-            });
-        }
-        
-        if (confirmInput && passwordInput) {
-            confirmInput.addEventListener('input', () => {
-                if (confirmInput.value !== passwordInput.value) {
-                    document.getElementById('confirmError').textContent = 'Passwords do not match';
-                } else {
-                    document.getElementById('confirmError').textContent = '';
-                }
-            });
-        }
-    });
-    
-    function goTo(id) {
-        document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
-    }
-    
-    window.addEventListener('scroll', () => {
-        const nav = document.getElementById('mainNav');
-        if (nav) nav.classList.toggle('scrolled', window.scrollY > 50);
-    });
-    
-    // Check existing session
-    function checkExistingSession() {
-        const userId = localStorage.getItem('userId');
-        const loginTime = localStorage.getItem('loginTime');
-        const isAdmin = localStorage.getItem('isAdmin');
-        
-        if (userId && loginTime) {
-            const hoursSinceLogin = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
-            if (hoursSinceLogin < 24) {
-                if (isAdmin === 'true') {
-                    window.location.href = 'admin/admin_portal.html';
-                } else {
-                    window.location.href = 'user/user_portal.html';
-                }
-            } else {
-                localStorage.clear();
+            } catch (error) {
+                console.error('❌ Username check error:', error);
+                document.getElementById('usernameError').textContent = '⚠ Connection error. Please try again.';
+                document.getElementById('usernameError').style.color = '#ff9999';
+                isUsernameAvailable = false;
+                return false;
             }
         }
-    }
-    
-    function showLoginError(message) {
-        const errorDiv = document.getElementById('loginError');
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-        setTimeout(() => {
-            if (errorDiv) errorDiv.style.display = 'none';
-        }, 5000);
-    }
-    
-    async function handleLogin(e) {
-        e.preventDefault();
-        
-        // Rate limiting check
-        const now = Date.now();
-        if (loginAttempts >= MAX_LOGIN_ATTEMPTS && (now - lastLoginAttempt) < LOCKOUT_TIME) {
-            const remainingMinutes = Math.ceil((LOCKOUT_TIME - (now - lastLoginAttempt)) / 60000);
-            showLoginError(`Too many login attempts. Please try again in ${remainingMinutes} minutes.`);
-            return;
+
+        // Real-time validation
+        document.addEventListener('DOMContentLoaded', () => {
+            generateCaptcha();
+
+            const emailInput = document.getElementById('regEmail');
+            const passwordInput = document.getElementById('regPassword');
+            const confirmInput = document.getElementById('regConfirmPassword');
+            const usernameInput = document.getElementById('regUsername');
+            const fullNameInput = document.getElementById('regFullName');
+
+            // ========== NEW: Real-time name validation ==========
+            if (fullNameInput) {
+                const nameErrorSpan = document.createElement('span');
+                nameErrorSpan.className = 'error-msg';
+                nameErrorSpan.id = 'nameError';
+                fullNameInput.parentNode.appendChild(nameErrorSpan);
+
+                fullNameInput.addEventListener('input', () => {
+                    const nameValue = fullNameInput.value.trim();
+                    const nameRegex = /^[A-Za-z\s\-']*$/; // * allows empty during typing
+                    const nameErrorSpan = document.getElementById('nameError');
+
+                    if (nameValue && !nameRegex.test(nameValue)) {
+                        nameErrorSpan.textContent = '✗ Only letters, spaces, hyphens, and apostrophes allowed';
+                        nameErrorSpan.style.color = '#ff9999';
+                        fullNameInput.style.border = '1px solid #ff9999';
+                    } else if (nameValue && nameValue.length < 2) {
+                        nameErrorSpan.textContent = '✗ Name must be at least 2 characters';
+                        nameErrorSpan.style.color = '#ff9999';
+                        fullNameInput.style.border = '1px solid #ff9999';
+                    } else {
+                        nameErrorSpan.textContent = '✓ Valid name';
+                        nameErrorSpan.style.color = '#90EE90';
+                        fullNameInput.style.border = '1px solid #90EE90';
+                    }
+
+                    if (!nameValue) {
+                        nameErrorSpan.textContent = '';
+                        fullNameInput.style.border = '';
+                    }
+                });
+            }
+
+            // Email real-time validation with debounce
+            if (emailInput) {
+                emailInput.addEventListener('input', () => {
+                    clearTimeout(emailCheckTimer);
+                    const emailErrorDiv = document.getElementById('emailError');
+
+                    if (!emailInput.value) {
+                        emailErrorDiv.textContent = '';
+                        isEmailAvailable = false;
+                        return;
+                    }
+
+                    emailErrorDiv.textContent = '⏳ Checking...';
+                    emailErrorDiv.style.color = '#c5a96b';
+
+                    emailCheckTimer = setTimeout(() => {
+                        checkEmailAvailability(emailInput.value.trim());
+                    }, 500);
+                });
+            }
+
+            // Username real-time validation with debounce
+            if (usernameInput) {
+                usernameInput.addEventListener('input', () => {
+                    clearTimeout(usernameCheckTimer);
+                    const usernameErrorDiv = document.getElementById('usernameError');
+
+                    if (!usernameInput.value) {
+                        usernameErrorDiv.textContent = '';
+                        isUsernameAvailable = false;
+                        return;
+                    }
+
+                    if (usernameInput.value.length < 3) {
+                        usernameErrorDiv.textContent = 'Username must be at least 3 characters';
+                        usernameErrorDiv.style.color = '#ff9999';
+                        isUsernameAvailable = false;
+                        return;
+                    }
+
+                    usernameErrorDiv.textContent = '⏳ Checking...';
+                    usernameErrorDiv.style.color = '#c5a96b';
+
+                    usernameCheckTimer = setTimeout(() => {
+                        checkUsernameAvailability(usernameInput.value.trim());
+                    }, 500);
+                });
+            }
+
+            if (passwordInput) {
+                passwordInput.addEventListener('input', () => {
+                    const error = validatePassword(passwordInput.value);
+                    document.getElementById('passwordError').textContent = error || '';
+                });
+            }
+
+            if (confirmInput && passwordInput) {
+                confirmInput.addEventListener('input', () => {
+                    if (confirmInput.value !== passwordInput.value) {
+                        document.getElementById('confirmError').textContent = 'Passwords do not match';
+                    } else {
+                        document.getElementById('confirmError').textContent = '';
+                    }
+                });
+            }
+        });
+
+        function goTo(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
         }
-        
-        const username = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPass').value;
-        
-        if (!username || !password) {
-            showLoginError('Please enter both username/email and password');
-            return;
+
+        function toggleNav() {
+            document.getElementById('navLinks').classList.toggle('open');
         }
-        
-        const loginBtn = document.getElementById('loginBtn');
-        const btnText = document.getElementById('loginBtnText');
-        const btnLoader = document.getElementById('loginLoader');
-        
-        loginBtn.disabled = true;
-        btnText.style.display = 'none';
-        btnLoader.style.display = 'inline';
-        
-        try {
-            const response = await fetch(`${API_URL}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                loginAttempts = 0;
-                localStorage.setItem('userId', data.id);
-                localStorage.setItem('userName', data.username);
-                localStorage.setItem('userEmail', data.email);
-                localStorage.setItem('firstName', data.firstName || '');
-                localStorage.setItem('lastName', data.lastName || '');
-                localStorage.setItem('isAdmin', data.isAdmin);
-                localStorage.setItem('membershipStatus', data.membershipStatus);
-                localStorage.setItem('loginTime', Date.now());
-                
-                if (data.token) {
-                    localStorage.setItem('authToken', data.token);
-                }
-                
-                showToast('Login successful! Redirecting...', 'success');
-                
-                setTimeout(() => {
-                    if (data.isAdmin === true || data.isAdmin === 'true') {
+
+        function closeNav() {
+            document.getElementById('navLinks').classList.remove('open');
+        }
+
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('mainNav');
+            if (nav) nav.classList.toggle('scrolled', window.scrollY > 50);
+        });
+
+        // Check existing session
+        function checkExistingSession() {
+            const userId = localStorage.getItem('userId');
+            const loginTime = localStorage.getItem('loginTime');
+            const isAdmin = localStorage.getItem('isAdmin');
+
+            if (userId && loginTime) {
+                const hoursSinceLogin = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
+                if (hoursSinceLogin < 24) {
+                    if (isAdmin === 'true') {
                         window.location.href = 'admin/admin_portal.html';
                     } else {
                         window.location.href = 'user/user_portal.html';
                     }
-                }, 1000);
-            } else {
-                loginAttempts++;
-                lastLoginAttempt = Date.now();
-                
-                let errorMessage = data.message || 'Login failed';
-                if (response.status === 401) {
-                    errorMessage = 'Invalid username/email or password';
-                } else if (response.status === 404) {
-                    errorMessage = 'Account not found. Please register first.';
+                } else {
+                    localStorage.clear();
                 }
-                showLoginError(errorMessage);
-                document.getElementById('loginPass').value = '';
             }
-        } catch (error) {
-            console.error('Login error:', error);
-            showLoginError('Connection error. Please check your internet connection.');
-        } finally {
-            loginBtn.disabled = false;
-            btnText.style.display = 'inline';
-            btnLoader.style.display = 'none';
         }
-    }
-    
-    function handleGoogleLogin() {
-        showToast('Google login coming soon! Please use regular login for now.', 'error');
-    }
 
-    function openRegisterModal() {
-        document.getElementById('registerModal').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-        generateCaptcha();
-        document.getElementById('captchaInput').value = '';
-    }
-
-    function closeRegisterModal() {
-        document.getElementById('registerModal').style.display = 'none';
-        document.body.style.overflow = '';
-    }
-
-    function showRegisterError(message) {
-        const errorDiv = document.getElementById('regError');
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-        setTimeout(() => { if (errorDiv) errorDiv.style.display = 'none'; }, 5000);
-    }
-
-    async function handleRegister(e) {
-    e.preventDefault();
-    
-    // Basic field validation
-    const fullName = document.getElementById('regFullName').value.trim();
-    
-    // ========== NEW: NAME VALIDATION ==========
-    // Only allow letters, spaces, hyphens, and apostrophes
-    const nameRegex = /^[A-Za-z\s\-']+$/;
-    if (!nameRegex.test(fullName)) {
-        showRegisterError('Please enter a valid name (letters, spaces, hyphens, and apostrophes only). No special characters or numbers allowed.');
-        return;
-    }
-    
-    // Also check minimum length
-    if (fullName.length < 2) {
-        showRegisterError('Name must be at least 2 characters');
-        return;
-    }
-    
-    // Split name into parts for firstName and lastName
-    const nameParts = fullName.split(' ');
-    const firstName = nameParts[0] || '';
-    // Join remaining parts as lastName (supports multiple last names like "De La Cruz")
-    const lastName = nameParts.slice(1).join(' ') || '';
-    
-    // Validate each name part individually
-    const validateNamePart = (name, partName) => {
-        if (!name || name.length === 0) {
-            showRegisterError(`Please enter a valid ${partName}`);
-            return false;
+        function showLoginError(message) {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                if (errorDiv) errorDiv.style.display = 'none';
+            }, 5000);
         }
-        if (!/^[A-Za-z\s\-']+$/.test(name)) {
-            showRegisterError(`${partName} contains invalid characters. Use letters, spaces, hyphens, or apostrophes only.`);
-            return false;
+
+        async function handleLogin(e) {
+            e.preventDefault();
+
+            // Rate limiting check
+            const now = Date.now();
+            if (loginAttempts >= MAX_LOGIN_ATTEMPTS && (now - lastLoginAttempt) < LOCKOUT_TIME) {
+                const remainingMinutes = Math.ceil((LOCKOUT_TIME - (now - lastLoginAttempt)) / 60000);
+                showLoginError(`Too many login attempts. Please try again in ${remainingMinutes} minutes.`);
+                return;
+            }
+
+            const username = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPass').value;
+
+            if (!username || !password) {
+                showLoginError('Please enter both username/email and password');
+                return;
+            }
+
+            const loginBtn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('loginBtnText');
+            const btnLoader = document.getElementById('loginLoader');
+
+            loginBtn.disabled = true;
+            btnText.style.display = 'none';
+            btnLoader.style.display = 'inline';
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    loginAttempts = 0;
+                    localStorage.setItem('userId', data.id);
+                    localStorage.setItem('userName', data.username);
+                    localStorage.setItem('userEmail', data.email);
+                    localStorage.setItem('firstName', data.firstName || '');
+                    localStorage.setItem('lastName', data.lastName || '');
+                    localStorage.setItem('isAdmin', data.isAdmin);
+                    localStorage.setItem('membershipStatus', data.membershipStatus);
+                    localStorage.setItem('loginTime', Date.now());
+
+                    if (data.token) {
+                        localStorage.setItem('authToken', data.token);
+                    }
+
+                    showToast('Login successful! Redirecting...', 'success');
+
+                    setTimeout(() => {
+                        if (data.isAdmin === true || data.isAdmin === 'true') {
+                            window.location.href = 'admin/admin_portal.html';
+                        } else {
+                            window.location.href = 'user/user_portal.html';
+                        }
+                    }, 1000);
+                } else {
+                    loginAttempts++;
+                    lastLoginAttempt = Date.now();
+
+                    let errorMessage = data.message || 'Login failed';
+                    if (response.status === 401) {
+                        errorMessage = 'Invalid username/email or password';
+                    } else if (response.status === 404) {
+                        errorMessage = 'Account not found. Please register first.';
+                    }
+                    showLoginError(errorMessage);
+                    document.getElementById('loginPass').value = '';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showLoginError('Connection error. Please check your internet connection.');
+            } finally {
+                loginBtn.disabled = false;
+                btnText.style.display = 'inline';
+                btnLoader.style.display = 'none';
+            }
         }
-        if (name.length < 1) {
-            showRegisterError(`${partName} must have at least 1 character`);
-            return false;
+
+        function handleGoogleLogin() {
+            showToast('Google login coming soon! Please use regular login for now.', 'error');
         }
-        return true;
-    };
-    
-    if (!validateNamePart(firstName, 'first name')) return;
-    if (!validateNamePart(lastName, 'last name')) return;
-    
-    const email = document.getElementById('regEmail').value.trim();
-    let phone = document.getElementById('regPhone').value.trim();
-    const username = document.getElementById('regUsername').value.trim();
-    const password = document.getElementById('regPassword').value;
-    const confirmPassword = document.getElementById('regConfirmPassword').value;
-    const captchaInput = document.getElementById('captchaInput').value.trim();
-    const termsCheckbox = document.getElementById('terms');
 
-    // Check CAPTCHA
-    if (captchaInput.toUpperCase() !== currentCaptcha.toUpperCase()) {
-        showRegisterError('Invalid CAPTCHA code. Please try again.');
-        refreshCaptcha();
-        return;
-    }
-
-    // Validate password
-    if (password.length < 6) {
-        showRegisterError('Password must be at least 6 characters');
-        return;
-    }
-
-    // Check passwords match
-    if (password !== confirmPassword) {
-        showRegisterError('Passwords do not match');
-        return;
-    }
-
-    // Check terms accepted
-    if (!termsCheckbox.checked) {
-        showRegisterError('Please accept the Terms & Conditions');
-        return;
-    }
-
-    // Clean phone number (remove spaces, dashes, parentheses, plus sign)
-    phone = phone.replace(/[\s\-\(\)\+]/g, '');
-    if (!phone || phone.length < 10) {
-        showRegisterError('Please enter a valid phone number');
-        return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        showRegisterError('Please enter a valid email address');
-        return;
-    }
-
-    // Check username length
-    if (username.length < 3) {
-        showRegisterError('Username must be at least 3 characters');
-        return;
-    }
-
-    // Check email availability
-    if (!isEmailAvailable) {
-        showRegisterError('The email you entered is already registered. Please use a different email.');
-        return;
-    }
-
-    // Check username availability
-    if (!isUsernameAvailable) {
-        showRegisterError('The username you entered is already taken. Please choose a different username.');
-        return;
-    }
-
-    const registerBtn = document.getElementById('registerBtn');
-    const btnText = document.getElementById('registerBtnText');
-    const btnLoader = document.getElementById('registerLoader');
-    registerBtn.disabled = true;
-    btnText.style.display = 'none';
-    btnLoader.style.display = 'inline';
-
-    try {
-        const response = await fetch(`${API_URL}/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                firstName,
-                lastName,
-                email: email.toLowerCase(),
-                phone: phone,
-                username: username.toLowerCase(),
-                password,
-                captcha: captchaInput
-            })
-        });
-
-        const data = await response.json();
-        console.log('Registration response:', response.status, data);
-
-        if (response.ok) {
-            showToast('Account created successfully! Please log in.', 'success');
-            closeRegisterModal();
-            // Reset form
-            document.getElementById('regFullName').value = '';
-            document.getElementById('regEmail').value = '';
-            document.getElementById('regPhone').value = '';
-            document.getElementById('regUsername').value = '';
-            document.getElementById('regPassword').value = '';
-            document.getElementById('regConfirmPassword').value = '';
+        function openRegisterModal() {
+            document.getElementById('registerModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            generateCaptcha();
             document.getElementById('captchaInput').value = '';
-            document.getElementById('terms').checked = false;
-            document.getElementById('emailError').textContent = '';
-            document.getElementById('usernameError').textContent = '';
-        } else {
-            let errorMsg = data.message || 'Registration failed';
-
-            if (data.errors && data.errors.length > 0) {
-                errorMsg = data.errors.map(err => err.msg).join(', ');
-            }
-
-            if (data.field === 'email') {
-                errorMsg = data.message || 'This email is already registered';
-                isEmailAvailable = false;
-                document.getElementById('emailError').textContent = '✗ ' + errorMsg;
-                document.getElementById('emailError').style.color = '#ff9999';
-            } else if (data.field === 'username') {
-                errorMsg = data.message || 'This username is already taken';
-                isUsernameAvailable = false;
-                document.getElementById('usernameError').textContent = '✗ ' + errorMsg;
-                document.getElementById('usernameError').style.color = '#ff9999';
-            }
-
-            showRegisterError(errorMsg);
-            refreshCaptcha();
         }
-    } catch (error) {
-        console.error('Registration error:', error);
-        showRegisterError('Connection error. Please try again.');
-        refreshCaptcha();
-    } finally {
-        registerBtn.disabled = false;
-        btnText.style.display = 'inline';
-        btnLoader.style.display = 'none';
-    }
-}
 
-    // Run session check on page load
-    checkExistingSession();
-</script>
+        function closeRegisterModal() {
+            document.getElementById('registerModal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function showRegisterError(message) {
+            const errorDiv = document.getElementById('regError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => { if (errorDiv) errorDiv.style.display = 'none'; }, 5000);
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+
+            // Basic field validation
+            const fullName = document.getElementById('regFullName').value.trim();
+
+            // ========== NEW: NAME VALIDATION ==========
+            // Only allow letters, spaces, hyphens, and apostrophes
+            const nameRegex = /^[A-Za-z\s\-']+$/;
+            if (!nameRegex.test(fullName)) {
+                showRegisterError('Please enter a valid name (letters, spaces, hyphens, and apostrophes only). No special characters or numbers allowed.');
+                return;
+            }
+
+            // Also check minimum length
+            if (fullName.length < 2) {
+                showRegisterError('Name must be at least 2 characters');
+                return;
+            }
+
+            // Split name into parts for firstName and lastName
+            const nameParts = fullName.split(' ');
+            const firstName = nameParts[0] || '';
+            // Join remaining parts as lastName (supports multiple last names like "De La Cruz")
+            const lastName = nameParts.slice(1).join(' ') || '';
+
+            // Validate each name part individually
+            const validateNamePart = (name, partName) => {
+                if (!name || name.length === 0) {
+                    showRegisterError(`Please enter a valid ${partName}`);
+                    return false;
+                }
+                if (!/^[A-Za-z\s\-']+$/.test(name)) {
+                    showRegisterError(`${partName} contains invalid characters. Use letters, spaces, hyphens, or apostrophes only.`);
+                    return false;
+                }
+                if (name.length < 1) {
+                    showRegisterError(`${partName} must have at least 1 character`);
+                    return false;
+                }
+                return true;
+            };
+
+            if (!validateNamePart(firstName, 'first name')) return;
+            if (!validateNamePart(lastName, 'last name')) return;
+
+            const email = document.getElementById('regEmail').value.trim();
+            let phone = document.getElementById('regPhone').value.trim();
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+            const captchaInput = document.getElementById('captchaInput').value.trim();
+            const termsCheckbox = document.getElementById('terms');
+
+            // Check CAPTCHA
+            if (captchaInput.toUpperCase() !== currentCaptcha.toUpperCase()) {
+                showRegisterError('Invalid CAPTCHA code. Please try again.');
+                refreshCaptcha();
+                return;
+            }
+
+            // Validate password
+            if (password.length < 6) {
+                showRegisterError('Password must be at least 6 characters');
+                return;
+            }
+
+            // Check passwords match
+            if (password !== confirmPassword) {
+                showRegisterError('Passwords do not match');
+                return;
+            }
+
+            // Check terms accepted
+            if (!termsCheckbox.checked) {
+                showRegisterError('Please accept the Terms & Conditions');
+                return;
+            }
+
+            // Clean phone number (remove spaces, dashes, parentheses, plus sign)
+            phone = phone.replace(/[\s\-\(\)\+]/g, '');
+            if (!phone || phone.length < 10) {
+                showRegisterError('Please enter a valid phone number');
+                return;
+            }
+
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showRegisterError('Please enter a valid email address');
+                return;
+            }
+
+            // Check username length
+            if (username.length < 3) {
+                showRegisterError('Username must be at least 3 characters');
+                return;
+            }
+
+            // Check email availability
+            if (!isEmailAvailable) {
+                showRegisterError('The email you entered is already registered. Please use a different email.');
+                return;
+            }
+
+            // Check username availability
+            if (!isUsernameAvailable) {
+                showRegisterError('The username you entered is already taken. Please choose a different username.');
+                return;
+            }
+
+            const registerBtn = document.getElementById('registerBtn');
+            const btnText = document.getElementById('registerBtnText');
+            const btnLoader = document.getElementById('registerLoader');
+            registerBtn.disabled = true;
+            btnText.style.display = 'none';
+            btnLoader.style.display = 'inline';
+
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        firstName,
+                        lastName,
+                        email: email.toLowerCase(),
+                        phone: phone,
+                        username: username.toLowerCase(),
+                        password,
+                        captcha: captchaInput
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Registration response:', response.status, data);
+
+                if (response.ok) {
+                    showToast('Account created successfully! Please log in.', 'success');
+                    closeRegisterModal();
+                    // Reset form
+                    document.getElementById('regFullName').value = '';
+                    document.getElementById('regEmail').value = '';
+                    document.getElementById('regPhone').value = '';
+                    document.getElementById('regUsername').value = '';
+                    document.getElementById('regPassword').value = '';
+                    document.getElementById('regConfirmPassword').value = '';
+                    document.getElementById('captchaInput').value = '';
+                    document.getElementById('terms').checked = false;
+                    document.getElementById('emailError').textContent = '';
+                    document.getElementById('usernameError').textContent = '';
+                } else {
+                    let errorMsg = data.message || 'Registration failed';
+
+                    if (data.errors && data.errors.length > 0) {
+                        errorMsg = data.errors.map(err => err.msg).join(', ');
+                    }
+
+                    if (data.field === 'email') {
+                        errorMsg = data.message || 'This email is already registered';
+                        isEmailAvailable = false;
+                        document.getElementById('emailError').textContent = '✗ ' + errorMsg;
+                        document.getElementById('emailError').style.color = '#ff9999';
+                    } else if (data.field === 'username') {
+                        errorMsg = data.message || 'This username is already taken';
+                        isUsernameAvailable = false;
+                        document.getElementById('usernameError').textContent = '✗ ' + errorMsg;
+                        document.getElementById('usernameError').style.color = '#ff9999';
+                    }
+
+                    showRegisterError(errorMsg);
+                    refreshCaptcha();
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showRegisterError('Connection error. Please try again.');
+                refreshCaptcha();
+            } finally {
+                registerBtn.disabled = false;
+                btnText.style.display = 'inline';
+                btnLoader.style.display = 'none';
+            }
+        }
+
+        // Run session check on page load
+        checkExistingSession();
+    </script>
 </body>
+
 </html>
