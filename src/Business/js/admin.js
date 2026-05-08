@@ -1912,15 +1912,32 @@ function renderValidateModalContent(app) {
     const modalBody = document.getElementById('validateModalBody');
     const isMembership = app.type === 'membership';
     
+    // Determine the display type
+    let typeDisplay = '';
+    if (isMembership) {
+        typeDisplay = '🏌️ Membership';
+    } else {
+        // Show specific reservation type if available
+        if (app.reservationTypeName) {
+            typeDisplay = `📅 ${app.reservationTypeName}`;
+        } else if (app.details?.reservationType) {
+            typeDisplay = `📅 ${app.details.reservationType}`;
+        } else {
+            typeDisplay = '📅 Reservation';
+        }
+    }
+    
     modalBody.innerHTML = `
         <div class="app-detail-section">
             <h4>📋 Application Information</h4>
-                <div class="detail-row">
-                    <span class="detail-label">Type:</span>
-                    <span class="detail-value">
-                        ${app.type === 'membership' ? '🏌️ Membership' : `📅 ${app.reservationTypeName || app.details?.reservationType || 'Reservation'}`}
+            <div class="detail-row">
+                <span class="detail-label">Type:</span>
+                <span class="detail-value">
+                    <span class="status-badge status-pending">
+                        ${typeDisplay}
                     </span>
-                </div>
+                </span>
+            </div>
             <div class="detail-row">
                 <span class="detail-label">Status:</span>
                 <span class="detail-value"><span class="status-badge status-pending">Pending Verification</span></span>
@@ -1930,7 +1947,7 @@ function renderValidateModalContent(app) {
                 <span class="detail-value">${new Date(app.createdAt).toLocaleString()}</span>
             </div>
         </div>
-        
+                
         <div class="app-detail-section">
             <h4>👤 Personal Details</h4>
             <div class="detail-row">

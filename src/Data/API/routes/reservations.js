@@ -30,7 +30,7 @@ router.post('/apply', authMiddleware, async (req, res) => {
     try {
         const { 
             userId, firstName, lastName, email, phone, date, timeSlot,
-            paymentMethod, accountNumber, referenceNumber, amount
+            paymentMethod, accountNumber, referenceNumber, amount, reservationTypeName  
         } = req.body;
 
         console.log('Received reservation application:', { 
@@ -73,6 +73,7 @@ router.post('/apply', authMiddleware, async (req, res) => {
             email, 
             phone,
             type: 'reservation',
+            reservationTypeName: reservationTypeName || req.body.reservationType?.name || 'Reservation',
             details: { date, timeSlot },
             paymentMethod,
             accountNumber,

@@ -11,6 +11,7 @@ const applicationSchema = new mongoose.Schema({
         enum: ['membership', 'reservation'],
         required: true
     },
+    reservationTypeName: { type: String }, 
     status: {
         type: String,
         enum: ['pending', 'approved', 'rejected', 'processing', 'completed'],

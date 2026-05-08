@@ -854,14 +854,50 @@ async function submitMembership(event) {
         if (response.ok) {
             overlay.style.display = 'none';
             showToast('✅ Membership application submitted! Admin will verify your payment.', 'success');
-            document.getElementById('receiptTracking').textContent = referenceNumber;
-            document.getElementById('receiptName').textContent = firstName + ' ' + lastName;
+            
+            // ========== UPDATE RECEIPT POPUP FOR MEMBERSHIP ==========
+            const receiptTracking = document.getElementById('receiptTracking');
+            const receiptName = document.getElementById('receiptName');
+            const receiptAmount = document.getElementById('receiptAmount');
+            const receiptPaymentFor = document.getElementById('receiptPaymentFor');
+            const receiptStatus = document.getElementById('receiptStatus');
+            
+            if (receiptTracking) receiptTracking.textContent = referenceNumber;
+            if (receiptName) receiptName.textContent = firstName + ' ' + lastName;
+            
+            // Set the correct payment type for membership
+            if (receiptPaymentFor) {
+                receiptPaymentFor.textContent = '🏌️ Membership Application';
+                receiptPaymentFor.style.fontWeight = 'bold';
+            }
+            
+            // Set the amount
+            if (receiptAmount) {
+                receiptAmount.textContent = '₱1,000,000';
+                receiptAmount.style.fontWeight = 'bold';
+                receiptAmount.style.color = '#276749';
+                receiptAmount.style.fontSize = '18px';
+            }
+            
+            // Set status message
+            if (receiptStatus) {
+                receiptStatus.innerHTML = `⏳ <strong>Pending Admin Verification</strong><br><small>Payment via ${paymentMethod} - Please wait for admin to verify your membership</small>`;
+                receiptStatus.style.background = '#fff3cd';
+                receiptStatus.style.color = '#856404';
+                receiptStatus.style.padding = '8px';
+                receiptStatus.style.borderRadius = '5px';
+                receiptStatus.style.marginTop = '10px';
+            }
+            
+            // Hide payment form and show receipt
             document.getElementById('membershipPayment').style.display = 'none';
             document.getElementById('receiptPopup').style.display = 'flex';
             
+            // Clear form fields
             document.getElementById('paymentAccount').value = '';
             if (expiryInput) expiryInput.value = '';
             document.getElementById('cardCvc').value = '';
+            
         } else {
             overlay.style.display = 'none';
             showToast(result.message || 'Application failed', 'error');
@@ -1496,15 +1532,16 @@ async function submitDynamicReservationPayment(event) {
     
     // Get payment form values
     const activeBtn = document.querySelector('#reservationPayment .pm-tab.active');
-let activeMethod = activeBtn?.getAttribute('data-clean-method') || 'BDO';
-// Fallback: if data attribute not set, extract from text
-if (!activeMethod || activeMethod === 'BDO' && !activeBtn?.innerText.includes('BDO')) {
-    const methodText = activeBtn?.innerText.trim() || 'BDO';
-    if (methodText.includes('BDO')) activeMethod = 'BDO';
-    else if (methodText.includes('Metrobank')) activeMethod = 'Metrobank';
-    else if (methodText.includes('BPI')) activeMethod = 'BPI';
-    else activeMethod = 'BDO';
-}
+    let activeMethod = activeBtn?.getAttribute('data-clean-method') || 'BDO';
+    // Fallback: if data attribute not set, extract from text
+    if (!activeMethod || (activeMethod === 'BDO' && !activeBtn?.innerText.includes('BDO'))) {
+        const methodText = activeBtn?.innerText.trim() || 'BDO';
+        if (methodText.includes('BDO')) activeMethod = 'BDO';
+        else if (methodText.includes('Metrobank')) activeMethod = 'Metrobank';
+        else if (methodText.includes('BPI')) activeMethod = 'BPI';
+        else activeMethod = 'BDO';
+    }
+    
     const accountNumber = document.getElementById('resPaymentAccount')?.value.trim() || '';
     const expiry = document.getElementById('resExpiry')?.value.trim() || '';
     const cvc = document.getElementById('resCardCvc')?.value.trim() || '';
@@ -1571,17 +1608,17 @@ if (!activeMethod || activeMethod === 'BDO' && !activeBtn?.innerText.includes('B
     
     // Prepare data for API
     const data = {
-    userId: userId,
-    firstName: pendingReservationData.firstName,
-    lastName: pendingReservationData.lastName,
-    email: pendingReservationData.email,
-    phone: pendingReservationData.phone,
-    date: formattedDate.toISOString(),
-    timeSlot: pendingReservationData.selectedTime,
-    paymentMethod: activeMethod,
-    accountNumber: cleanCard,
-    referenceNumber: transactionId,
-    amount: Number(pendingReservationData.totalPrice)  // Ensure it's a number
+        userId: userId,
+        firstName: pendingReservationData.firstName,
+        lastName: pendingReservationData.lastName,
+        email: pendingReservationData.email,
+        phone: pendingReservationData.phone,
+        date: formattedDate.toISOString(),
+        timeSlot: pendingReservationData.selectedTime,
+        paymentMethod: activeMethod,
+        accountNumber: cleanCard,
+        referenceNumber: transactionId,
+        amount: Number(pendingReservationData.totalPrice)
     };
     
     console.log('Submitting reservation application:', { 
@@ -1599,11 +1636,7 @@ if (!activeMethod || activeMethod === 'BDO' && !activeBtn?.innerText.includes('B
     }
     
     try {
-        // Get the auth token properly
         const token = getAuthToken();
-        
-        // Debug: Check if token exists
-        console.log('Auth token exists:', !!token);
         
         if (!token) {
             throw new Error('No authentication token found. Please login again.');
@@ -1620,7 +1653,6 @@ if (!activeMethod || activeMethod === 'BDO' && !activeBtn?.innerText.includes('B
         
         console.log('Response status:', response.status);
         
-        // Handle 401 specifically - token might be expired
         if (response.status === 401) {
             localStorage.clear();
             showToast('Session expired. Please login again.', 'error');
@@ -1643,22 +1675,42 @@ if (!activeMethod || activeMethod === 'BDO' && !activeBtn?.innerText.includes('B
                 localStorage.setItem('lastReservationAppId', result.applicationId);
             }
             
-            // Update receipt popup
+            // ========== UPDATE RECEIPT POPUP FOR RESERVATION ==========
             const receiptTracking = document.getElementById('receiptTracking');
             const receiptName = document.getElementById('receiptName');
-            const receiptAmount = document.querySelector('#receiptPopup .popup-card p:last-child span');
+            const receiptAmount = document.getElementById('receiptAmount');
+            const receiptPaymentFor = document.getElementById('receiptPaymentFor');
             const receiptStatus = document.getElementById('receiptStatus');
             
             if (receiptTracking) receiptTracking.textContent = transactionId;
             if (receiptName) receiptName.textContent = `${pendingReservationData.firstName} ${pendingReservationData.lastName}`;
-            if (receiptAmount) receiptAmount.textContent = `₱${pendingReservationData.totalPrice.toLocaleString()}`;
             
+            // Set the correct payment type (reservation name like "Swimming Pool")
+            if (receiptPaymentFor) {
+                const reservationTypeName = pendingReservationData.reservationType?.name || 'Reservation';
+                receiptPaymentFor.textContent = reservationTypeName;
+                receiptPaymentFor.style.fontWeight = 'bold';
+            }
+            
+            // Set the amount
+            if (receiptAmount) {
+                receiptAmount.textContent = `₱${pendingReservationData.totalPrice.toLocaleString()}`;
+                receiptAmount.style.fontWeight = 'bold';
+                receiptAmount.style.color = '#276749';
+                receiptAmount.style.fontSize = '18px';
+            }
+            
+            // Set status message
             if (receiptStatus) {
                 receiptStatus.innerHTML = `⏳ <strong>Pending Admin Verification</strong><br><small>Payment via ${activeMethod} - Please wait for admin to verify</small>`;
                 receiptStatus.style.background = '#fff3cd';
                 receiptStatus.style.color = '#856404';
+                receiptStatus.style.padding = '8px';
+                receiptStatus.style.borderRadius = '5px';
+                receiptStatus.style.marginTop = '10px';
             }
             
+            // Show the receipt popup
             const receiptPopup = document.getElementById('receiptPopup');
             if (receiptPopup) receiptPopup.style.display = 'flex';
             

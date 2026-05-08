@@ -374,6 +374,7 @@ router.get('/application/:appId', async (req, res) => {
                     email: reservation.email,
                     phone: reservation.phone,
                     type: 'reservation',
+                    reservationTypeName: reservation.reservationTypeName || reservation.type || 'Reservation',  // ADD THIS
                     status: reservation.status,
                     amount: reservation.amount,
                     details: {
