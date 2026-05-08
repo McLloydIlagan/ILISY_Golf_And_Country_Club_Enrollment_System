@@ -527,13 +527,19 @@ router.get('/reservations/calendar', async (req, res) => {
         let allItems = [];
         
         reservations.forEach(res => {
+            // Get type name from multiple possible fields
+            let typeName = res.reservationTypeName || 
+                          res.reservationType || 
+                          res.type || 
+                          'Reservation';
+            
             allItems.push({
                 date: res.date,
                 timeSlot: res.timeSlot,
                 firstName: res.firstName,
                 lastName: res.lastName,
                 status: res.status,
-                reservationTypeName: res.reservationTypeName || 'Reservation',
+                reservationTypeName: typeName,
                 amount: res.amount,
                 source: 'reservation'
             });
@@ -541,37 +547,73 @@ router.get('/reservations/calendar', async (req, res) => {
         
         applications.forEach(app => {
             if (app.details && app.details.date) {
+                let typeName = app.reservationTypeName || 
+                              app.details.reservationType || 
+                              'Reservation';
+                
                 allItems.push({
                     date: new Date(app.details.date),
                     timeSlot: app.details.timeSlot,
                     firstName: app.firstName,
                     lastName: app.lastName,
                     status: app.status,
-                    reservationTypeName: app.reservationTypeName || 'Reservation',
+                    reservationTypeName: typeName,
                     amount: app.amount,
                     source: 'application'
                 });
             }
         });
         
-        // Apply filter if specified
-        if (filterType === 'type_id' && filterValue) {
-            // Filter by specific reservation type ID
-            allItems = allItems.filter(item => 
-                item.reservationTypeId === filterValue
-            );
-        } else if (filterType === 'category' && filterValue) {
-            // Filter by category - check if reservation type name contains category or matches
-            allItems = allItems.filter(item => 
-                item.reservationTypeName?.toLowerCase().includes(filterValue.toLowerCase()) ||
-                item.reservationType?.toLowerCase().includes(filterValue.toLowerCase())
-            );
-        } else if (filterType === 'type_name' && filterValue) {
-            // Direct name match
-            allItems = allItems.filter(item => 
-                item.reservationTypeName === filterValue ||
-                item.reservationTypeName?.toLowerCase() === filterValue.toLowerCase()
-            );
+        // ========== FIXED FILTERING LOGIC ==========
+        
+        // Case 1: Filter by specific reservation type NAME (most common)
+        if (filterType === 'type_name' && filterValue) {
+            const searchName = filterValue.toLowerCase().trim();
+            allItems = allItems.filter(item => {
+                const itemName = (item.reservationTypeName || 'Reservation').toLowerCase().trim();
+                return itemName === searchName;
+            });
+            console.log(`📅 Filtered by type_name "${filterValue}": ${allItems.length} items`);
+        }
+        
+        // Case 2: Filter by category (partial match)
+        else if (filterType === 'category' && filterValue) {
+            const searchCategory = filterValue.toLowerCase().trim();
+            allItems = allItems.filter(item => {
+                const itemName = (item.reservationTypeName || 'Reservation').toLowerCase();
+                return itemName.includes(searchCategory);
+            });
+            console.log(`📅 Filtered by category "${filterValue}": ${allItems.length} items`);
+        }
+        
+        // Case 3: Filter by type ID (look up the type name first)
+        else if (filterType === 'type_id' && filterValue) {
+            try {
+                const ReservationType = require('../models/ReservationType');
+                const reservationType = await ReservationType.findById(filterValue);
+                if (reservationType) {
+                    const typeName = reservationType.name.toLowerCase().trim();
+                    allItems = allItems.filter(item => {
+                        const itemName = (item.reservationTypeName || 'Reservation').toLowerCase().trim();
+                        return itemName === typeName;
+                    });
+                    console.log(`📅 Filtered by type_id "${reservationType.name}": ${allItems.length} items`);
+                }
+            } catch (err) {
+                console.error('Error looking up reservation type:', err);
+            }
+        }
+        
+        // Case 4: Filter by membership (no filtering needed, just return all items)
+        else if (filterType === 'membership') {
+            // For membership, we want to show membership applications
+            // You may want to add membership data here
+            console.log(`📅 Showing membership applications`);
+        }
+        
+        // Case 5: No filter (all items)
+        else {
+            console.log(`📅 No filter applied, showing ${allItems.length} total items`);
         }
         
         res.json(allItems);
