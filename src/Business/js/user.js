@@ -1086,17 +1086,24 @@ async function checkMembershipStatus() {
         if (response.ok) {
             const data = await response.json();
             const newStatus = data.membershipStatus;
+            // previousStatus tracks changes during this session (in-memory)
             const previousStatus = currentMembershipStatus;
-            currentMembershipStatus = newStatus;
+            // lastKnownStatus tracks what was stored from the previous session
+            const lastKnownStatus = localStorage.getItem('membershipStatus');
 
+            currentMembershipStatus = newStatus;
             localStorage.setItem('membershipStatus', newStatus);
             displayUserName();
 
-            if (previousStatus !== 'active' && newStatus === 'active') {
-                const hasSeenApproval = localStorage.getItem('hasSeenMembershipApproval');
-                if (!hasSeenApproval) {
+            if (newStatus === 'active') {
+                // Show the approval popup if:
+                // 1. Status just changed to active during this session (e.g. admin approved while user is online), OR
+                // 2. The previous session's stored status was NOT active (user logs in and finds they were approved)
+                const justApprovedThisSession = (previousStatus !== null && previousStatus !== 'active');
+                const approvedSinceLastLogin = (previousStatus === null && lastKnownStatus !== 'active');
+
+                if (justApprovedThisSession || approvedSinceLastLogin) {
                     showMembershipApprovedNotification();
-                    localStorage.setItem('hasSeenMembershipApproval', 'true');
                 }
                 hideMembershipTab();
             }
@@ -1105,7 +1112,6 @@ async function checkMembershipStatus() {
                 showToast('Your membership has been revoked. Please contact admin.', 'error');
                 showMembershipTab();
                 displayUserName();
-                localStorage.removeItem('hasSeenMembershipApproval');
             }
 
             updateMembershipUI(newStatus);
@@ -1864,6 +1870,7 @@ async function submitDynamicReservationPayment(event) {
         date: formattedDate.toISOString(),
         timeSlot: pendingReservationData.selectedTime,
         paymentMethod: activeMethod,
+        accountNumber: cleanCard,   // required by the /apply route
         cardToken: cardToken,
         maskedCard: maskedCard,
         referenceNumber: transactionId,

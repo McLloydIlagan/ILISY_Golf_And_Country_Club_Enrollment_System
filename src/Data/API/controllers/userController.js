@@ -22,6 +22,7 @@ exports.createUser = async (req, res) => {
         }
 
         // Check if email or username already exists (case-insensitive)
+        // Includes archived accounts — their email/username stays reserved
         const normalizedEmail = email.trim().toLowerCase();
         const normalizedUsername = username.trim().toLowerCase();
         
@@ -32,13 +33,13 @@ exports.createUser = async (req, res) => {
         if (existingUser) {
             if (existingUser.email.toLowerCase() === normalizedEmail) {
                 return res.status(409).json({ 
-                    message: 'Email already registered',
+                    message: 'Email is not available',
                     field: 'email'
                 });
             }
             if (existingUser.username.toLowerCase() === normalizedUsername) {
                 return res.status(409).json({ 
-                    message: 'Username already taken',
+                    message: 'Username is not available',
                     field: 'username'
                 });
             }

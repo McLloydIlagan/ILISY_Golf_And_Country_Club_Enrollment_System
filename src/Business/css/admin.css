@@ -3009,6 +3009,35 @@ body {
     overflow-x: auto;
 }
 
+.pending-panel .table-wrap {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.pending-panel .table-wrap::-webkit-scrollbar {
+    width: 5px;
+}
+
+.pending-panel .table-wrap::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+}
+
+.pending-panel .table-wrap::-webkit-scrollbar-thumb {
+    background: var(--c-amber, #d97706);
+    border-radius: 3px;
+}
+
+.pending-panel .table-wrap::-webkit-scrollbar-thumb:hover {
+    background: var(--gold, #d4b36a);
+}
+
+.pending-panel .table-wrap .data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
 .data-table {
     width: 100%;
     border-collapse: collapse;

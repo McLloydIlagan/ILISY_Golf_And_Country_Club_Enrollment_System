@@ -81,8 +81,10 @@ router.post('/register', [
         const existingEmail = await User.findOne({ email: normalizedEmail });
         if (existingEmail) {
             console.log('Email already exists:', existingEmail.email);
+            // Use the same message whether the account is archived or active
+            // to avoid leaking account existence
             return res.status(409).json({
-                message: 'This email is already registered. Please use a different email or login.',
+                message: 'This email is not available. Please use a different email.',
                 field: 'email'
             });
         }
@@ -92,7 +94,7 @@ router.post('/register', [
         if (existingUsername) {
             console.log('Username already exists:', existingUsername.username);
             return res.status(409).json({
-                message: 'This username is already taken. Please choose a different username.',
+                message: 'This username is not available. Please choose a different username.',
                 field: 'username'
             });
         }
@@ -166,6 +168,11 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
+        // Check if account is archived
+        if (user.isArchived) {
+            return res.status(403).json({ message: 'This account has been deactivated. Please contact the administrator for assistance.' });
+        }
+
         // Check if user is blocked
         if (user.isBlocked) {
             return res.status(403).json({ message: `Your account has been blocked. Reason: ${user.blockReason || 'Contact admin for details.'}` });
@@ -209,9 +216,10 @@ router.post('/check-email', async (req, res) => {
         const existingUser = await User.findOne({ email: normalizedEmail });
 
         if (existingUser) {
+            // Same message for both active and archived — don't leak account status
             return res.json({ 
                 available: false, 
-                message: 'Email already registered. Please use a different email or login.' 
+                message: 'This email is not available. Please use a different email.' 
             });
         }
 
@@ -238,9 +246,10 @@ router.post('/check-username', async (req, res) => {
         const existingUser = await User.findOne({ username: normalizedUsername });
 
         if (existingUser) {
+            // Same message for both active and archived — don't leak account status
             return res.json({ 
                 available: false, 
-                message: 'Username already taken. Please choose a different username.' 
+                message: 'This username is not available. Please choose a different username.' 
             });
         }
 
