@@ -12,7 +12,7 @@ let allAvailabilityData = [];
 
 function debounce(fn, delay) {
     let timer;
-    return function(...args) {
+    return function (...args) {
         clearTimeout(timer);
         timer = setTimeout(() => fn.apply(this, args), delay);
     };
@@ -26,7 +26,7 @@ function getAuthToken() {
 
 async function apiFetch(url, options = {}) {
     const token = getAuthToken();
-    
+
     if (!token) {
         showToast('Session expired. Please login again.', 'error');
         setTimeout(() => {
@@ -34,14 +34,14 @@ async function apiFetch(url, options = {}) {
         }, 1500);
         throw new Error('No auth token');
     }
-    
+
     const defaultOptions = {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         }
     };
-    
+
     const mergedOptions = {
         ...defaultOptions,
         ...options,
@@ -50,10 +50,10 @@ async function apiFetch(url, options = {}) {
             ...options.headers
         }
     };
-    
+
     try {
         const response = await fetch(url, mergedOptions);
-        
+
         if (response.status === 401 || response.status === 403) {
             localStorage.clear();
             showToast('Session expired. Please login again.', 'error');
@@ -62,7 +62,7 @@ async function apiFetch(url, options = {}) {
             }, 1500);
             throw new Error('Unauthorized');
         }
-        
+
         return response;
     } catch (error) {
         throw error;
@@ -97,7 +97,7 @@ function saveCurrentPage(pageId) {
 function loadLastVisitedPage() {
     const lastPage = localStorage.getItem('adminCurrentPage');
     const validPages = ['dashboard', 'reservations', 'accounts', 'payments', 'messages', 'manage_reservations', 'membership_settings'];
-    
+
     if (lastPage && validPages.includes(lastPage) && document.getElementById(`page-${lastPage}`)) {
         console.log('Restoring page:', lastPage);
         showPage(lastPage);
@@ -125,7 +125,7 @@ function handleLogout() {
 
 function escapeHtml(text) {
     if (!text) return '';
-    return text.replace(/[&<>]/g, function(m) {
+    return text.replace(/[&<>]/g, function (m) {
         if (m === '&') return '&amp;';
         if (m === '<') return '&lt;';
         if (m === '>') return '&gt;';
@@ -160,7 +160,7 @@ function viewFullImage(imageUrl) {
         z-index: 20000;
         cursor: pointer;
     `;
-    
+
     modal.innerHTML = `
         <button class="image-viewer-close" style="
             position: absolute;
@@ -181,27 +181,27 @@ function viewFullImage(imageUrl) {
             border-radius: 8px;
         ">
     `;
-    
-    modal.addEventListener('click', function(e) {
+
+    modal.addEventListener('click', function (e) {
         if (e.target === modal) {
             modal.remove();
         }
     });
-    
-    const closeHandler = function(e) {
+
+    const closeHandler = function (e) {
         if (e.key === 'Escape') {
             modal.remove();
             document.removeEventListener('keydown', closeHandler);
         }
     };
     document.addEventListener('keydown', closeHandler);
-    
+
     const closeBtn = modal.querySelector('.image-viewer-close');
-    closeBtn.addEventListener('click', function() {
+    closeBtn.addEventListener('click', function () {
         modal.remove();
         document.removeEventListener('keydown', closeHandler);
     });
-    
+
     document.body.appendChild(modal);
 }
 
@@ -215,20 +215,20 @@ function showPage(id) {
         const currentPageId = activePage.id.replace('page-', '');
         saveScrollPosition(currentPageId);
     }
-    
+
     saveCurrentPage(id);
-    
+
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     const page = document.getElementById('page-' + id);
     if (page) page.classList.add('active');
-    
+
     const map = { dashboard: 0, reservations: 1, accounts: 2, payments: 3, messages: 4, manage_reservations: 5, membership_settings: 6 };
     const items = document.querySelectorAll('.nav-item');
     if (map[id] !== undefined && items[map[id]]) {
         items[map[id]].classList.add('active');
     }
-    
+
     if (id !== 'messages') stopAdminMessagePolling();
 
     if (id === 'dashboard') {
@@ -248,7 +248,7 @@ function showPage(id) {
     }
     else if (id === 'manage_reservations') loadReservationTypes();
     else if (id === 'membership_settings') loadMembershipSettings();
-    
+
     restoreScrollPosition(id);
 }
 
@@ -362,16 +362,16 @@ async function loadFinancialReport() {
 function renderFinancialChart(months, membershipData, reservationData) {
     const chartContainer = document.getElementById('financialChart');
     if (!chartContainer) return;
-    
+
     const maxValue = Math.max(...membershipData, ...reservationData, 1000);
     const maxHeight = 150;
-    
+
     let barsHtml = '';
-    
+
     for (let i = 0; i < months.length; i++) {
         const membershipHeight = (membershipData[i] / maxValue) * maxHeight;
         const reservationHeight = (reservationData[i] / maxValue) * maxHeight;
-        
+
         barsHtml += `
             <div class="bar-group" style="flex-direction: column; align-items: center; flex: 1;">
                 <div style="display: flex; gap: 8px; align-items: flex-end; height: ${maxHeight}px;">
@@ -382,11 +382,11 @@ function renderFinancialChart(months, membershipData, reservationData) {
             </div>
         `;
     }
-    
+
     const totalMembership = membershipData.reduce((a, b) => a + b, 0);
     const totalReservation = reservationData.reduce((a, b) => a + b, 0);
     const grandTotal = totalMembership + totalReservation;
-    
+
     chartContainer.innerHTML = `
         <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 15px;">
             <div style="font-size: 12px;">
@@ -420,11 +420,11 @@ let calendarReservationTypes = [];
 function populateCalendarFilter() {
     const filterSelect = document.getElementById('calendarTypeFilter');
     if (!filterSelect) return;
-    
+
     let optionsHtml = '<option value="all">📌 All Reservations</option>';
     optionsHtml += '<option value="membership">🏌️ Membership Applications</option>';
     optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
-    
+
     // Group by category
     const categoryMap = new Map();
     calendarReservationTypes.forEach(type => {
@@ -433,7 +433,7 @@ function populateCalendarFilter() {
         }
         categoryMap.get(type.category).push(type);
     });
-    
+
     const categoryInfo = {
         golf: { icon: '⛳', name: 'Golf' },
         amenities: { icon: '🍽️', name: 'Amenities' },
@@ -441,12 +441,12 @@ function populateCalendarFilter() {
         accommodation: { icon: '🏨', name: 'Accommodation' },
         premium: { icon: '✨', name: 'Premium' }
     };
-    
+
     for (const [category, types] of categoryMap) {
         const info = categoryInfo[category] || { icon: '📌', name: category };
         // Category option - using name_ prefix
         optionsHtml += `<option value="name_${info.name}" style="font-weight: bold; background: #f0f0f0;">${info.icon} ${info.name} (All)</option>`;
-        
+
         types.forEach(type => {
             if (type.isActive) {
                 // Individual type option - using name_ prefix with the actual name
@@ -455,20 +455,20 @@ function populateCalendarFilter() {
         });
         optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
     }
-    
+
     filterSelect.innerHTML = optionsHtml;
 }
 
 async function loadAdminCalendar() {
     const token = getAuthToken();
     if (!token) return;
-    
+
     const filterSelect = document.getElementById('calendarTypeFilter');
     let selectedFilter = filterSelect ? filterSelect.value : 'all';
-    
+
     let filterType = 'all';
     let filterValue = '';
-    
+
     // IMPORTANT: Updated filter detection logic
     if (selectedFilter === 'membership') {
         filterType = 'membership';
@@ -482,28 +482,28 @@ async function loadAdminCalendar() {
         filterType = 'category';
         filterValue = selectedFilter.replace('cat_', '');
     }
-    
+
     console.log('🔍 Loading calendar with filter:', { filterType, filterValue, selectedFilter });
-    
+
     try {
         const year = adminCurrentMonth.getFullYear();
         const month = adminCurrentMonth.getMonth() + 1;
-        
+
         const url = `${API_URL}/admin/reservations/calendar?year=${year}&month=${month}&filterType=${filterType}&filterValue=${encodeURIComponent(filterValue)}`;
-        
+
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             adminCalendarData = await response.json();
             console.log('📊 Calendar data loaded:', adminCalendarData.length, 'records');
-            
+
             // Debug: Log what items were found
             if (filterValue) {
                 const uniqueTypes = [...new Set(adminCalendarData.map(item => item.reservationTypeName))];
@@ -516,7 +516,7 @@ async function loadAdminCalendar() {
         console.error('Error loading calendar:', error);
         adminCalendarData = [];
     }
-    
+
     renderAdminCalendar();
 }
 
@@ -525,61 +525,61 @@ function renderAdminCalendar() {
     const month = adminCurrentMonth.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
+
     const monthYearSpan = document.getElementById('adminCalendarMonthYear');
     if (monthYearSpan) {
         monthYearSpan.textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(adminCurrentMonth);
     }
-    
+
     const filterSelect = document.getElementById('calendarTypeFilter');
     const selectedFilterText = filterSelect ? filterSelect.options[filterSelect.selectedIndex]?.text || 'All' : 'All';
-    
+
     const grid = document.getElementById('adminCalGrid');
     if (!grid) return;
     grid.innerHTML = '';
-    
+
     const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     weekdays.forEach(day => {
         grid.innerHTML += `<div style="font-size:10px;color:#888;text-align:center;font-weight:bold;">${day}</div>`;
     });
-    
+
     for (let i = 0; i < firstDay; i++) {
         grid.innerHTML += `<div class="res-day empty"></div>`;
     }
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     for (let d = 1; d <= daysInMonth; d++) {
         const cellDate = new Date(year, month, d);
         const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const isToday = cellDate.toDateString() === today.toDateString();
-        
+
         // Count reservations for this day
         const dayReservations = adminCalendarData.filter(res => {
             const resDate = new Date(res.date);
-            return resDate.getFullYear() === year && 
-                   resDate.getMonth() === month && 
-                   resDate.getDate() === d;
+            return resDate.getFullYear() === year &&
+                resDate.getMonth() === month &&
+                resDate.getDate() === d;
         });
-        
+
         const bookedCount = dayReservations.length;
-        
+
         // Determine color based on bookings
         let statusClass = 'available';
         if (bookedCount > 0) {
             statusClass = 'booked';
         }
-        
+
         const todayClass = isToday ? 'today' : '';
-        
+
         // Build tooltip
         let tooltipText = `Available for ${selectedFilterText}`;
         if (bookedCount > 0) {
             const typeNames = [...new Set(dayReservations.map(r => r.reservationTypeName || 'Reservation'))];
             tooltipText = `${bookedCount} booking(s): ${typeNames.join(', ')}`;
         }
-        
+
         // IMPORTANT: Make ALL days clickable, even booked ones
         grid.innerHTML += `
             <div class="res-day ${statusClass} ${todayClass}" 
@@ -602,26 +602,26 @@ function changeAdminMonth(delta) {
 
 async function openAdminDayDetails(dateKey) {
     console.log('Opening details for date:', dateKey);
-    
+
     // Parse the date correctly
     const [year, month, day] = dateKey.split('-');
     const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    const formattedDate = dateObj.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+    const formattedDate = dateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
     });
-    
+
     const modalDate = document.getElementById('resDetailDate');
     if (modalDate) modalDate.textContent = formattedDate;
-    
+
     const token = getAuthToken();
     if (!token) return;
-    
+
     const modalBody = document.querySelector('#resDetailModal .res-detail-body');
     if (!modalBody) return;
-    
+
     // Show loading state
     modalBody.innerHTML = `
         <div style="text-align:center; padding:20px;">
@@ -631,29 +631,29 @@ async function openAdminDayDetails(dateKey) {
             <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
         </div>
     `;
-    
+
     try {
         // Create proper date range
         const startDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         startDate.setHours(0, 0, 0, 0);
-        
+
         const endDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         endDate.setHours(23, 59, 59, 999);
-        
+
         // Fetch reservations for this specific date range
         const response = await fetch(`${API_URL}/admin/reservations/by-date/${dateKey}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             let reservations = await response.json();
             console.log('Reservations for date:', reservations);
-            
+
             if (!reservations || reservations.length === 0) {
                 modalBody.innerHTML = `
                     <div style="text-align:center; padding:40px; color:#888;">
@@ -665,19 +665,19 @@ async function openAdminDayDetails(dateKey) {
                 `;
                 return;
             }
-            
+
             // Build HTML for each reservation
             let slotsHtml = `
                 <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">
                     <strong>Total Reservations: ${reservations.length}</strong>
                 </div>
             `;
-            
+
             reservations.forEach((res, index) => {
                 const reservationType = res.reservationTypeName || res.reservationType || res.type || 'Reservation';
                 const statusClass = res.status === 'confirmed' || res.status === 'approved' ? 'status-confirmed' : 'status-pending';
                 const statusText = res.status === 'confirmed' || res.status === 'approved' ? '✓ Confirmed' : '⏳ Pending';
-                
+
                 slotsHtml += `
                     <div style="background: ${index % 2 === 0 ? '#f9f9f9' : 'white'}; border: 1px solid #eee; border-radius: 8px; margin-bottom: 12px; padding: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -695,18 +695,39 @@ async function openAdminDayDetails(dateKey) {
                         </div>
                         <div>
                             <div><strong>🏷️ Type:</strong> <span style="background: var(--sage); padding: 2px 8px; border-radius: 12px;">${escapeHtml(reservationType)}</span></div>
-                            <div><strong>💰 Amount:</strong> <strong>₱${(res.amount || 0).toLocaleString()}</strong></div>
+                            <div style="margin-top: 8px; padding: 10px; background: #f5f5f5; border-radius: 6px; font-size: 12px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span>Base Price:</span>
+                                    <span>₱${(res.basePrice || 0).toLocaleString()}</span>
+                                </div>
+                                ${res.addOnsTotal ? `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span>Add-ons:</span>
+                                    <span>+₱${(res.addOnsTotal || 0).toLocaleString()}</span>
+                                </div>` : ''}
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #ddd;">
+                                    <span>Service Charge (10%):</span>
+                                    <span>+₱${(res.serviceCharge || 0).toLocaleString()}</span>
+                                </div>
+                                ${res.memberDiscount ? `<div style="display: flex; justify-content: space-between; color: #28a745; font-weight: bold;">
+                                    <span>Member Discount (20%):</span>
+                                    <span>-₱${(res.memberDiscount || 0).toLocaleString()}</span>
+                                </div>` : ''}
+                                <div style="display: flex; justify-content: space-between; margin-top: 6px; font-weight: bold; color: var(--olive);">
+                                    <span>Total:</span>
+                                    <span>₱${(res.amount || 0).toLocaleString()}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
             });
-            
+
             slotsHtml += `
                 <div style="text-align:right; margin-top: 16px;">
                     <button class="btn-cancel-modal" style="padding:8px 22px;" onclick="closeModal('resDetailModal')">Close</button>
                 </div>
             `;
-            
+
             modalBody.innerHTML = slotsHtml;
         } else {
             modalBody.innerHTML = `
@@ -729,7 +750,7 @@ async function openAdminDayDetails(dateKey) {
             </div>
         `;
     }
-    
+
     // Show the modal
     const modal = document.getElementById('resDetailModal');
     if (modal) modal.classList.add('show');
@@ -742,18 +763,18 @@ async function openAdminDayDetails(dateKey) {
 async function loadUsers() {
     try {
         const response = await apiFetch(`${API_URL}/admin/users`);
-        
+
         if (response.ok) {
             const users = await response.json();
             const tbody = document.getElementById('accountsTbody');
             if (!tbody) return;
             tbody.innerHTML = '';
-            
+
             if (users.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No users found</td></tr>';
                 return;
             }
-            
+
             users.forEach(user => {
                 const row = tbody.insertRow();
                 row.innerHTML = `
@@ -765,9 +786,9 @@ async function loadUsers() {
                     <td>
                         <button class="btn-edit" onclick="editUser('${user._id}')">edit</button>
                         <button class="btn-remove" onclick="showRemoveModal('${user._id}')">archive</button>
-                        ${user.membershipStatus === 'active' ? 
-                            `<button class="btn-revoke" onclick="revokeMembership('${user._id}')" style="background: #9c403d; color: white; padding: 4px 12px; border: none; border-radius: 3px; cursor: pointer; margin-left: 5px;">Revoke</button>` 
-                            : ''}
+                        ${user.membershipStatus === 'active' ?
+                        `<button class="btn-revoke" onclick="revokeMembership('${user._id}')" style="background: #9c403d; color: white; padding: 4px 12px; border: none; border-radius: 3px; cursor: pointer; margin-left: 5px;">Revoke</button>`
+                        : ''}
                     </td>
                 `;
             });
@@ -781,10 +802,10 @@ async function loadUsers() {
 async function editUser(userId) {
     const newMembershipStatus = prompt('Enter new membership status (active/pending/expired/none):');
     if (!newMembershipStatus) return;
-    
+
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/users/${userId}`, {
             method: 'PUT',
@@ -794,12 +815,12 @@ async function editUser(userId) {
             },
             body: JSON.stringify({ membershipStatus: newMembershipStatus })
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             showToast('User updated successfully', 'success');
             loadUsers();
@@ -822,24 +843,24 @@ function showRemoveModal(userId) {
 
 async function confirmRemove() {
     if (!userToRemove) return;
-    
+
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/users/${userToRemove}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
-                showToast('User archived successfully', 'success');
-                loadUsers();
+            showToast('User archived successfully', 'success');
+            loadUsers();
         } else {
             const error = await response.json();
             showToast(error.message || 'Remove failed', 'error');
@@ -994,17 +1015,17 @@ const reservationsPerPage = 10;
 async function loadReservations() {
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/applications`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             allReservations = await response.json();
             console.log('Loaded reservations:', allReservations.length);
@@ -1033,28 +1054,28 @@ function filterReservationsTable() {
     const typeFilter = document.getElementById('reservationTypeFilter');
     const dateFrom = document.getElementById('reservationDateFrom');
     const dateTo = document.getElementById('reservationDateTo');
-    
+
     const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
     const statusFilterValue = statusFilter ? statusFilter.value : 'all';
     let typeFilterValue = typeFilter ? typeFilter.value : 'all';
     const fromDate = dateFrom && dateFrom.value ? new Date(dateFrom.value) : null;
     const toDate = dateTo && dateTo.value ? new Date(dateTo.value + 'T23:59:59') : null;
-    
+
     console.log('Filtering reservations. Total:', allReservations.length);
-    
+
     filteredReservations = allReservations.filter(app => {
         const fullName = `${app.firstName} ${app.lastName}`.toLowerCase();
         const email = (app.email || '').toLowerCase();
         const phone = (app.phone || '').toLowerCase();
-        const matchesSearch = fullName.includes(searchQuery) || 
-                              email.includes(searchQuery) || 
-                              phone.includes(searchQuery);
-        
+        const matchesSearch = fullName.includes(searchQuery) ||
+            email.includes(searchQuery) ||
+            phone.includes(searchQuery);
+
         let matchesStatus = true;
         if (statusFilterValue !== 'all') {
             matchesStatus = app.status === statusFilterValue;
         }
-        
+
         let matchesType = true;
         if (typeFilterValue !== 'all') {
             if (typeFilterValue === 'membership') {
@@ -1085,12 +1106,12 @@ function filterReservationsTable() {
                 matchesDate = false;
             }
         }
-        
+
         return matchesSearch && matchesStatus && matchesType && matchesDate;
     });
-    
+
     console.log('Filtered reservations:', filteredReservations.length);
-    
+
     currentReservationPage = 1;
     renderReservationsTable();
     updateResultsCount();
@@ -1102,13 +1123,13 @@ function resetReservationFilters() {
     const typeFilter = document.getElementById('reservationTypeFilter');
     const dateFrom = document.getElementById('reservationDateFrom');
     const dateTo = document.getElementById('reservationDateTo');
-    
+
     if (searchInput) searchInput.value = '';
     if (statusFilter) statusFilter.value = 'all';
     if (typeFilter) typeFilter.value = 'all';
     if (dateFrom) dateFrom.value = '';
     if (dateTo) dateTo.value = '';
-    
+
     filterReservationsTable();
 }
 
@@ -1118,7 +1139,7 @@ function updateResultsCount() {
         const total = filteredReservations.length;
         const start = (currentReservationPage - 1) * reservationsPerPage + 1;
         const end = Math.min(currentReservationPage * reservationsPerPage, total);
-        
+
         if (total > 0) {
             countDiv.innerHTML = `Showing ${start} - ${end} of ${total} reservation${total !== 1 ? 's' : ''}`;
         } else {
@@ -1250,17 +1271,17 @@ function toggleResGroup(groupId) {
 function renderReservationPagination() {
     const paginationDiv = document.getElementById('reservationPagination');
     if (!paginationDiv) return;
-    
+
     const totalPages = Math.ceil(filteredReservations.length / reservationsPerPage);
-    
+
     if (totalPages <= 1) {
         paginationDiv.innerHTML = '';
         return;
     }
-    
+
     let paginationHtml = '';
     paginationHtml += `<button class="pagination-btn" onclick="changeReservationPage(${currentReservationPage - 1})" ${currentReservationPage === 1 ? 'disabled' : ''}>◀ Prev</button>`;
-    
+
     for (let i = 1; i <= totalPages; i++) {
         if (i === 1 || i === totalPages || (i >= currentReservationPage - 2 && i <= currentReservationPage + 2)) {
             paginationHtml += `<button class="pagination-btn ${i === currentReservationPage ? 'active' : ''}" onclick="changeReservationPage(${i})">${i}</button>`;
@@ -1268,9 +1289,9 @@ function renderReservationPagination() {
             paginationHtml += `<span class="pagination-dots">...</span>`;
         }
     }
-    
+
     paginationHtml += `<button class="pagination-btn" onclick="changeReservationPage(${currentReservationPage + 1})" ${currentReservationPage === totalPages ? 'disabled' : ''}>Next ▶</button>`;
-    
+
     paginationDiv.innerHTML = paginationHtml;
 }
 
@@ -1368,7 +1389,7 @@ function renderReservedClientsTable() {
 
     const statusLabels = {
         confirmed: { label: '✓ Confirmed', cls: 'status-confirmed' },
-        approved:  { label: '✓ Approved',  cls: 'status-confirmed' }
+        approved: { label: '✓ Approved', cls: 'status-confirmed' }
     };
 
     let html = '';
@@ -1429,22 +1450,22 @@ function changeReservedClientsPage(page) {
 async function viewReservationDetails(appId) {
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/application/${appId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             const app = await response.json();
             const isFromReservation = app.source === 'reservation' || !app.paymentMethod;
             const modalId = `reservationDetailModal_${Date.now()}`;
-            
+
             const modalHtml = `
                 <div class="modal-overlay show" id="${modalId}" style="display:flex;">
                     <div class="validate-modal" style="max-width: 550px;">
@@ -1496,19 +1517,19 @@ async function viewReservationDetails(appId) {
                     </div>
                 </div>
             `;
-            
+
             const existingModal = document.getElementById(modalId);
             if (existingModal) existingModal.remove();
-            
+
             document.body.insertAdjacentHTML('beforeend', modalHtml);
-            
+
             const closeBtn = document.querySelector(`[data-modal-id="${modalId}"]`);
             if (closeBtn) {
-                closeBtn.addEventListener('click', function() {
+                closeBtn.addEventListener('click', function () {
                     closeModalById(modalId);
                 });
             }
-            
+
             const modal = document.getElementById(modalId);
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) closeModalById(modalId);
@@ -1536,18 +1557,18 @@ function closeModalById(modalId) {
 async function approveReservation(appId) {
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/reservations/${appId}/approve`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             showToast('Reservation approved!', 'success');
             loadReservations();
@@ -1565,24 +1586,24 @@ async function approveReservation(appId) {
 async function rejectReservation(appId) {
     const token = getAuthToken();
     if (!token) return;
-    
+
     const reason = prompt('Enter rejection reason (optional):');
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/reservations/${appId}/reject`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ rejectionReason: reason || 'No reason provided' })
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             showToast('Reservation rejected', 'success');
             loadReservations();
@@ -1612,22 +1633,22 @@ function playNotificationSound() {
             const audioContext = new AudioContext();
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
-            
+
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
-            
+
             oscillator.frequency.value = 800;
             gainNode.gain.value = 0.1;
-            
+
             oscillator.start();
             gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.2);
             oscillator.stop(audioContext.currentTime + 0.2);
-            
+
             if (audioContext.state === 'suspended') {
                 audioContext.resume();
             }
         }
-    } catch(e) {
+    } catch (e) {
         console.log('🔔 New message notification');
     }
 }
@@ -1635,13 +1656,13 @@ function playNotificationSound() {
 async function loadMessages() {
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await apiFetch(`${API_URL}/admin/messages`);
-        
+
         if (response.ok) {
             const messages = await response.json();
-            
+
             const msgSidebar = document.getElementById('msgSidebar');
             if (!msgSidebar) return;
 
@@ -1717,9 +1738,9 @@ async function loadMessages() {
                     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;margin-left:6px;">
                         <div class="msg-contact-dot ${isPending ? 'online' : ''}"></div>
                         ${isBlocked
-                            ? `<span title="Unblock" onclick="event.stopPropagation();openBlockUserModal('${userIdStr}','${escapeHtml(msg.userName || 'User')}',true)" style="font-size:9px;background:#9c403d;color:#fff;border-radius:6px;padding:1px 5px;cursor:pointer;">Blocked</span>`
-                            : `<span title="Block user" onclick="event.stopPropagation();openBlockUserModal('${userIdStr}','${escapeHtml(msg.userName || 'User')}',false)" style="font-size:9px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:6px;padding:1px 5px;cursor:pointer;">⚙️</span>`
-                        }
+                        ? `<span title="Unblock" onclick="event.stopPropagation();openBlockUserModal('${userIdStr}','${escapeHtml(msg.userName || 'User')}',true)" style="font-size:9px;background:#9c403d;color:#fff;border-radius:6px;padding:1px 5px;cursor:pointer;">Blocked</span>`
+                        : `<span title="Block user" onclick="event.stopPropagation();openBlockUserModal('${userIdStr}','${escapeHtml(msg.userName || 'User')}',false)" style="font-size:9px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:6px;padding:1px 5px;cursor:pointer;">⚙️</span>`
+                    }
                     </div>
                 `;
                 msgSidebar.appendChild(contactDiv);
@@ -1744,7 +1765,7 @@ async function checkAdminStatus() {
     const userId = localStorage.getItem('userId');
 
     if (!token) return false;
-    
+
     try {
         const response = await apiFetch(`${API_URL}/admin/dashboard`);
         return response.ok;
@@ -1755,24 +1776,24 @@ async function checkAdminStatus() {
 
 async function refreshCurrentConversation() {
     if (!currentMessage) return;
-    
+
     try {
         const response = await apiFetch(`${API_URL}/admin/messages`);
-        
+
         if (response.ok) {
             const messages = await response.json();
             // Match by message _id (most reliable) or fall back to userId string comparison
             const currentId = String(currentMessage._id);
             const updatedMessage = messages.find(m => String(m._id) === currentId);
-            
+
             if (updatedMessage) {
                 const conversation = updatedMessage.conversation || [];
-                
+
                 if (conversation.length > 0) {
                     const lastMessage = conversation[conversation.length - 1];
                     const lastMessageId = `${lastMessage.timestamp}_${lastMessage.message || lastMessage.imageUrl || ''}`;
                     const lastShown = localStorage.getItem(`admin_last_shown_${updatedMessage._id}`);
-                    
+
                     if (lastMessage.sender === 'user' && lastShown !== lastMessageId) {
                         if (lastShown) {
                             playNotificationSound();
@@ -1781,19 +1802,19 @@ async function refreshCurrentConversation() {
                         localStorage.setItem(`admin_last_shown_${updatedMessage._id}`, lastMessageId);
                     }
                 }
-                
+
                 currentMessage = updatedMessage;
-                
+
                 const msgBody = document.getElementById('msgBody');
                 const wasAutoScrolling = msgBody.scrollHeight - msgBody.scrollTop <= msgBody.clientHeight + 100;
-                
+
                 msgBody.innerHTML = '';
-                
+
                 if (updatedMessage.conversation && updatedMessage.conversation.length > 0) {
                     updatedMessage.conversation.forEach(conv => {
                         const row = document.createElement('div');
                         row.className = `msg-row-wrap ${conv.sender === 'admin' ? 'sent' : ''}`;
-                        
+
                         if (conv.imageUrl) {
                             // Safe image bubble — no raw URL in onclick attribute
                             const bubble = document.createElement('div');
@@ -1853,7 +1874,7 @@ async function refreshCurrentConversation() {
                         msgBody.innerHTML = `<div class="chat-bubble bubble-received">${escapeHtml(updatedMessage.message || 'No message')}</div>`;
                     }
                 }
-                
+
                 if (wasAutoScrolling) {
                     scrollToBottom();
                 }
@@ -1867,14 +1888,14 @@ async function refreshCurrentConversation() {
 function selectContact(element, message) {
     currentMessage = message;
     currentUserId = message.userId;
-    
+
     document.querySelectorAll('.msg-contact').forEach(c => c.classList.remove('active'));
     element.classList.add('active');
     document.getElementById('msgWindowHeader').textContent = message.userName || 'User';
-    
+
     const msgBody = document.getElementById('msgBody');
     msgBody.innerHTML = '';
-    
+
     if (message.conversation && message.conversation.length > 0) {
         message.conversation.forEach(conv => {
             const row = document.createElement('div');
@@ -1917,9 +1938,9 @@ function selectContact(element, message) {
     } else {
         msgBody.innerHTML = `<div class="chat-bubble bubble-received">${escapeHtml(message.message || 'No message')}</div>`;
     }
-    
+
     scrollToBottom();
-    
+
     // Mark last user message as seen
     if (message.conversation && message.conversation.length > 0) {
         const lastMessage = message.conversation[message.conversation.length - 1];
@@ -1928,7 +1949,7 @@ function selectContact(element, message) {
             localStorage.setItem(`admin_last_shown_${message._id}`, lastMessageId);
         }
     }
-    
+
     const dot = element.querySelector('.msg-contact-dot');
     if (dot) dot.classList.remove('online');
 }
@@ -1938,20 +1959,20 @@ async function adminSendMsg() {
         showToast('Please select a conversation first', 'error');
         return;
     }
-    
+
     const input = document.getElementById('adminMsgInput');
     const text = input.value.trim();
     if (!text) return;
-    
+
     const sendBtn = document.querySelector('.send-btn');
     sendBtn.disabled = true;
-    
+
     try {
         const response = await apiFetch(`${API_URL}/admin/messages/${currentMessage._id}/respond`, {
             method: 'POST',
             body: JSON.stringify({ response: text })
         });
-        
+
         if (response.ok) {
             const msgBody = document.getElementById('msgBody');
             const row = document.createElement('div');
@@ -1963,16 +1984,16 @@ async function adminSendMsg() {
             msgBody.appendChild(row);
             input.value = '';
             scrollToBottom();
-            
+
             if (!currentMessage.conversation) currentMessage.conversation = [];
             currentMessage.conversation.push({ sender: 'admin', message: text, timestamp: new Date() });
             currentMessage.status = 'acknowledged';
-            
+
             showToast('Response sent', 'success');
-            
+
             const lastMessageId = `${new Date().getTime()}_${text}`;
             localStorage.setItem(`admin_last_shown_${currentMessage._id}`, lastMessageId);
-            
+
             setTimeout(() => loadMessages(), 500);
         } else {
             const error = await response.json();
@@ -1991,12 +2012,12 @@ let adminVisibilityHandler = null;
 function startAdminMessagePolling() {
     if (adminPollingInterval) clearInterval(adminPollingInterval);
     if (adminVisibilityHandler) document.removeEventListener('visibilitychange', adminVisibilityHandler);
-    
+
     adminVisibilityHandler = () => {
         if (!document.hidden) loadMessages();
     };
     document.addEventListener('visibilitychange', adminVisibilityHandler);
-    
+
     adminPollingInterval = setInterval(() => {
         if (!document.hidden) {
             loadMessages();
@@ -2050,26 +2071,26 @@ let currentValidateApplication = null;
 
 async function openValidateModal(applicationId) {
     console.log('Opening validate modal for:', applicationId);
-    
+
     const modal = document.getElementById('validatePaymentModal');
     const modalBody = document.getElementById('validateModalBody');
-    
+
     modalBody.innerHTML = '<div class="loading-spinner">Loading application details...</div>';
     modal.classList.add('show');
-    
+
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/application/${applicationId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             const app = await response.json();
             currentValidateApplication = app;
@@ -2086,7 +2107,7 @@ async function openValidateModal(applicationId) {
 function renderValidateModalContent(app) {
     const modalBody = document.getElementById('validateModalBody');
     const isMembership = app.type === 'membership';
-    
+
     // Determine the display type
     let typeDisplay = '';
     if (isMembership) {
@@ -2101,7 +2122,7 @@ function renderValidateModalContent(app) {
             typeDisplay = '📅 Reservation';
         }
     }
-    
+
     // Then use typeDisplay in the HTML
     modalBody.innerHTML = `
         <div class="app-detail-section">
@@ -2210,15 +2231,15 @@ function closeValidateModal() {
 
 async function confirmVerifyPayment() {
     if (!currentValidateApplication) return;
-    
+
     const token = getAuthToken();
     const notes = document.getElementById('adminNotesTextarea')?.value || '';
-    
+
     const verifyBtn = document.querySelector('.btn-verify');
     const originalText = verifyBtn.innerHTML;
     verifyBtn.innerHTML = '⏳ Processing...';
     verifyBtn.disabled = true;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/applications/${currentValidateApplication._id}/verify-payment`, {
             method: 'POST',
@@ -2228,14 +2249,14 @@ async function confirmVerifyPayment() {
             },
             body: JSON.stringify({ adminNotes: notes })
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         const result = await response.json();
-        
+
         if (response.ok) {
             showToast(`✅ ${currentValidateApplication.type === 'membership' ? 'Membership' : 'Reservation'} verified and approved!`, 'success');
             closeValidateModal();
@@ -2274,12 +2295,12 @@ async function confirmRejectPayment() {
         }
         return;
     }
-    
+
     const rejectBtn = document.querySelector('.btn-reject-modal');
     const originalText = rejectBtn.innerHTML;
     rejectBtn.innerHTML = '⏳ Processing...';
     rejectBtn.disabled = true;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/applications/${currentValidateApplication._id}/reject`, {
             method: 'POST',
@@ -2289,14 +2310,14 @@ async function confirmRejectPayment() {
             },
             body: JSON.stringify({ rejectionReason: reason })
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         const result = await response.json();
-        
+
         if (response.ok) {
             showToast(`❌ Application rejected`, 'success');
             closeValidateModal();
@@ -2317,17 +2338,17 @@ async function confirmRejectPayment() {
 async function loadPendingApplications() {
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/pending-applications`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             const applications = await response.json();
             updatePendingApplicationsTable(applications);
@@ -2340,7 +2361,7 @@ async function loadPendingApplications() {
 function updatePendingApplicationsTable(applications) {
     const tbody = document.getElementById('pendingAppsTableBody');
     if (!tbody) return;
-    
+
     if (applications.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No pending applications</td></tr>';
         const badge = document.getElementById('pendingCountBadge');
@@ -2381,17 +2402,17 @@ let currentEditTypeId = null;
 async function loadReservationTypes() {
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/reservation-types/admin/all`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             const types = await response.json();
             renderReservationCards(types);
@@ -2551,7 +2572,7 @@ function renderCurrentTypeCard() {
                 </div>
                 <div class="mtc-slots-list">
                     ${(type.timeSlots || []).length > 0
-                        ? (type.timeSlots || []).map((slot, index) => `
+            ? (type.timeSlots || []).map((slot, index) => `
                             <div class="mtc-slot-row" data-slot-index="${index}">
                                 <input class="mtc-slot-input" type="text" value="${escapeHtml(slot.time)}"
                                        onchange="updateTimeSlotField('${type._id}', ${index}, 'time', this.value)">
@@ -2564,8 +2585,8 @@ function renderCurrentTypeCard() {
                                 <button class="mtc-del-slot" onclick="deleteTimeSlot('${type._id}', ${index})" title="Delete slot">🗑</button>
                             </div>
                         `).join('')
-                        : '<p class="mtc-no-slots">No time slots yet.</p>'
-                    }
+            : '<p class="mtc-no-slots">No time slots yet.</p>'
+        }
                 </div>
             </div>
 
@@ -2581,11 +2602,11 @@ function renderCurrentTypeCard() {
 async function updateTimeSlotField(typeId, slotIndex, field, value) {
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const updateData = {};
         updateData[field] = field === 'capacity' ? parseInt(value) : value;
-        
+
         const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}/time-slots/${slotIndex}`, {
             method: 'PATCH',
             headers: {
@@ -2594,7 +2615,7 @@ async function updateTimeSlotField(typeId, slotIndex, field, value) {
             },
             body: JSON.stringify(updateData)
         });
-        
+
         if (response.ok) {
             showToast('Time slot updated', 'success');
         } else {
@@ -2610,11 +2631,11 @@ async function updateTimeSlotField(typeId, slotIndex, field, value) {
 async function toggleTimeSlotAvailability(typeId, slotIndex) {
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const slot = document.querySelector(`.time-slot-item[data-slot-index="${slotIndex}"] .status-toggle`);
         const newStatus = slot ? !slot.classList.contains('active') : false;
-        
+
         const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}/time-slots/${slotIndex}`, {
             method: 'PATCH',
             headers: {
@@ -2623,7 +2644,7 @@ async function toggleTimeSlotAvailability(typeId, slotIndex) {
             },
             body: JSON.stringify({ isAvailable: newStatus })
         });
-        
+
         if (response.ok) {
             loadReservationTypes();
         }
@@ -2634,16 +2655,16 @@ async function toggleTimeSlotAvailability(typeId, slotIndex) {
 
 async function deleteTimeSlot(typeId, slotIndex) {
     if (!confirm('Are you sure you want to delete this time slot?')) return;
-    
+
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}/time-slots/${slotIndex}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.ok) {
             showToast('Time slot deleted', 'success');
             loadReservationTypes();
@@ -2657,13 +2678,13 @@ async function deleteTimeSlot(typeId, slotIndex) {
 async function toggleReservationStatus(typeId, newStatus) {
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}/toggle`, {
             method: 'PATCH',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.ok) {
             showToast(`Reservation type ${newStatus ? 'activated' : 'deactivated'}`, 'success');
             loadReservationTypes();
@@ -2685,7 +2706,7 @@ function openAddReservationModal() {
 async function openEditTypeModal(typeId) {
     // Use already-loaded in-memory data instead of re-fetching the full list
     const type = tableReservationTypes.find(t => t._id === typeId);
-    
+
     if (type) {
         currentEditTypeId = typeId;
         document.getElementById('modalTitle').textContent = 'Edit Reservation Type';
@@ -2720,14 +2741,14 @@ function closeTimeSlotModal() {
 
 async function saveReservationType(event) {
     event.preventDefault();
-    
+
     const token = getAuthToken();
     if (!token) return;
-    
+
     const typeId = document.getElementById('typeId').value;
     const timeSlotsValue = document.getElementById('typeTimeSlots').value;
     const defaultCapacity = parseInt(document.getElementById('typeCapacity').value) || 10;
-    
+
     let timeSlots = [];
     if (timeSlotsValue) {
         timeSlots = timeSlotsValue.split(',').map(t => t.trim()).filter(t => t).map(time => ({
@@ -2737,7 +2758,7 @@ async function saveReservationType(event) {
             isAvailable: true
         }));
     }
-    
+
     const data = {
         name: document.getElementById('typeName').value,
         category: document.getElementById('typeCategory').value,
@@ -2746,13 +2767,13 @@ async function saveReservationType(event) {
         basePrice: parseInt(document.getElementById('typeBasePrice').value),
         timeSlots: timeSlots
     };
-    
-    const url = typeId ? 
-        `${API_URL}/reservation-types/admin/${typeId}` : 
+
+    const url = typeId ?
+        `${API_URL}/reservation-types/admin/${typeId}` :
         `${API_URL}/reservation-types/admin/create`;
-    
+
     const method = typeId ? 'PUT' : 'POST';
-    
+
     try {
         const response = await fetch(url, {
             method: method,
@@ -2762,7 +2783,7 @@ async function saveReservationType(event) {
             },
             body: JSON.stringify(data)
         });
-        
+
         if (response.ok) {
             showToast(typeId ? 'Reservation type updated' : 'Reservation type created', 'success');
             closeReservationModal();
@@ -2779,16 +2800,16 @@ async function saveReservationType(event) {
 
 async function addTimeSlot(event) {
     event.preventDefault();
-    
+
     const token = getAuthToken();
     if (!token) return;
-    
+
     const typeId = document.getElementById('slotTypeId').value;
     const data = {
         time: document.getElementById('slotTime').value,
         capacity: parseInt(document.getElementById('slotCapacity').value)
     };
-    
+
     try {
         const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}/time-slots`, {
             method: 'POST',
@@ -2798,7 +2819,7 @@ async function addTimeSlot(event) {
             },
             body: JSON.stringify(data)
         });
-        
+
         if (response.ok) {
             showToast('Time slot added', 'success');
             closeTimeSlotModal();
@@ -2812,16 +2833,16 @@ async function addTimeSlot(event) {
 
 async function deleteReservationType(typeId) {
     if (!confirm('Are you sure you want to delete this reservation type? This action cannot be undone.')) return;
-    
+
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/reservation-types/admin/${typeId}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.ok) {
             showToast('Reservation type deleted', 'success');
             loadReservationTypes();
@@ -2838,11 +2859,11 @@ async function deleteReservationType(typeId) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Admin portal loading...');
-    
+
     const token = getAuthToken();
     const userId = localStorage.getItem('userId');
     const loginTime = localStorage.getItem('loginTime');
-    
+
     if (!token || !userId) {
         showToast('Session expired. Please login again.', 'error');
         setTimeout(() => {
@@ -2850,7 +2871,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 1500);
         return;
     }
-    
+
     if (loginTime) {
         const hoursSinceLogin = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
         if (hoursSinceLogin >= 24) {
@@ -2862,7 +2883,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
     }
-    
+
     const isAdmin = await checkAdminStatus();
     if (!isAdmin) {
         console.error('❌ User is not an admin or token is invalid');
@@ -2872,18 +2893,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 2000);
         return;
     }
-    
+
     adminCurrentMonth = new Date();
-    
+
     loadReservationTypesForFilters().then(() => {
         const lastPage = localStorage.getItem('adminCurrentPage');
         if (lastPage === 'reservations') {
             loadAdminCalendar();
         }
     });
-    
+
     startAdminMessagePolling();
-    
+
     // Auto-refresh dashboard pending applications every 30 seconds
     setInterval(() => {
         const activePage = document.querySelector('.page.active');
@@ -2892,36 +2913,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             loadDashboardStats();
         }
     }, 30000);
-    
+
     document.querySelectorAll('.modal-overlay').forEach(o => {
         o.addEventListener('click', e => {
             if (e.target === o) o.classList.remove('show');
         });
     });
-    
+
     const msgInput = document.getElementById('adminMsgInput');
     if (msgInput) {
         msgInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') { e.preventDefault(); adminSendMsg(); }
         });
     }
-    
+
     window.addEventListener('beforeunload', () => {
         if (adminPollingInterval) clearInterval(adminPollingInterval);
     });
-    
+
     loadLastVisitedPage();
 });
 
 async function loadReservationTypesForFilters() {
     try {
         const response = await apiFetch(`${API_URL}/reservation-types/admin/all`);
-        
+
         if (response.ok) {
             const types = await response.json();
             calendarReservationTypes = types;
             tableReservationTypes = types;
-            
+
             populateCalendarFilter();
             populateTableTypeFilter();
         }
@@ -2933,16 +2954,16 @@ async function loadReservationTypesForFilters() {
 function populateTableTypeFilter() {
     const filterSelect = document.getElementById('reservationTypeFilter');
     if (!filterSelect) return;
-    
+
     const currentValue = filterSelect.value;
-    
+
     let optionsHtml = '<option value="all">📌 All Types</option>';
     optionsHtml += '<option value="membership">🏌️ Membership</option>';
     optionsHtml += '<option value="reservation">📅 Reservation</option>';
     optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
-    
+
     const uniqueCategories = [...new Set(tableReservationTypes.map(type => type.category))];
-    
+
     const categoryIcons = {
         golf: '⛳',
         amenities: '🍽️',
@@ -2950,7 +2971,7 @@ function populateTableTypeFilter() {
         accommodation: '🏨',
         premium: '✨'
     };
-    
+
     const categoryNames = {
         golf: 'Golf',
         amenities: 'Amenities',
@@ -2958,25 +2979,25 @@ function populateTableTypeFilter() {
         accommodation: 'Accommodation',
         premium: 'Premium'
     };
-    
+
     uniqueCategories.forEach(category => {
         const icon = categoryIcons[category] || '📌';
         const displayName = categoryNames[category] || category.charAt(0).toUpperCase() + category.slice(1);
         optionsHtml += `<option value="cat_${category}">${icon} ${displayName} (All)</option>`;
     });
-    
+
     if (tableReservationTypes.length > 0) {
         optionsHtml += '<option disabled style="background: #eee;">──────────</option>';
-        
+
         tableReservationTypes.forEach(type => {
             if (type.isActive) {
                 optionsHtml += `<option value="type_${type._id}">  ${type.icon || '📌'} ${type.name}</option>`;
             }
         });
     }
-    
+
     filterSelect.innerHTML = optionsHtml;
-    
+
     if (currentValue && filterSelect.querySelector(`option[value="${currentValue}"]`)) {
         filterSelect.value = currentValue;
     }
@@ -2984,12 +3005,12 @@ function populateTableTypeFilter() {
 
 async function revokeMembership(userId) {
     const reason = prompt('Enter reason for revoking membership (optional):');
-    
+
     const token = getAuthToken();
     if (!token) return;
-    
+
     showToast('Revoking membership...', 'info');
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/users/${userId}/revoke-membership`, {
             method: 'PATCH',
@@ -2999,12 +3020,12 @@ async function revokeMembership(userId) {
             },
             body: JSON.stringify({ reason: reason || 'No reason provided' })
         });
-        
+
         if (response.status === 401) {
             handleLogout();
             return;
         }
-        
+
         if (response.ok) {
             const result = await response.json();
             showToast(`Membership revoked successfully! Previous status: ${result.previousStatus}`, 'success');
@@ -3130,7 +3151,7 @@ function openDashboardAccordionIfNeeded() {
 async function loadAvailabilityDashboard() {
     const token = getAuthToken();
     if (!token) return;
-    
+
     try {
         // Fetch types and bookings in parallel
         const [typesResponse, bookingsResponse] = await Promise.all([
@@ -3141,35 +3162,35 @@ async function loadAvailabilityDashboard() {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
         ]);
-        
+
         if (!typesResponse.ok) throw new Error('Failed to fetch reservation types');
         const reservationTypes = await typesResponse.json();
-        
+
         let bookings = [];
         if (bookingsResponse.ok) {
             bookings = await bookingsResponse.json();
         }
-        
+
         // Calculate availability for each type
         const availabilityData = reservationTypes.map(type => {
             const timeSlots = type.timeSlots || [];
             const slotAvailability = timeSlots.map(slot => {
                 // Count approved/confirmed bookings for this type and time slot
-                const bookingsForSlot = bookings.filter(booking => 
-                    (booking.reservationTypeId === type._id || booking.reservationTypeName === type.name) && 
+                const bookingsForSlot = bookings.filter(booking =>
+                    (booking.reservationTypeId === type._id || booking.reservationTypeName === type.name) &&
                     booking.timeSlot === slot.time &&
                     booking.status !== 'cancelled' &&
                     booking.status !== 'rejected'
                 );
-                
+
                 const usedCapacity = bookingsForSlot.length;
                 const remainingCapacity = Math.max(0, slot.capacity - usedCapacity);
                 const percentageUsed = slot.capacity > 0 ? (usedCapacity / slot.capacity) * 100 : 0;
-                
+
                 let statusClass = 'available';
                 if (remainingCapacity === 0) statusClass = 'full';
                 else if (percentageUsed > 70) statusClass = 'limited';
-                
+
                 return {
                     time: slot.time,
                     capacity: slot.capacity,
@@ -3180,11 +3201,11 @@ async function loadAvailabilityDashboard() {
                     isAvailable: remainingCapacity > 0 && slot.isAvailable !== false
                 };
             });
-            
+
             const totalCapacity = timeSlots.reduce((sum, slot) => sum + slot.capacity, 0);
             const totalUsed = slotAvailability.reduce((sum, slot) => sum + slot.usedCapacity, 0);
             const totalRemaining = slotAvailability.reduce((sum, slot) => sum + slot.remainingCapacity, 0);
-            
+
             return {
                 id: type._id,
                 name: type.name,
@@ -3199,17 +3220,17 @@ async function loadAvailabilityDashboard() {
                 overallPercentage: totalCapacity > 0 ? (totalUsed / totalCapacity) * 100 : 0
             };
         });
-        
+
         renderAvailabilityDashboard(availabilityData);
         updateSummaryStats(availabilityData);
         allAvailabilityData = availabilityData;
         const countEl = document.getElementById('availabilityResultsCount');
         if (countEl) countEl.textContent = `${availabilityData.length} type${availabilityData.length !== 1 ? 's' : ''}`;
-        
+
     } catch (error) {
         console.error('Error loading availability dashboard:', error);
         showToast('Error loading availability data', 'error');
-        
+
         // Fallback to mock data for testing
         const mockData = getMockAvailabilityData();
         renderAvailabilityDashboard(mockData);
@@ -3236,7 +3257,7 @@ function updateSummaryStats(availabilityData) {
     const totalCapacity = activeTypes.reduce((sum, t) => sum + t.totalCapacity, 0);
     const totalBooked = activeTypes.reduce((sum, t) => sum + t.totalUsed, 0);
     const totalAvailable = activeTypes.reduce((sum, t) => sum + t.totalRemaining, 0);
-    
+
     document.getElementById('totalTypesCount').textContent = activeTypes.length;
     document.getElementById('totalCapacityCount').textContent = totalCapacity.toLocaleString();
     document.getElementById('totalBookedCount').textContent = totalBooked.toLocaleString();

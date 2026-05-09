@@ -151,80 +151,82 @@
                     <!-- Accordion toggle -->
                     <button onclick="toggleDashboardAccordion()" id="dashboardAccordionBtn"
                         style="margin-left:auto;background:var(--c-surface);border:1px solid var(--c-border);border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--c-text-muted);">
-                        <span id="dashboardAccordionChevron" style="transition:transform .2s;display:inline-block;">▼</span> Details
+                        <span id="dashboardAccordionChevron"
+                            style="transition:transform .2s;display:inline-block;">▼</span> Details
                     </button>
                 </div>
 
                 <!-- ── Accordion body: second charts + pending verifications ── -->
                 <div id="dashboardAccordionBody" style="overflow:hidden;transition:max-height .35s ease;max-height:0;">
 
-                <!-- ── Second Charts Row: Top Reservation Types + Cumulative Revenue ── -->
-                <div class="charts-row charts-row-bottom" style="margin-top:20px;margin-bottom:28px;">
-                    <!-- Bar chart: Top Reservation Types -->
-                    <div class="chart-panel">
-                        <div class="chart-panel-header">
-                            <div>
-                                <div class="chart-panel-title">Top Reservation Types</div>
-                                <div class="chart-panel-sub">Revenue by reservation category</div>
+                    <!-- ── Second Charts Row: Top Reservation Types + Cumulative Revenue ── -->
+                    <div class="charts-row charts-row-bottom" style="margin-top:20px;margin-bottom:28px;">
+                        <!-- Bar chart: Top Reservation Types -->
+                        <div class="chart-panel">
+                            <div class="chart-panel-header">
+                                <div>
+                                    <div class="chart-panel-title">Top Reservation Types</div>
+                                    <div class="chart-panel-sub">Revenue by reservation category</div>
+                                </div>
+                                <div class="chart-legend">
+                                    <span class="legend-dot" style="--dot-color:#d4b36a;">Revenue</span>
+                                    <span class="legend-dot" style="--dot-color:#6b7e5f;">Bookings</span>
+                                </div>
                             </div>
-                            <div class="chart-legend">
-                                <span class="legend-dot" style="--dot-color:#d4b36a;">Revenue</span>
-                                <span class="legend-dot" style="--dot-color:#6b7e5f;">Bookings</span>
+                            <div class="chart-canvas-wrap" style="height:220px;">
+                                <canvas id="topReservationTypesChart"></canvas>
                             </div>
                         </div>
-                        <div class="chart-canvas-wrap" style="height:220px;">
-                            <canvas id="topReservationTypesChart"></canvas>
+                        <!-- Line chart: Cumulative Revenue -->
+                        <div class="chart-panel">
+                            <div class="chart-panel-header">
+                                <div>
+                                    <div class="chart-panel-title">Cumulative Revenue</div>
+                                    <div class="chart-panel-sub">Running total over selected period</div>
+                                </div>
+                                <div class="chart-legend">
+                                    <span class="legend-dot" style="--dot-color:#059669;">Cumulative</span>
+                                </div>
+                            </div>
+                            <div class="chart-canvas-wrap" style="height:220px;">
+                                <canvas id="cumulativeRevenueChart"></canvas>
+                            </div>
                         </div>
                     </div>
-                    <!-- Line chart: Cumulative Revenue -->
-                    <div class="chart-panel">
-                        <div class="chart-panel-header">
-                            <div>
-                                <div class="chart-panel-title">Cumulative Revenue</div>
-                                <div class="chart-panel-sub">Running total over selected period</div>
-                            </div>
-                            <div class="chart-legend">
-                                <span class="legend-dot" style="--dot-color:#059669;">Cumulative</span>
-                            </div>
-                        </div>
-                        <div class="chart-canvas-wrap" style="height:220px;">
-                            <canvas id="cumulativeRevenueChart"></canvas>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Pending Verifications -->
-                <div class="pending-panel" id="pendingVerificationsSection">
-                    <div class="pending-panel-header">
-                        <div class="pending-panel-title">
-                            ⏳ Pending Payment Verifications
-                            <span class="pending-count-badge" id="pendingCountBadge">0</span>
+                    <!-- Pending Verifications -->
+                    <div class="pending-panel" id="pendingVerificationsSection">
+                        <div class="pending-panel-header">
+                            <div class="pending-panel-title">
+                                ⏳ Pending Payment Verifications
+                                <span class="pending-count-badge" id="pendingCountBadge">0</span>
+                            </div>
+                            <button class="refresh-btn" onclick="loadPendingApplications()">🔄 Refresh</button>
                         </div>
-                        <button class="refresh-btn" onclick="loadPendingApplications()">🔄 Refresh</button>
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Method</th>
+                                        <th>Reference #</th>
+                                        <th>Amount</th>
+                                        <th>Submitted</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pendingAppsTableBody">
+                                    <tr>
+                                        <td colspan="8"
+                                            style="text-align:center;padding:32px;color:var(--c-text-muted);">
+                                            Loading pending applications…</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div class="table-wrap">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Type</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Method</th>
-                                    <th>Reference #</th>
-                                    <th>Amount</th>
-                                    <th>Submitted</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="pendingAppsTableBody">
-                                <tr>
-                                    <td colspan="8" style="text-align:center;padding:32px;color:var(--c-text-muted);">
-                                        Loading pending applications…</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
 
                 </div><!-- end dashboardAccordionBody -->
 
@@ -236,7 +238,8 @@
             <div class="topbar">
                 <h1>Reservations</h1>
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <button class="refresh-btn" onclick="loadReservations();loadAvailabilityDashboard();">🔄 Refresh</button>
+                    <button class="refresh-btn" onclick="loadReservations();loadAvailabilityDashboard();">🔄
+                        Refresh</button>
                     <div class="admin-info">
                         <div class="admin-avatar">👤</div>
                         <div class="admin-text">Admin <span>Administrator</span></div>
@@ -251,10 +254,12 @@
                         <span class="table-panel-title">📋 Reservation Applications</span>
                         <button class="refresh-btn" onclick="loadReservations()">🔄 Refresh</button>
                     </div>
-                    <div class="filter-bar" style="border-radius:0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:0;background:rgba(255,255,255,.04);">
+                    <div class="filter-bar"
+                        style="border-radius:0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:0;background:rgba(255,255,255,.04);">
                         <div class="filter-search" style="flex:1;min-width:200px;">
                             <span class="filter-search-icon">🔍</span>
-                            <input type="text" id="reservationSearchInput" placeholder="Search by name, email, phone…" oninput="debouncedFilterReservations()">
+                            <input type="text" id="reservationSearchInput" placeholder="Search by name, email, phone…"
+                                oninput="debouncedFilterReservations()">
                         </div>
                         <select id="reservationStatusFilter" class="filter-select" onchange="filterReservationsTable()">
                             <option value="all">All Status</option>
@@ -269,8 +274,10 @@
                             <option value="membership">🏌️ Membership</option>
                             <option value="reservation">📅 Reservation</option>
                         </select>
-                        <input type="date" id="reservationDateFrom" class="filter-date" onchange="filterReservationsTable()" title="From">
-                        <input type="date" id="reservationDateTo" class="filter-date" onchange="filterReservationsTable()" title="To">
+                        <input type="date" id="reservationDateFrom" class="filter-date"
+                            onchange="filterReservationsTable()" title="From">
+                        <input type="date" id="reservationDateTo" class="filter-date"
+                            onchange="filterReservationsTable()" title="To">
                         <button class="filter-btn filter-btn-ghost" onclick="resetReservationFilters()">Reset</button>
                         <span class="filter-results-count" id="resultsCount"></span>
                     </div>
@@ -288,7 +295,10 @@
                                 </tr>
                             </thead>
                             <tbody id="reservationAppTbody">
-                                <tr><td colspan="7" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">Loading…</td></tr>
+                                <tr>
+                                    <td colspan="7" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">
+                                        Loading…</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -307,7 +317,8 @@
                         <option value="week" selected>Next 7 Days</option>
                         <option value="month">Next 30 Days</option>
                     </select>
-                    <span id="dateRangeDisplay" style="font-size:12px;color:rgba(255,255,255,.4);margin-left:auto;">Showing: Next 7 days</span>
+                    <span id="dateRangeDisplay"
+                        style="font-size:12px;color:rgba(255,255,255,.4);margin-left:auto;">Showing: Next 7 days</span>
                 </div>
 
                 <!-- ── Reserved Clients Table ── -->
@@ -316,12 +327,15 @@
                         <span class="table-panel-title">🏌️ Reserved Clients</span>
                         <button class="refresh-btn" onclick="loadReservedClientsTable()">🔄 Refresh</button>
                     </div>
-                    <div class="filter-bar" style="border-radius:0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:0;background:rgba(255,255,255,.04);">
+                    <div class="filter-bar"
+                        style="border-radius:0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:0;background:rgba(255,255,255,.04);">
                         <div class="filter-search" style="flex:1;min-width:200px;">
                             <span class="filter-search-icon">🔍</span>
-                            <input type="text" id="reservedClientsSearchInput" placeholder="Search by name, email, phone…" oninput="filterReservedClientsTable()">
+                            <input type="text" id="reservedClientsSearchInput"
+                                placeholder="Search by name, email, phone…" oninput="filterReservedClientsTable()">
                         </div>
-                        <select id="reservedClientsCategoryFilter" class="filter-select" onchange="filterReservedClientsTable()">
+                        <select id="reservedClientsCategoryFilter" class="filter-select"
+                            onchange="filterReservedClientsTable()">
                             <option value="all">All Categories</option>
                             <option value="golf">⛳ Golf</option>
                             <option value="amenities">🍽️ Amenities</option>
@@ -329,9 +343,12 @@
                             <option value="accommodation">🏨 Accommodation</option>
                             <option value="premium">✨ Premium</option>
                         </select>
-                        <input type="date" id="reservedClientsDateFrom" class="filter-date" onchange="filterReservedClientsTable()" title="From date">
-                        <input type="date" id="reservedClientsDateTo" class="filter-date" onchange="filterReservedClientsTable()" title="To date">
-                        <button class="filter-btn filter-btn-ghost" onclick="resetReservedClientsFilters()">Reset</button>
+                        <input type="date" id="reservedClientsDateFrom" class="filter-date"
+                            onchange="filterReservedClientsTable()" title="From date">
+                        <input type="date" id="reservedClientsDateTo" class="filter-date"
+                            onchange="filterReservedClientsTable()" title="To date">
+                        <button class="filter-btn filter-btn-ghost"
+                            onclick="resetReservedClientsFilters()">Reset</button>
                         <span class="filter-results-count" id="reservedClientsCount"></span>
                     </div>
                     <div class="table-wrap">
@@ -348,7 +365,10 @@
                                 </tr>
                             </thead>
                             <tbody id="reservedClientsTbody">
-                                <tr><td colspan="7" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">Loading…</td></tr>
+                                <tr>
+                                    <td colspan="7" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">
+                                        Loading…</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -357,17 +377,38 @@
 
                 <!-- Summary stats -->
                 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;">
-                    <div class="hero-card accent-green"><div class="hero-card-header"><span class="hero-card-label">Active Types</span><div class="hero-card-icon">📌</div></div><div class="hero-card-value" id="totalTypesCount">0</div></div>
-                    <div class="hero-card accent-blue"><div class="hero-card-header"><span class="hero-card-label">Daily Capacity</span><div class="hero-card-icon">🎯</div></div><div class="hero-card-value" id="totalCapacityCount">0</div></div>
-                    <div class="hero-card accent-amber"><div class="hero-card-header"><span class="hero-card-label">Booked</span><div class="hero-card-icon">📋</div></div><div class="hero-card-value" id="totalBookedCount">0</div></div>
-                    <div class="hero-card" style="--card-accent:#059669;"><div class="hero-card-header"><span class="hero-card-label">Available</span><div class="hero-card-icon" style="background:rgba(5,150,105,.1);">✅</div></div><div class="hero-card-value" id="totalAvailableCount">0</div></div>
+                    <div class="hero-card accent-green">
+                        <div class="hero-card-header"><span class="hero-card-label">Active Types</span>
+                            <div class="hero-card-icon">📌</div>
+                        </div>
+                        <div class="hero-card-value" id="totalTypesCount">0</div>
+                    </div>
+                    <div class="hero-card accent-blue">
+                        <div class="hero-card-header"><span class="hero-card-label">Daily Capacity</span>
+                            <div class="hero-card-icon">🎯</div>
+                        </div>
+                        <div class="hero-card-value" id="totalCapacityCount">0</div>
+                    </div>
+                    <div class="hero-card accent-amber">
+                        <div class="hero-card-header"><span class="hero-card-label">Booked</span>
+                            <div class="hero-card-icon">📋</div>
+                        </div>
+                        <div class="hero-card-value" id="totalBookedCount">0</div>
+                    </div>
+                    <div class="hero-card" style="--card-accent:#059669;">
+                        <div class="hero-card-header"><span class="hero-card-label">Available</span>
+                            <div class="hero-card-icon" style="background:rgba(5,150,105,.1);">✅</div>
+                        </div>
+                        <div class="hero-card-value" id="totalAvailableCount">0</div>
+                    </div>
                 </div>
 
                 <!-- Availability filter -->
                 <div class="filter-bar" style="margin-bottom:16px;">
                     <div class="filter-search" style="flex:1;min-width:180px;">
                         <span class="filter-search-icon">🔍</span>
-                        <input type="text" id="availabilitySearchInput" placeholder="Search by type name…" oninput="debouncedFilterAvailability()">
+                        <input type="text" id="availabilitySearchInput" placeholder="Search by type name…"
+                            oninput="debouncedFilterAvailability()">
                     </div>
                     <select id="availabilityCategoryFilter" class="filter-select" onchange="filterAvailabilityCards()">
                         <option value="all">All Categories</option>
@@ -393,7 +434,8 @@
                 </div>
 
                 <!-- Availability accordion cards -->
-                <div id="availabilityCardsContainer" style="display:flex;flex-direction:column;gap:16px;padding-bottom:24px;">
+                <div id="availabilityCardsContainer"
+                    style="display:flex;flex-direction:column;gap:16px;padding-bottom:24px;">
                     <div class="loading-spinner">⏳ Loading availability data…</div>
                 </div>
 
@@ -405,9 +447,13 @@
             <div class="topbar">
                 <h1>Registered Accounts</h1>
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search accounts…" oninput="filterTable('accountsTbody', this.value)"></div>
+                    <div class="search-bar"><span class="search-icon">🔍</span><input type="text"
+                            placeholder="Search accounts…" oninput="filterTable('accountsTbody', this.value)"></div>
                     <button class="refresh-btn" onclick="loadUsers()">🔄 Refresh</button>
-                    <div class="admin-info"><div class="admin-avatar">👤</div><div class="admin-text">Admin <span>Administrator</span></div></div>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
                 </div>
             </div>
             <div class="page-body page-body-scroll">
@@ -415,10 +461,20 @@
                     <div class="table-wrap table-wrap-fill">
                         <table class="data-table">
                             <thead>
-                                <tr><th>First Name</th><th>Last Name</th><th>Contacts</th><th>Membership</th><th>Expiration</th><th>Actions</th></tr>
+                                <tr>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Contacts</th>
+                                    <th>Membership</th>
+                                    <th>Expiration</th>
+                                    <th>Actions</th>
+                                </tr>
                             </thead>
                             <tbody id="accountsTbody">
-                                <tr><td colspan="6" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">Loading…</td></tr>
+                                <tr>
+                                    <td colspan="6" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">
+                                        Loading…</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -431,17 +487,37 @@
             <div class="topbar">
                 <h1>Payments</h1>
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search payments…" oninput="filterTable('paymentsTbody', this.value)"></div>
+                    <div class="search-bar"><span class="search-icon">🔍</span><input type="text"
+                            placeholder="Search payments…" oninput="filterTable('paymentsTbody', this.value)"></div>
                     <button class="refresh-btn" onclick="loadPayments()">🔄 Refresh</button>
-                    <div class="admin-info"><div class="admin-avatar">👤</div><div class="admin-text">Admin <span>Administrator</span></div></div>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
                 </div>
             </div>
             <div class="page-body page-body-scroll">
                 <div class="table-panel" style="height:100%;">
                     <div class="table-wrap table-wrap-fill">
                         <table class="data-table">
-                            <thead><tr><th>Name</th><th>Method</th><th>Account #</th><th>Amount</th><th>Date</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
-                            <tbody id="paymentsTbody"><tr><td colspan="8" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">Loading…</td></tr></tbody>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Method</th>
+                                    <th>Account #</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTbody">
+                                <tr>
+                                    <td colspan="8" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">
+                                        Loading…</td>
+                                </tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -462,13 +538,15 @@
                     <div class="msg-sidebar" id="msgSidebar">
                         <div class="msg-sidebar-header">Conversations</div>
                         <div class="msg-contacts-list" id="msgContactsList">
-                            <div style="padding:20px;text-align:center;color:rgba(255,255,255,.4);font-size:13px;">Loading…</div>
+                            <div style="padding:20px;text-align:center;color:rgba(255,255,255,.4);font-size:13px;">
+                                Loading…</div>
                         </div>
                     </div>
                     <div class="msg-window">
                         <div class="msg-window-header" id="msgWindowHeader">Select a conversation</div>
                         <div class="msg-body" id="msgBody">
-                            <div style="text-align:center;color:var(--c-text-muted);padding:48px;font-size:13px;">Select a message to start responding</div>
+                            <div style="text-align:center;color:var(--c-text-muted);padding:48px;font-size:13px;">Select
+                                a message to start responding</div>
                         </div>
                         <div class="msg-footer">
                             <input type="text" class="msg-input" id="adminMsgInput" placeholder="Type a message…">
@@ -505,7 +583,10 @@
                 <h1>Membership Settings</h1>
                 <div style="display:flex;align-items:center;gap:12px;">
                     <button class="refresh-btn" onclick="loadMembershipSettings()">🔄 Refresh</button>
-                    <div class="admin-info"><div class="admin-avatar">👤</div><div class="admin-text">Admin <span>Administrator</span></div></div>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
                 </div>
             </div>
             <div class="page-body page-body-scroll" id="membershipSettingsBody">
@@ -513,24 +594,35 @@
                 <!-- ── Hero stats ── -->
                 <div class="hero-stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;">
                     <div class="hero-card accent-gold">
-                        <div class="hero-card-header"><span class="hero-card-label">Annual Fee</span><div class="hero-card-icon">💰</div></div>
+                        <div class="hero-card-header"><span class="hero-card-label">Annual Fee</span>
+                            <div class="hero-card-icon">💰</div>
+                        </div>
                         <div class="hero-card-value" id="msStatFee">—</div>
-                        <div class="hero-card-footer"><span class="hero-card-badge badge-up" id="msStatFeeLabel">Current price</span></div>
+                        <div class="hero-card-footer"><span class="hero-card-badge badge-up" id="msStatFeeLabel">Current
+                                price</span></div>
                     </div>
                     <div class="hero-card accent-green">
-                        <div class="hero-card-header"><span class="hero-card-label">Member Discount</span><div class="hero-card-icon">🏷️</div></div>
+                        <div class="hero-card-header"><span class="hero-card-label">Member Discount</span>
+                            <div class="hero-card-icon">🏷️</div>
+                        </div>
                         <div class="hero-card-value" id="msStatDiscount">—</div>
-                        <div class="hero-card-footer"><span class="hero-card-badge badge-up">Off regular price</span></div>
+                        <div class="hero-card-footer"><span class="hero-card-badge badge-up">Off regular price</span>
+                        </div>
                     </div>
                     <div class="hero-card accent-blue">
-                        <div class="hero-card-header"><span class="hero-card-label">Duration</span><div class="hero-card-icon">📅</div></div>
+                        <div class="hero-card-header"><span class="hero-card-label">Duration</span>
+                            <div class="hero-card-icon">📅</div>
+                        </div>
                         <div class="hero-card-value" id="msStatDuration">—</div>
                         <div class="hero-card-footer"><span class="hero-card-badge badge-up">Days of access</span></div>
                     </div>
                     <div class="hero-card accent-amber">
-                        <div class="hero-card-header"><span class="hero-card-label">Enrollment</span><div class="hero-card-icon">🚪</div></div>
+                        <div class="hero-card-header"><span class="hero-card-label">Enrollment</span>
+                            <div class="hero-card-icon">🚪</div>
+                        </div>
                         <div class="hero-card-value" id="msStatEnrollment">—</div>
-                        <div class="hero-card-footer"><span id="msStatEnrollmentLabel" class="hero-card-badge">Status</span></div>
+                        <div class="hero-card-footer"><span id="msStatEnrollmentLabel"
+                                class="hero-card-badge">Status</span></div>
                     </div>
                 </div>
 
@@ -547,17 +639,20 @@
                                 <label class="ms-label">Annual Membership Fee (₱)</label>
                                 <div class="ms-input-wrap">
                                     <span class="ms-input-prefix">₱</span>
-                                    <input type="number" id="msAnnualFee" class="ms-input" min="0" step="1000" placeholder="1000000">
+                                    <input type="number" id="msAnnualFee" class="ms-input" min="0" step="1000"
+                                        placeholder="1000000">
                                 </div>
                                 <span class="ms-hint">Amount users pay when applying for membership</span>
                             </div>
                             <div class="ms-field-group">
                                 <label class="ms-label">Membership Duration (days)</label>
                                 <div class="ms-input-wrap">
-                                    <input type="number" id="msDurationDays" class="ms-input" min="1" step="1" placeholder="365" style="padding-left:14px;">
+                                    <input type="number" id="msDurationDays" class="ms-input" min="1" step="1"
+                                        placeholder="365" style="padding-left:14px;">
                                     <span class="ms-input-suffix">days</span>
                                 </div>
-                                <span class="ms-hint">How long membership stays active after approval (365 = 1 year)</span>
+                                <span class="ms-hint">How long membership stays active after approval (365 = 1
+                                    year)</span>
                             </div>
                         </div>
                     </div>
@@ -571,7 +666,8 @@
                             <div class="ms-field-group">
                                 <label class="ms-label">Discount Percentage (%)</label>
                                 <div class="ms-input-wrap">
-                                    <input type="number" id="msDiscountPct" class="ms-input" min="0" max="100" step="1" placeholder="20" style="padding-left:14px;" oninput="onDiscountInput()">
+                                    <input type="number" id="msDiscountPct" class="ms-input" min="0" max="100" step="1"
+                                        placeholder="20" style="padding-left:14px;" oninput="onDiscountInput()">
                                     <span class="ms-input-suffix">%</span>
                                 </div>
                                 <span class="ms-hint">e.g. 20 means members pay 80% of the regular price</span>
@@ -584,7 +680,8 @@
                                     <span>Member price</span><strong id="msPreviewMemberPrice">₱8,000</strong>
                                 </div>
                                 <div class="ms-preview-row">
-                                    <span>Savings</span><strong id="msPreviewSavings" style="color:var(--c-emerald);">₱2,000</strong>
+                                    <span>Savings</span><strong id="msPreviewSavings"
+                                        style="color:var(--c-emerald);">₱2,000</strong>
                                 </div>
                             </div>
                         </div>
@@ -598,11 +695,14 @@
                         <div class="ms-card-body">
                             <div class="ms-field-group">
                                 <label class="ms-label">Tier Name</label>
-                                <input type="text" id="msTierName" class="ms-input" style="padding-left:14px;" placeholder="Annual Member" maxlength="60">
+                                <input type="text" id="msTierName" class="ms-input" style="padding-left:14px;"
+                                    placeholder="Annual Member" maxlength="60">
                             </div>
                             <div class="ms-field-group">
                                 <label class="ms-label">Tier Description</label>
-                                <textarea id="msTierDescription" class="ms-textarea" rows="3" placeholder="Full access to all facilities for one year." maxlength="300"></textarea>
+                                <textarea id="msTierDescription" class="ms-textarea" rows="3"
+                                    placeholder="Full access to all facilities for one year."
+                                    maxlength="300"></textarea>
                             </div>
                             <div class="ms-field-group">
                                 <label class="ms-label">Enrollment Status</label>
@@ -612,19 +712,9 @@
                                         <div class="ms-toggle-knob"></div>
                                     </div>
                                 </div>
-                                <span class="ms-hint">When closed, users cannot submit new membership applications</span>
+                                <span class="ms-hint">When closed, users cannot submit new membership
+                                    applications</span>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="ms-card ms-card-perks">
-                        <div class="ms-card-header">
-                            <span class="ms-card-title">⭐ Member Perks</span>
-                            <span class="ms-card-sub">Benefits shown to users on the membership page</span>
-                        </div>
-                        <div class="ms-card-body">
-                            <div id="msPerksContainer" class="ms-perks-list"></div>
-                            <button class="ms-add-perk-btn" onclick="addPerkRow()">+ Add Perk</button>
                         </div>
                     </div>
 
@@ -646,7 +736,8 @@
         <div class="modal-card">
             <div class="modal-icon">📦</div>
             <hr>
-            <p>Are you sure you want to archive this account?<br><small style="color:#aaa;font-size:12px;">The account will be hidden from the system but not permanently deleted.</small></p>
+            <p>Are you sure you want to archive this account?<br><small style="color:#aaa;font-size:12px;">The account
+                    will be hidden from the system but not permanently deleted.</small></p>
             <div class="modal-btns">
                 <button class="btn-confirm-modal" onclick="confirmRemove()">Archive</button>
                 <button class="btn-cancel-modal" onclick="closeModal('removeModal')">Cancel</button>
@@ -658,7 +749,8 @@
         <div class="modal-card">
             <div class="modal-icon">⛳</div>
             <hr>
-            <p id="refundConfirmText">Make a refund for this user?<br>Refund will be made through original payment method.</p>
+            <p id="refundConfirmText">Make a refund for this user?<br>Refund will be made through original payment
+                method.</p>
             <div class="modal-btns">
                 <button class="btn-confirm-modal" onclick="openRefundReasons()">Confirm</button>
                 <button class="btn-cancel-modal" onclick="closeModal('refundConfirmModal')">Cancel</button>
@@ -672,8 +764,10 @@
             <hr>
             <h3 id="refundReasonTitle" style="margin:0 0 12px;font-size:15px;text-align:center;">Make a refund</h3>
             <div style="text-align:left;width:100%;">
-                <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">Reason for Refund <span style="color:#dc3545;">*</span></label>
-                <textarea id="refundReasonText" rows="4" placeholder="Enter the reason for this refund…" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+                <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">Reason for
+                    Refund <span style="color:#dc3545;">*</span></label>
+                <textarea id="refundReasonText" rows="4" placeholder="Enter the reason for this refund…"
+                    style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
             </div>
             <div class="modal-btns" style="margin-top:16px;">
                 <button class="btn-confirm-modal" onclick="processRefund()">Confirm Refund</button>
@@ -686,23 +780,30 @@
         <div class="modal-card" style="max-width:420px;width:94%;">
             <div class="modal-icon">🚫</div>
             <hr>
-            <h3 id="blockUserTitle" style="margin:0 0 6px;font-size:15px;text-align:center;">Block User from Messaging</h3>
-            <p id="blockUserSubtitle" style="font-size:13px;color:#666;text-align:center;margin:0 0 14px;">This user will no longer be able to send messages to admin.</p>
+            <h3 id="blockUserTitle" style="margin:0 0 6px;font-size:15px;text-align:center;">Block User from Messaging
+            </h3>
+            <p id="blockUserSubtitle" style="font-size:13px;color:#666;text-align:center;margin:0 0 14px;">This user
+                will no longer be able to send messages to admin.</p>
             <div style="text-align:left;width:100%;">
-                <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">Reason for Block <span style="color:#dc3545;">*</span></label>
-                <textarea id="blockReasonText" rows="3" placeholder="Enter the reason for blocking this user…" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+                <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">Reason for
+                    Block <span style="color:#dc3545;">*</span></label>
+                <textarea id="blockReasonText" rows="3" placeholder="Enter the reason for blocking this user…"
+                    style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
             </div>
             <div class="modal-btns" style="margin-top:16px;">
-                <button class="btn-confirm-modal" style="background:#9c403d;" onclick="confirmBlockUser()">Block User</button>
+                <button class="btn-confirm-modal" style="background:#9c403d;" onclick="confirmBlockUser()">Block
+                    User</button>
                 <button class="btn-cancel-modal" onclick="closeModal('blockUserModal')">Cancel</button>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="resDetailModal">        <div class="res-detail-modal" style="width:560px;max-width:94%;">
+    <div class="modal-overlay" id="resDetailModal">
+        <div class="res-detail-modal" style="width:560px;max-width:94%;">
             <div class="res-detail-header" id="resDetailDate">Select a date</div>
             <div class="res-detail-body" style="max-height:70vh;overflow-y:auto;padding:20px;">
-                <div style="text-align:center;padding:40px;color:var(--c-text-muted);">Click on a date to see reservations</div>
+                <div style="text-align:center;padding:40px;color:var(--c-text-muted);">Click on a date to see
+                    reservations</div>
             </div>
         </div>
     </div>
@@ -728,7 +829,8 @@
             <div class="reservation-modal-body">
                 <form id="reservationForm" onsubmit="saveReservationType(event)">
                     <input type="hidden" id="typeId">
-                    <div class="form-group"><label>Name *</label><input type="text" id="typeName" required placeholder="e.g., Tee Time, Driving Range"></div>
+                    <div class="form-group"><label>Name *</label><input type="text" id="typeName" required
+                            placeholder="e.g., Tee Time, Driving Range"></div>
                     <div class="form-row">
                         <div class="form-group"><label>Category *</label>
                             <select id="typeCategory" required>
@@ -739,12 +841,19 @@
                                 <option value="premium">Premium</option>
                             </select>
                         </div>
-                        <div class="form-group"><label>Icon (emoji)</label><input type="text" id="typeIcon" placeholder="🏌️"></div>
+                        <div class="form-group"><label>Icon (emoji)</label><input type="text" id="typeIcon"
+                                placeholder="🏌️"></div>
                     </div>
-                    <div class="form-group"><label>Description</label><textarea id="typeDescription" rows="2" placeholder="Describe this reservation type…"></textarea></div>
-                    <div class="form-group"><label>Base Price (₱) *</label><input type="number" id="typeBasePrice" required placeholder="0"></div>
-                    <div class="form-group"><label>Time Slots (comma separated)</label><input type="text" id="typeTimeSlots" placeholder="6:00 AM, 7:00 AM, 8:00 AM"><small style="color:var(--c-text-muted);font-size:11px;">Example: 6:00 AM, 7:00 AM, 8:00 AM</small></div>
-                    <div class="form-group"><label>Default Capacity per Slot</label><input type="number" id="typeCapacity" value="10"></div>
+                    <div class="form-group"><label>Description</label><textarea id="typeDescription" rows="2"
+                            placeholder="Describe this reservation type…"></textarea></div>
+                    <div class="form-group"><label>Base Price (₱) *</label><input type="number" id="typeBasePrice"
+                            required placeholder="0"></div>
+                    <div class="form-group"><label>Time Slots (comma separated)</label><input type="text"
+                            id="typeTimeSlots" placeholder="6:00 AM, 7:00 AM, 8:00 AM"><small
+                            style="color:var(--c-text-muted);font-size:11px;">Example: 6:00 AM, 7:00 AM, 8:00 AM</small>
+                    </div>
+                    <div class="form-group"><label>Default Capacity per Slot</label><input type="number"
+                            id="typeCapacity" value="10"></div>
                     <div class="modal-buttons">
                         <button type="submit" class="btn-save">Save</button>
                         <button type="button" class="btn-cancel" onclick="closeReservationModal()">Cancel</button>
@@ -763,8 +872,10 @@
             <div class="reservation-modal-body">
                 <form id="timeSlotForm" onsubmit="addTimeSlot(event)">
                     <input type="hidden" id="slotTypeId">
-                    <div class="form-group"><label>Time *</label><input type="text" id="slotTime" required placeholder="9:00 AM"></div>
-                    <div class="form-group"><label>Capacity *</label><input type="number" id="slotCapacity" required value="10"></div>
+                    <div class="form-group"><label>Time *</label><input type="text" id="slotTime" required
+                            placeholder="9:00 AM"></div>
+                    <div class="form-group"><label>Capacity *</label><input type="number" id="slotCapacity" required
+                            value="10"></div>
                     <div class="modal-buttons">
                         <button type="submit" class="btn-save">Add Slot</button>
                         <button type="button" class="btn-cancel" onclick="closeTimeSlotModal()">Cancel</button>

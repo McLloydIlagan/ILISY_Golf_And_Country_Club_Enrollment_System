@@ -11,23 +11,31 @@ const applicationSchema = new mongoose.Schema({
         enum: ['membership', 'reservation'],
         required: true
     },
-    reservationTypeName: { type: String }, 
+    reservationTypeName: { type: String },
     status: {
         type: String,
         enum: ['pending', 'approved', 'rejected', 'processing', 'completed'],
         default: 'pending'
     },
     details: { type: mongoose.Schema.Types.Mixed },
-    
+
     // NEW: Payment fields for admin validation
-    paymentMethod: { 
-    type: String, 
-    enum: ['GCash', 'Maya', 'BPI', 'BDO', 'Cash', 'Metrobank', 'Card'] 
+    paymentMethod: {
+        type: String,
+        enum: ['GCash', 'Maya', 'BPI', 'BDO', 'Cash', 'Metrobank', 'Card']
     },
-    accountNumber: { type: String },
+    cardToken: { type: String },
+    maskedCard: { type: String },
     referenceNumber: { type: String },
     receiptUrl: { type: String },
     amount: { type: Number },
+
+    // NEW: Price breakdown for transparency
+    basePrice: { type: Number, default: 0 },
+    addOnsTotal: { type: Number, default: 0 },
+    serviceCharge: { type: Number, default: 0, description: '10% service charge' },
+    memberDiscount: { type: Number, default: 0, description: '20% member discount if applicable' },
+
     paymentStatus: {
         type: String,
         enum: ['pending', 'verified', 'rejected'],
@@ -36,7 +44,7 @@ const applicationSchema = new mongoose.Schema({
     adminNotes: { type: String },
     verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     verifiedAt: { type: Date },
-    
+
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
