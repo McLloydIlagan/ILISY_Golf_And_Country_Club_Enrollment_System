@@ -114,7 +114,11 @@ router.post('/apply', authMiddleware, async (req, res) => {
         }
 
         // Check if time slot is still available — use UTC day boundaries to avoid timezone mismatch
-        const [yr, mo, dy] = new Date(date).toISOString().split('T')[0].split('-').map(Number);
+        // Extract YYYY-MM-DD from whatever date format was sent (ISO string or plain date)
+        const sentDate = new Date(date);
+        const yr = sentDate.getUTCFullYear();
+        const mo = sentDate.getUTCMonth() + 1;
+        const dy = sentDate.getUTCDate();
         const dayStart = new Date(Date.UTC(yr, mo - 1, dy, 0, 0, 0, 0));
         const dayEnd   = new Date(Date.UTC(yr, mo - 1, dy, 23, 59, 59, 999));
 

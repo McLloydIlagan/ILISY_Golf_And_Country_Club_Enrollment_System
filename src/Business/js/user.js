@@ -1760,27 +1760,33 @@ async function submitDynamicReservationPayment(event) {
         return;
     }
     
-    // Format date for MongoDB
+    // Format date — send as plain YYYY-MM-DD string so the server can apply UTC boundaries correctly
     let formattedDate;
     try {
         const dateStr = pendingReservationData.selectedDate;
         
+        // Normalize to YYYY-MM-DD string regardless of input format
+        let dateOnly;
         if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
-            formattedDate = new Date(dateStr);
+            dateOnly = dateStr.substring(0, 10); // already YYYY-MM-DD
         } else if (typeof dateStr === 'string' && dateStr.includes('/')) {
             const parts = dateStr.split('/');
-            formattedDate = new Date(parts[2], parts[0] - 1, parts[1]);
+            dateOnly = `${parts[2]}-${String(parts[0]).padStart(2,'0')}-${String(parts[1]).padStart(2,'0')}`;
         } else if (dateStr instanceof Date) {
-            formattedDate = dateStr;
+            // Use UTC parts to avoid local-timezone shift
+            dateOnly = `${dateStr.getUTCFullYear()}-${String(dateStr.getUTCMonth()+1).padStart(2,'0')}-${String(dateStr.getUTCDate()).padStart(2,'0')}`;
         } else {
-            formattedDate = new Date(dateStr);
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) throw new Error('Invalid date');
+            dateOnly = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
         }
+
+        // Build a UTC noon timestamp — avoids any DST or timezone edge cases on the server
+        formattedDate = new Date(`${dateOnly}T12:00:00.000Z`);
         
         if (isNaN(formattedDate.getTime())) {
             throw new Error('Invalid date');
         }
-        
-        formattedDate.setHours(0, 0, 0, 0);
         
     } catch (e) {
         showToast('Invalid date format. Please go back and select a date again.', 'error');
