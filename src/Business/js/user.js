@@ -980,37 +980,55 @@ async function submitMembership(event) {
             showToast('✅ Membership application submitted! Admin will verify your payment.', 'success');
 
             // ========== UPDATE RECEIPT POPUP FOR MEMBERSHIP ==========
-            const receiptTracking = document.getElementById('receiptTracking');
-            const receiptName = document.getElementById('receiptName');
-            const receiptAmount = document.getElementById('receiptAmount');
-            const receiptPaymentFor = document.getElementById('receiptPaymentFor');
-            const receiptStatus = document.getElementById('receiptStatus');
+            const receiptTracking    = document.getElementById('receiptTracking');
+            const receiptName        = document.getElementById('receiptName');
+            const receiptAmount      = document.getElementById('receiptAmount');
+            const receiptPaymentFor  = document.getElementById('receiptPaymentFor');
+            const receiptStatusSub   = document.getElementById('receiptStatusSub');
+            const receiptPaymentMethod = document.getElementById('receiptPaymentMethod');
 
-            if (receiptTracking) receiptTracking.textContent = referenceNumber;
-            if (receiptName) receiptName.textContent = firstName + ' ' + lastName;
+            // Show membership layout, hide reservation-specific sections
+            const receiptReservationSection = document.getElementById('receiptReservationSection');
+            const receiptBreakdownSection   = document.getElementById('receiptBreakdownSection');
+            const receiptMembershipSection  = document.getElementById('receiptMembershipSection');
+            if (receiptReservationSection) receiptReservationSection.style.display = 'none';
+            if (receiptBreakdownSection)   receiptBreakdownSection.style.display   = 'none';
+            if (receiptMembershipSection)  receiptMembershipSection.style.display  = 'block';
 
-            // Set the correct payment type for membership
-            if (receiptPaymentFor) {
-                receiptPaymentFor.textContent = '🏌️ Membership Application';
-                receiptPaymentFor.style.fontWeight = 'bold';
-            }
+            // Header fields
+            if (receiptTracking)      receiptTracking.textContent      = referenceNumber;
+            if (receiptName)          receiptName.textContent          = `${firstName} ${lastName}`;
+            if (receiptPaymentMethod) receiptPaymentMethod.textContent = paymentMethod;
+            if (receiptPaymentFor)    receiptPaymentFor.textContent    = '🏌️ Membership Application';
+            if (receiptAmount)        receiptAmount.textContent        = '₱1,000,000';
 
-            // Set the amount
-            if (receiptAmount) {
-                receiptAmount.textContent = '₱1,000,000';
-                receiptAmount.style.fontWeight = 'bold';
-                receiptAmount.style.color = '#276749';
-                receiptAmount.style.fontSize = '18px';
-            }
+            // Member detail fields
+            const receiptMemEmail   = document.getElementById('receiptMemEmail');
+            const receiptMemPhone   = document.getElementById('receiptMemPhone');
+            const receiptMemGender  = document.getElementById('receiptMemGender');
+            const receiptMemAge     = document.getElementById('receiptMemAge');
+            const receiptMemAddress = document.getElementById('receiptMemAddress');
+            const receiptMemGenderRow  = document.getElementById('receiptMemGenderRow');
+            const receiptMemAgeRow     = document.getElementById('receiptMemAgeRow');
+            const receiptMemAddressRow = document.getElementById('receiptMemAddressRow');
 
-            // Set status message
-            if (receiptStatus) {
-                receiptStatus.innerHTML = `⏳ <strong>Pending Admin Verification</strong><br><small>Payment via ${paymentMethod} - Please wait for admin to verify your membership</small>`;
-                receiptStatus.style.background = '#fff3cd';
-                receiptStatus.style.color = '#856404';
-                receiptStatus.style.padding = '8px';
-                receiptStatus.style.borderRadius = '5px';
-                receiptStatus.style.marginTop = '10px';
+            if (receiptMemEmail)   receiptMemEmail.textContent   = email || '—';
+            if (receiptMemPhone)   receiptMemPhone.textContent   = cleanPhone || '—';
+
+            // Only show optional fields if they have a value
+            const genderVal  = document.getElementById('memGender')?.value  || '';
+            const ageVal     = document.getElementById('memAge')?.value      || '';
+            const addressVal = document.getElementById('memAddress')?.value?.trim() || '';
+
+            if (receiptMemGenderRow)  receiptMemGenderRow.style.display  = genderVal  ? 'flex' : 'none';
+            if (receiptMemAgeRow)     receiptMemAgeRow.style.display     = ageVal     ? 'flex' : 'none';
+            if (receiptMemAddressRow) receiptMemAddressRow.style.display = addressVal ? 'flex' : 'none';
+            if (receiptMemGender)  receiptMemGender.textContent  = genderVal;
+            if (receiptMemAge)     receiptMemAge.textContent     = ageVal;
+            if (receiptMemAddress) receiptMemAddress.textContent = addressVal;
+
+            if (receiptStatusSub) {
+                receiptStatusSub.textContent = `Payment via ${paymentMethod} — Please wait for admin to verify your membership.`;
             }
 
             // Hide payment form and show receipt
@@ -1938,36 +1956,49 @@ async function submitDynamicReservationPayment(event) {
             // ========== UPDATE RECEIPT POPUP FOR RESERVATION ==========
             const receiptTracking = document.getElementById('receiptTracking');
             const receiptName = document.getElementById('receiptName');
-            const receiptAmount = document.getElementById('receiptAmount');
             const receiptPaymentFor = document.getElementById('receiptPaymentFor');
-            const receiptStatus = document.getElementById('receiptStatus');
+            const receiptStatusSub = document.getElementById('receiptStatusSub');
+            const receiptPaymentMethod = document.getElementById('receiptPaymentMethod');
+            const receiptDate = document.getElementById('receiptDate');
+            const receiptTime = document.getElementById('receiptTime');
+            const receiptBasePrice = document.getElementById('receiptBasePrice');
+            const receiptServiceCharge = document.getElementById('receiptServiceCharge');
+            const receiptDiscountRow = document.getElementById('receiptDiscountRow');
+            const receiptDiscount = document.getElementById('receiptDiscount');
+
+            // Show reservation layout, hide membership-only section
+            const receiptReservationSection = document.getElementById('receiptReservationSection');
+            const receiptBreakdownSection = document.getElementById('receiptBreakdownSection');
+            const receiptMembershipSection = document.getElementById('receiptMembershipSection');
+            if (receiptReservationSection) receiptReservationSection.style.display = 'block';
+            if (receiptBreakdownSection) receiptBreakdownSection.style.display = 'block';
+            if (receiptMembershipSection) receiptMembershipSection.style.display = 'none';
 
             if (receiptTracking) receiptTracking.textContent = transactionId;
             if (receiptName) receiptName.textContent = `${pendingReservationData.firstName} ${pendingReservationData.lastName}`;
+            if (receiptPaymentMethod) receiptPaymentMethod.textContent = activeMethod;
+            if (receiptDate) receiptDate.textContent = pendingReservationData.selectedDate || '—';
+            if (receiptTime) receiptTime.textContent = pendingReservationData.selectedTime || '—';
 
-            // Set the correct payment type (reservation name like "Swimming Pool")
+            // Reservation type
             if (receiptPaymentFor) {
-                const reservationTypeName = pendingReservationData.reservationType?.name || 'Reservation';
-                receiptPaymentFor.textContent = reservationTypeName;
-                receiptPaymentFor.style.fontWeight = 'bold';
+                receiptPaymentFor.textContent = pendingReservationData.reservationType?.name || 'Reservation';
             }
 
-            // Set the amount
-            if (receiptAmount) {
-                receiptAmount.textContent = `₱${pendingReservationData.totalPrice.toLocaleString()}`;
-                receiptAmount.style.fontWeight = 'bold';
-                receiptAmount.style.color = '#276749';
-                receiptAmount.style.fontSize = '18px';
-            }
+            // Price breakdown
+            const bp = pendingReservationData.basePrice || 0;
+            const sc = pendingReservationData.serviceCharge || 0;
+            const md = pendingReservationData.memberDiscount || 0;
+            const receiptBreakdownTotal = document.getElementById('receiptBreakdownTotal');
+            if (receiptBasePrice) receiptBasePrice.textContent = `₱${bp.toLocaleString()}`;
+            if (receiptServiceCharge) receiptServiceCharge.textContent = `+₱${sc.toLocaleString()}`;
+            if (receiptDiscountRow) receiptDiscountRow.style.display = md > 0 ? 'flex' : 'none';
+            if (receiptDiscount) receiptDiscount.textContent = `-₱${md.toLocaleString()}`;
+            if (receiptBreakdownTotal) receiptBreakdownTotal.textContent = `₱${pendingReservationData.totalPrice.toLocaleString()}`;
 
-            // Set status message
-            if (receiptStatus) {
-                receiptStatus.innerHTML = `⏳ <strong>Pending Admin Verification</strong><br><small>Payment via ${activeMethod} - Please wait for admin to verify</small>`;
-                receiptStatus.style.background = '#fff3cd';
-                receiptStatus.style.color = '#856404';
-                receiptStatus.style.padding = '8px';
-                receiptStatus.style.borderRadius = '5px';
-                receiptStatus.style.marginTop = '10px';
+            // Status sub-text
+            if (receiptStatusSub) {
+                receiptStatusSub.textContent = `Payment via ${activeMethod} — Please wait for admin to verify.`;
             }
 
             // Show the receipt popup

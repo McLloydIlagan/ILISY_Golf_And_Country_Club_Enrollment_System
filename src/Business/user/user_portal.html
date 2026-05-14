@@ -370,32 +370,143 @@
     </div>
 
     <div class="modal-overlay" id="receiptPopup" style="display: none;">
-        <div class="popup-card" style="width: 450px; background: #f4f6f8;">
-            <div id="receiptImageArea"
-                style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); color: #1a1f36;">
-                <div style="font-size: 48px; text-align: center; margin-bottom: 10px;">🧾</div>
-                <h3 style="text-align: center; color: #1a1f36; margin: 0;">ILISY Golf Club</h3>
-                <p style="text-align: center; color: #4a5568; margin-top: 5px; margin-bottom: 15px; font-size: 14px;">
-                    Official Payment Receipt</p>
-                <hr style="border: 0; border-top: 1px dashed #a0aec0; margin-bottom: 20px;">
-                <div style="text-align: left; font-size: 14px; color: #1a1f36;">
-                    <p style="margin-bottom: 12px; color: #1a1f36;"><strong style="color: #1a1f36;">Transact
-                            Ref:</strong> <span id="receiptTracking"
-                            style="color: #1a1f36; font-family: monospace; font-size: 16px; font-weight: 700; float: right;"></span>
-                    </p>
-                    <p style="margin-bottom: 12px; color: #1a1f36;"><strong style="color: #1a1f36;">Name:</strong> <span
-                            id="receiptName" style="color: #1a1f36; float: right; font-weight: 600;"></span></p>
-                    <p><strong>Payment For:</strong> <span id="receiptPaymentFor"
-                            style="color: #1a1f36; float: right; font-weight: 600;"></span></p>
-                    <p><strong>Amount Paid:</strong> <span id="receiptAmount"
-                            style="float: right; color: #276749; font-weight: 800;"></span></p>
+        <div class="popup-card" style="width: 460px; background: #f4f6f8; padding: 28px;">
+
+            <!-- Printable receipt area -->
+            <div id="receiptImageArea" style="background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); color: #1a1f36;">
+
+                <!-- Header band -->
+                <div style="background: var(--deep-green); padding: 22px 28px; text-align: center;">
+                    <div style="font-size: 36px; margin-bottom: 6px;">⛳</div>
+                    <div style="color: var(--gold); font-size: 18px; font-weight: 700; letter-spacing: 1px;">ILISY Golf Club</div>
+                    <div style="color: rgba(255,255,255,0.7); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-top: 3px;">Official Payment Receipt</div>
+                </div>
+
+                <!-- Body -->
+                <div style="padding: 24px 28px;">
+
+                    <!-- Reference number -->
+                    <div style="background: #f7f8fa; border: 1px dashed #cbd5e0; border-radius: 6px; padding: 10px 14px; margin-bottom: 20px; text-align: center;">
+                        <div style="font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Transaction Reference</div>
+                        <div id="receiptTracking" style="font-family: monospace; font-size: 13px; font-weight: 700; color: #2d3748; word-break: break-all;"></div>
+                    </div>
+
+                    <!-- Guest info -->
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Guest Information</div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                            <span style="color: #718096;">Name</span>
+                            <span id="receiptName" style="font-weight: 600; color: #1a1f36; text-align: right; max-width: 60%;"></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                            <span style="color: #718096;">Payment Method</span>
+                            <span id="receiptPaymentMethod" style="font-weight: 600; color: #1a1f36;"></span>
+                        </div>
+                    </div>
+
+                    <!-- Reservation details -->
+                    <div id="receiptReservationSection" style="margin-bottom: 16px;">
+                        <div style="font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Reservation Details</div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                            <span style="color: #718096;">Type</span>
+                            <span id="receiptPaymentFor" style="font-weight: 600; color: #1a1f36; text-align: right; max-width: 60%;"></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                            <span style="color: #718096;">Date</span>
+                            <span id="receiptDate" style="font-weight: 600; color: #1a1f36;"></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                            <span style="color: #718096;">Time Slot</span>
+                            <span id="receiptTime" style="font-weight: 600; color: #1a1f36;"></span>
+                        </div>
+                    </div>
+
+                    <!-- Price breakdown (reservation) -->
+                    <div id="receiptBreakdownSection" style="margin-bottom: 16px;">
+                        <div style="font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Price Breakdown</div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px;">
+                            <span style="color: #718096;">Base Price</span>
+                            <span id="receiptBasePrice" style="color: #1a1f36;"></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px;">
+                            <span style="color: #718096;">Service Charge (10%)</span>
+                            <span id="receiptServiceCharge" style="color: #1a1f36;"></span>
+                        </div>
+                        <div id="receiptDiscountRow" style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px;">
+                            <span style="color: #28a745;">Member Discount (20%)</span>
+                            <span id="receiptDiscount" style="color: #28a745; font-weight: 600;"></span>
+                        </div>
+                        <!-- Total -->
+                        <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 6px;">
+                            <span style="color: #1a1f36;">Total Paid</span>
+                            <span id="receiptBreakdownTotal" style="color: #276749;"></span>
+                        </div>
+                    </div>
+
+                    <!-- Membership section (shown instead of reservation sections) -->
+                    <div id="receiptMembershipSection" style="display: none; margin-bottom: 16px;">
+
+                        <!-- Member details -->
+                        <div style="margin-bottom: 16px;">
+                            <div style="font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Member Details</div>
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                                <span style="color: #718096;">Email</span>
+                                <span id="receiptMemEmail" style="font-weight: 600; color: #1a1f36; text-align: right; max-width: 65%; word-break: break-all;"></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                                <span style="color: #718096;">Phone</span>
+                                <span id="receiptMemPhone" style="font-weight: 600; color: #1a1f36;"></span>
+                            </div>
+                            <div id="receiptMemGenderRow" style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                                <span style="color: #718096;">Gender</span>
+                                <span id="receiptMemGender" style="font-weight: 600; color: #1a1f36;"></span>
+                            </div>
+                            <div id="receiptMemAgeRow" style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                                <span style="color: #718096;">Age</span>
+                                <span id="receiptMemAge" style="font-weight: 600; color: #1a1f36;"></span>
+                            </div>
+                            <div id="receiptMemAddressRow" style="display: flex; justify-content: space-between; font-size: 13px;">
+                                <span style="color: #718096;">Address</span>
+                                <span id="receiptMemAddress" style="font-weight: 600; color: #1a1f36; text-align: right; max-width: 65%;"></span>
+                            </div>
+                        </div>
+
+                        <!-- Membership plan -->
+                        <div>
+                            <div style="font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Membership Plan</div>
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                                <span style="color: #718096;">Plan</span>
+                                <span style="font-weight: 600; color: #1a1f36;">Annual Membership</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                                <span style="color: #718096;">Duration</span>
+                                <span style="font-weight: 600; color: #1a1f36;">365 days</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                                <span style="color: #718096;">Includes</span>
+                                <span style="font-weight: 600; color: #1a1f36; text-align: right; max-width: 60%;">20% discount on all reservations</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 6px;">
+                                <span style="color: #1a1f36;">Total Paid</span>
+                                <span id="receiptAmount" style="color: #276749;">₱1,000,000</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Status badge -->
+                    <div id="receiptStatus" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 10px 14px; text-align: center; font-size: 12px; color: #856404;">
+                        ⏳ <strong>Pending Admin Verification</strong><br>
+                        <span id="receiptStatusSub" style="font-size: 11px;">Please wait for admin to verify your payment.</span>
+                    </div>
+
                 </div>
             </div>
-            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 25px;">
-                <button class="btn-olive" style="margin: 0; padding: 10px 20px;" onclick="downloadReceiptImage()">📥
-                    Save as PNG</button>
-                <button class="popup-close" style="margin: 0; padding: 10px 20px;"
-                    onclick="closeReceiptAndReset()">Done</button>
+
+            <!-- Action buttons -->
+            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                <button class="btn-olive" style="margin: 0; padding: 10px 20px;" onclick="downloadReceiptImage()">📥 Save as PNG</button>
+                <button class="popup-close" style="margin: 0; padding: 10px 20px;" onclick="closeReceiptAndReset()">Done</button>
             </div>
         </div>
     </div>
