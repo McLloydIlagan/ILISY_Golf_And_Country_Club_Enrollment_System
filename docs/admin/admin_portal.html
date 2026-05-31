@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ILISY Golf Club | Admin Portal</title>
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="icon" href="data:,">
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="../Golfcourse_assets/colored logo.png" alt="ILISY Logo">
+            <div class="sidebar-logo-text">
+                <strong>ILISY</strong>
+                <span>Admin Portal</span>
+            </div>
+        </div>
+        <div class="sidebar-title">Navigation</div>
+        <div class="nav-item active" onclick="showPage('dashboard')"><span>📊</span> Dashboard</div>
+        <div class="nav-item" onclick="showPage('reservations')"><span>📅</span> Reservations</div>
+        <div class="nav-item" onclick="showPage('accounts')"><span>👥</span> Accounts</div>
+        <div class="nav-item" onclick="showPage('payments')"><span>💳</span> Payments</div>
+        <div class="nav-item" onclick="showPage('messages')"><span>💬</span> Messages</div>
+        <div class="nav-item" onclick="showPage('manage_reservations')"><span>⚙️</span> Manage Types</div>
+        
+        <div class="sidebar-spacer"></div>
+        <div class="sidebar-divider"></div>
+        <div class="nav-item logout" onclick="handleLogout()"><span>🚪</span> Log out</div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- ─── DASHBOARD ─── -->
+        <div class="page active" id="page-dashboard">
+            <div class="topbar">
+                <h1>Dashboard</h1>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button class="refresh-btn" onclick="showPage('dashboard')">🔄 Refresh</button>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body">
+                <div class="hero-stats">
+                    <div class="hero-card accent-green">
+                        <div class="hero-card-header">
+                            <span class="hero-card-label">Active Members</span>
+                            <div class="hero-card-icon">🏌️</div>
+                        </div>
+                        <div class="hero-card-value" id="statMembers">—</div>
+                        <div class="hero-card-footer">
+                            <span class="hero-card-badge badge-up" id="statMembersGrowth">↑ —%</span>
+                            <span>vs last month</span>
+                        </div>
+                    </div>
+                    <div class="hero-card accent-amber">
+                        <div class="hero-card-header">
+                            <span class="hero-card-label">Pending Enrollments</span>
+                            <div class="hero-card-icon">⏳</div>
+                        </div>
+                        <div class="hero-card-value" id="statPending">—</div>
+                        <div class="hero-card-footer">
+                            <span class="hero-card-badge badge-warn" id="statPendingLabel">Action required</span>
+                        </div>
+                    </div>
+                    <div class="hero-card accent-gold">
+                        <div class="hero-card-header">
+                            <span class="hero-card-label">Monthly Revenue</span>
+                            <div class="hero-card-icon">💰</div>
+                        </div>
+                        <div class="hero-card-value" id="statRevenue">—</div>
+                        <div class="hero-card-footer">
+                            <span class="hero-card-badge badge-up" id="statRevenueGrowth">↑ —%</span>
+                            <span>vs last month</span>
+                        </div>
+                    </div>
+                    <div class="hero-card accent-blue">
+                        <div class="hero-card-header">
+                            <span class="hero-card-label">Tee-Time Utilization</span>
+                            <div class="hero-card-icon">⛳</div>
+                        </div>
+                        <div class="hero-card-value" id="statUtilization">—</div>
+                        <div class="hero-card-footer">
+                            <span id="statUtilizationLabel" class="hero-card-badge badge-up">of capacity booked</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="charts-row">
+                    <div class="chart-panel">
+                        <div class="chart-panel-header">
+                            <div>
+                                <div class="chart-panel-title">Enrollment Trends</div>
+                                <div class="chart-panel-sub">Revenue over the last 6 months</div>
+                            </div>
+                            <div class="chart-legend">
+                                <span class="legend-dot" style="--dot-color:#0d2b0f;">Membership</span>
+                                <span class="legend-dot" style="--dot-color:#6b7e5f;">Reservations</span>
+                            </div>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:220px;">
+                            <canvas id="enrollmentLineChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-panel">
+                        <div class="chart-panel-header">
+                            <div>
+                                <div class="chart-panel-title">Membership Types</div>
+                                <div class="chart-panel-sub">Distribution by category</div>
+                            </div>
+                        </div>
+                        <div class="chart-canvas-wrap" style="height:180px;position:relative;">
+                            <canvas id="membershipDoughnutChart"></canvas>
+                            <div class="doughnut-center">
+                                <div class="doughnut-center-value" id="doughnutTotal">—</div>
+                                <div class="doughnut-center-label">Total</div>
+                            </div>
+                        </div>
+                        <div class="chart-legend" style="justify-content:center;margin-top:14px;gap:12px;"
+                            id="doughnutLegend"></div>
+                    </div>
+                </div>
+
+                <!-- ── Dashboard Filter Bar ── -->
+                <div class="filter-bar" id="dashboardFilterBar" style="margin-bottom:0;">
+                    <span style="font-size:13px;font-weight:600;color:var(--c-text-muted);">📅 Period:</span>
+                    <select id="dashboardPeriodFilter" class="filter-select" onchange="onDashboardFilterChange()">
+                        <option value="3">Last 3 Months</option>
+                        <option value="6" selected>Last 6 Months</option>
+                        <option value="12">Last 12 Months</option>
+                    </select>
+                    <span style="font-size:13px;font-weight:600;color:var(--c-text-muted);">💳 Transaction:</span>
+                    <select id="dashboardTypeFilter" class="filter-select" onchange="onDashboardFilterChange()">
+                        <option value="all">All Types</option>
+                        <option value="membership">Membership Only</option>
+                        <option value="reservation">Reservations Only</option>
+                    </select>
+                    <span class="filter-results-count" id="dashboardFilterSummary"></span>
+                    <!-- Accordion toggle -->
+                    <button onclick="toggleDashboardAccordion()" id="dashboardAccordionBtn"
+                        style="margin-left:auto;background:var(--c-surface);border:1px solid var(--c-border);border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--c-text-muted);">
+                        <span id="dashboardAccordionChevron"
+                            style="transition:transform .2s;display:inline-block;">▼</span> Details
+                    </button>
+                </div>
+
+                <!-- ── Accordion body: second charts + pending verifications ── -->
+                <div id="dashboardAccordionBody" style="overflow:hidden;transition:max-height .35s ease;max-height:0;">
+
+                    <!-- ── Second Charts Row: Top Reservation Types + Cumulative Revenue ── -->
+                    <div class="charts-row charts-row-bottom" style="margin-top:20px;margin-bottom:28px;">
+                        <!-- Bar chart: Top Reservation Types -->
+                        <div class="chart-panel">
+                            <div class="chart-panel-header">
+                                <div>
+                                    <div class="chart-panel-title">Top Reservation Types</div>
+                                    <div class="chart-panel-sub">Revenue by reservation category</div>
+                                </div>
+                                <div class="chart-legend">
+                                    <span class="legend-dot" style="--dot-color:#d4b36a;">Revenue</span>
+                                    <span class="legend-dot" style="--dot-color:#6b7e5f;">Bookings</span>
+                                </div>
+                            </div>
+                            <div class="chart-canvas-wrap" style="height:220px;">
+                                <canvas id="topReservationTypesChart"></canvas>
+                            </div>
+                        </div>
+                        <!-- Line chart: Cumulative Revenue -->
+                        <div class="chart-panel">
+                            <div class="chart-panel-header">
+                                <div>
+                                    <div class="chart-panel-title">Cumulative Revenue</div>
+                                    <div class="chart-panel-sub">Running total over selected period</div>
+                                </div>
+                                <div class="chart-legend">
+                                    <span class="legend-dot" style="--dot-color:#059669;">Cumulative</span>
+                                </div>
+                            </div>
+                            <div class="chart-canvas-wrap" style="height:220px;">
+                                <canvas id="cumulativeRevenueChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Verifications -->
+                    <div class="pending-panel" id="pendingVerificationsSection">
+                        <div class="pending-panel-header">
+                            <div class="pending-panel-title">
+                                ⏳ Pending Payment Verifications
+                                <span class="pending-count-badge" id="pendingCountBadge">0</span>
+                            </div>
+                            <button class="refresh-btn" onclick="loadPendingApplications()">🔄 Refresh</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Method</th>
+                                        <th>Reference #</th>
+                                        <th>Amount</th>
+                                        <th>Submitted</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pendingAppsTableBody">
+                                    <tr>
+                                        <td colspan="8"
+                                            style="text-align:center;padding:32px;color:var(--c-text-muted);">
+                                            Loading pending applications…</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div><!-- end dashboardAccordionBody -->
+
+            </div><!-- end page-body -->
+        </div><!-- end page-dashboard -->
+
+        <!-- ─── RESERVATIONS ─── -->
+        <div class="page" id="page-reservations">
+            <div class="topbar">
+                <h1>Reservations</h1>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button class="refresh-btn" onclick="loadReservations();loadAvailabilityDashboard();">🔄
+                        Refresh</button>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body page-body-scroll">
+
+                <!-- ── Reservation Applications table (TOP) ── -->
+                <div class="table-panel" style="margin-bottom:24px;">
+                    <div class="table-panel-header">
+                        <span class="table-panel-title">📋 Reservation Applications</span>
+                        <button class="refresh-btn" onclick="loadReservations()">🔄 Refresh</button>
+                    </div>
+                    <div class="filter-bar"
+                        style="border-radius:0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:0;background:rgba(255,255,255,.04);">
+                        <div class="filter-search" style="flex:1;min-width:200px;">
+                            <span class="filter-search-icon">🔍</span>
+                            <input type="text" id="reservationSearchInput" placeholder="Search by name, email, phone…"
+                                oninput="debouncedFilterReservations()">
+                        </div>
+                        <select id="reservationStatusFilter" class="filter-select" onchange="filterReservationsTable()">
+                            <option value="all">All Status</option>
+                            <option value="pending">⏳ Pending</option>
+                            <option value="approved">✔ Approved</option>
+                            <option value="confirmed">✔ Confirmed</option>
+                            <option value="rejected">✗ Rejected</option>
+                            <option value="cancelled">❌ Cancelled</option>
+                        </select>
+                        <select id="reservationTypeFilter" class="filter-select" onchange="filterReservationsTable()">
+                            <option value="all">All Types</option>
+                            <option value="membership">🏌️ Membership</option>
+                            <option value="reservation">📅 Reservation</option>
+                        </select>
+                        <input type="date" id="reservationDateFrom" class="filter-date"
+                            onchange="filterReservationsTable()" title="From">
+                        <input type="date" id="reservationDateTo" class="filter-date"
+                            onchange="filterReservationsTable()" title="To">
+                        <button class="filter-btn filter-btn-ghost" onclick="resetReservationFilters()">Reset</button>
+                        <span class="filter-results-count" id="resultsCount"></span>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reservationAppTbody">
+                                <tr>
+                                    <td colspan="7" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">
+                                        Loading…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="reservationPagination" class="pagination-container"></div>
+                </div>
+
+                <!-- ── Availability Dashboard (BELOW) ── -->
+                <div class="section-divider-label">📊 Availability Overview</div>
+
+                <!-- Date filter -->
+                <div class="filter-bar" style="margin-bottom:16px;">
+                    <span style="font-size:13px;font-weight:600;color:rgba(0, 0, 0, 0.6);">📅 View for:</span>
+                    <select id="availabilityDateFilter" class="filter-select" onchange="loadAvailabilityDashboard()">
+                        <option value="today">Today</option>
+                        <option value="tomorrow">Tomorrow</option>
+                        <option value="week" selected>Next 7 Days</option>
+                        <option value="month">Next 30 Days</option>
+                    </select>
+                    <span id="dateRangeDisplay"
+                        style="font-size:12px;color:rgba(255,255,255,.4);margin-left:auto;">Showing: Next 7 days</span>
+                </div>
+
+                <!-- ── Reserved Clients Table ── -->
+                <div id="reservedClientsPanel" class="table-panel" style="margin-bottom:24px;">
+                    <div class="table-panel-header">
+                        <span class="table-panel-title">🏌️ Reserved Clients</span>
+                        <button class="refresh-btn" onclick="loadReservedClientsTable()">🔄 Refresh</button>
+                    </div>
+                    <div class="filter-bar"
+                        style="border-radius:0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:0;background:rgba(255,255,255,.04);">
+                        <div class="filter-search" style="flex:1;min-width:200px;">
+                            <span class="filter-search-icon">🔍</span>
+                            <input type="text" id="reservedClientsSearchInput"
+                                placeholder="Search by name, email, phone…" oninput="filterReservedClientsTable()">
+                        </div>
+                        <select id="reservedClientsCategoryFilter" class="filter-select"
+                            onchange="filterReservedClientsTable()">
+                            <option value="all">All Categories</option>
+                            <option value="golf">⛳ Golf</option>
+                            <option value="amenities">🍽️ Amenities</option>
+                            <option value="events">🎉 Events</option>
+                            <option value="accommodation">🏨 Accommodation</option>
+                            <option value="premium">✨ Premium</option>
+                        </select>
+                        <input type="date" id="reservedClientsDateFrom" class="filter-date"
+                            onchange="filterReservedClientsTable()" title="From date">
+                        <input type="date" id="reservedClientsDateTo" class="filter-date"
+                            onchange="filterReservedClientsTable()" title="To date">
+                        <button class="filter-btn filter-btn-ghost"
+                            onclick="resetReservedClientsFilters()">Reset</button>
+                        <span class="filter-results-count" id="reservedClientsCount"></span>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Contact</th>
+                                    <th>Reservation Type</th>
+                                    <th>Date</th>
+                                    <th>Time Slot</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reservedClientsTbody">
+                                <tr>
+                                    <td colspan="7" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">
+                                        Loading…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="reservedClientsPagination" class="pagination-container"></div>
+                </div>
+
+                <!-- Summary stats -->
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;">
+                    <div class="hero-card accent-green">
+                        <div class="hero-card-header"><span class="hero-card-label">Active Types</span>
+                            <div class="hero-card-icon">📌</div>
+                        </div>
+                        <div class="hero-card-value" id="totalTypesCount">0</div>
+                    </div>
+                    <div class="hero-card accent-blue">
+                        <div class="hero-card-header"><span class="hero-card-label">Daily Capacity</span>
+                            <div class="hero-card-icon">🎯</div>
+                        </div>
+                        <div class="hero-card-value" id="totalCapacityCount">0</div>
+                    </div>
+                    <div class="hero-card accent-amber">
+                        <div class="hero-card-header"><span class="hero-card-label">Booked</span>
+                            <div class="hero-card-icon">📋</div>
+                        </div>
+                        <div class="hero-card-value" id="totalBookedCount">0</div>
+                    </div>
+                    <div class="hero-card" style="--card-accent:#059669;">
+                        <div class="hero-card-header"><span class="hero-card-label">Available</span>
+                            <div class="hero-card-icon" style="background:rgba(5,150,105,.1);">✅</div>
+                        </div>
+                        <div class="hero-card-value" id="totalAvailableCount">0</div>
+                    </div>
+                </div>
+
+                <!-- Availability filter -->
+                <div class="filter-bar" style="margin-bottom:16px;">
+                    <div class="filter-search" style="flex:1;min-width:180px;">
+                        <span class="filter-search-icon">🔍</span>
+                        <input type="text" id="availabilitySearchInput" placeholder="Search by type name…"
+                            oninput="debouncedFilterAvailability()">
+                    </div>
+                    <select id="availabilityCategoryFilter" class="filter-select" onchange="filterAvailabilityCards()">
+                        <option value="all">All Categories</option>
+                        <option value="golf">⛳ Golf</option>
+                        <option value="amenities">🍽️ Amenities</option>
+                        <option value="events">🎉 Events</option>
+                        <option value="accommodation">🏨 Accommodation</option>
+                        <option value="premium">✨ Premium</option>
+                    </select>
+                    <select id="availabilityStatusFilter" class="filter-select" onchange="filterAvailabilityCards()">
+                        <option value="all">All Availability</option>
+                        <option value="available">✅ Available</option>
+                        <option value="limited">⚠️ Limited</option>
+                        <option value="full">🔴 Full</option>
+                    </select>
+                    <select id="availabilityActiveFilter" class="filter-select" onchange="filterAvailabilityCards()">
+                        <option value="all">All Types</option>
+                        <option value="active">Active Only</option>
+                        <option value="inactive">Inactive Only</option>
+                    </select>
+                    <button class="filter-btn filter-btn-ghost" onclick="resetAvailabilityFilters()">Reset</button>
+                    <span class="filter-results-count" id="availabilityResultsCount"></span>
+                </div>
+
+                <!-- Availability accordion cards -->
+                <div id="availabilityCardsContainer"
+                    style="display:flex;flex-direction:column;gap:16px;padding-bottom:24px;">
+                    <div class="loading-spinner">⏳ Loading availability data…</div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ─── REGISTERED ACCOUNTS ─── -->
+        <div class="page" id="page-accounts">
+            <div class="topbar">
+                <h1>Registered Accounts</h1>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div class="search-bar"><span class="search-icon">🔍</span><input type="text"
+                            placeholder="Search accounts…" oninput="filterTable('accountsTbody', this.value)"></div>
+                    <button class="refresh-btn" onclick="loadUsers()">🔄 Refresh</button>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body page-body-scroll">
+                <div class="table-panel" style="height:100%;">
+                    <div class="table-wrap table-wrap-fill">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Contacts</th>
+                                    <th>Membership</th>
+                                    <th>Expiration</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accountsTbody">
+                                <tr>
+                                    <td colspan="6" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">
+                                        Loading…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── PAYMENTS ─── -->
+        <div class="page" id="page-payments">
+            <div class="topbar">
+                <h1>Payments</h1>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div class="search-bar"><span class="search-icon">🔍</span><input type="text"
+                            placeholder="Search payments…" oninput="filterTable('paymentsTbody', this.value)"></div>
+                    <button class="refresh-btn" onclick="loadPayments()">🔄 Refresh</button>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body page-body-scroll">
+                <div class="table-panel" style="height:100%;">
+                    <div class="table-wrap table-wrap-fill">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Method</th>
+                                    <th>Account #</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTbody">
+                                <tr>
+                                    <td colspan="8" style="text-align:center;padding:32px;color:rgba(255,255,255,.4);">
+                                        Loading…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── MESSAGES ─── -->
+        <div class="page" id="page-messages">
+            <div class="topbar">
+                <h1>Customer Service</h1>
+                <div class="admin-info">
+                    <div class="admin-avatar">👤</div>
+                    <div class="admin-text">Admin <span>Administrator</span></div>
+                </div>
+            </div>
+            <div class="page-body" style="padding-bottom:0;display:flex;flex-direction:column;flex:1;">
+                <div class="msg-layout" style="flex:1;">
+                    <div class="msg-sidebar" id="msgSidebar">
+                        <div class="msg-sidebar-header">Conversations</div>
+                        <div class="msg-contacts-list" id="msgContactsList">
+                            <div style="padding:20px;text-align:center;color:rgba(255,255,255,.4);font-size:13px;">
+                                Loading…</div>
+                        </div>
+                    </div>
+                    <div class="msg-window">
+                        <div class="msg-window-header" id="msgWindowHeader">Select a conversation</div>
+                        <div class="msg-body" id="msgBody">
+                            <div style="text-align:center;color:var(--c-text-muted);padding:48px;font-size:13px;">Select
+                                a message to start responding</div>
+                        </div>
+                        <div class="msg-footer">
+                            <input type="text" class="msg-input" id="adminMsgInput" placeholder="Type a message…">
+                            <button class="send-btn" onclick="adminSendMsg()">➤</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── MANAGE RESERVATIONS ─── -->
+        <div class="page" id="page-manage_reservations">
+            <div class="topbar">
+                <h1>Manage Reservation Types</h1>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button class="refresh-btn" onclick="loadReservationTypes()">🔄 Refresh</button>
+                    <button class="add-type-btn" onclick="openAddReservationModal()">+ Add New Type</button>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body">
+                <div id="reservationCards" style="flex:1;min-height:0;overflow:hidden;">
+                    <div style="padding:40px;text-align:center;color:#94a3b8;">Loading reservation types…</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── MEMBERSHIP SETTINGS ─── -->
+        <div class="page" id="page-membership_settings">
+            <div class="topbar">
+                <h1>Membership Settings</h1>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button class="refresh-btn" onclick="loadMembershipSettings()">🔄 Refresh</button>
+                    <div class="admin-info">
+                        <div class="admin-avatar">👤</div>
+                        <div class="admin-text">Admin <span>Administrator</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="page-body page-body-scroll" id="membershipSettingsBody">
+
+                <!-- ── Hero stats ── -->
+                <div class="hero-stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;">
+                    <div class="hero-card accent-gold">
+                        <div class="hero-card-header"><span class="hero-card-label">Annual Fee</span>
+                            <div class="hero-card-icon">💰</div>
+                        </div>
+                        <div class="hero-card-value" id="msStatFee">—</div>
+                        <div class="hero-card-footer"><span class="hero-card-badge badge-up" id="msStatFeeLabel">Current
+                                price</span></div>
+                    </div>
+                    <div class="hero-card accent-green">
+                        <div class="hero-card-header"><span class="hero-card-label">Member Discount</span>
+                            <div class="hero-card-icon">🏷️</div>
+                        </div>
+                        <div class="hero-card-value" id="msStatDiscount">—</div>
+                        <div class="hero-card-footer"><span class="hero-card-badge badge-up">Off regular price</span>
+                        </div>
+                    </div>
+                    <div class="hero-card accent-blue">
+                        <div class="hero-card-header"><span class="hero-card-label">Duration</span>
+                            <div class="hero-card-icon">📅</div>
+                        </div>
+                        <div class="hero-card-value" id="msStatDuration">—</div>
+                        <div class="hero-card-footer"><span class="hero-card-badge badge-up">Days of access</span></div>
+                    </div>
+                    <div class="hero-card accent-amber">
+                        <div class="hero-card-header"><span class="hero-card-label">Enrollment</span>
+                            <div class="hero-card-icon">🚪</div>
+                        </div>
+                        <div class="hero-card-value" id="msStatEnrollment">—</div>
+                        <div class="hero-card-footer"><span id="msStatEnrollmentLabel"
+                                class="hero-card-badge">Status</span></div>
+                    </div>
+                </div>
+
+                <!-- ── Pricing & Duration card ── -->
+                <div class="ms-settings-grid">
+
+                    <div class="ms-card">
+                        <div class="ms-card-header">
+                            <span class="ms-card-title">💰 Pricing & Duration</span>
+                            <span class="ms-card-sub">Set the annual membership fee and validity period</span>
+                        </div>
+                        <div class="ms-card-body">
+                            <div class="ms-field-group">
+                                <label class="ms-label">Annual Membership Fee (₱)</label>
+                                <div class="ms-input-wrap">
+                                    <span class="ms-input-prefix">₱</span>
+                                    <input type="number" id="msAnnualFee" class="ms-input" min="0" step="1000"
+                                        placeholder="1000000">
+                                </div>
+                                <span class="ms-hint">Amount users pay when applying for membership</span>
+                            </div>
+                            <div class="ms-field-group">
+                                <label class="ms-label">Membership Duration (days)</label>
+                                <div class="ms-input-wrap">
+                                    <input type="number" id="msDurationDays" class="ms-input" min="1" step="1"
+                                        placeholder="365" style="padding-left:14px;">
+                                    <span class="ms-input-suffix">days</span>
+                                </div>
+                                <span class="ms-hint">How long membership stays active after approval (365 = 1
+                                    year)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ms-card">
+                        <div class="ms-card-header">
+                            <span class="ms-card-title">🏷️ Member Discount</span>
+                            <span class="ms-card-sub">Discount applied to reservation prices for active members</span>
+                        </div>
+                        <div class="ms-card-body">
+                            <div class="ms-field-group">
+                                <label class="ms-label">Discount Percentage (%)</label>
+                                <div class="ms-input-wrap">
+                                    <input type="number" id="msDiscountPct" class="ms-input" min="0" max="100" step="1"
+                                        placeholder="20" style="padding-left:14px;" oninput="onDiscountInput()">
+                                    <span class="ms-input-suffix">%</span>
+                                </div>
+                                <span class="ms-hint">e.g. 20 means members pay 80% of the regular price</span>
+                            </div>
+                            <div class="ms-discount-preview" id="msDiscountPreview">
+                                <div class="ms-preview-row">
+                                    <span>Regular price example</span><strong>₱10,000</strong>
+                                </div>
+                                <div class="ms-preview-row ms-preview-highlight">
+                                    <span>Member price</span><strong id="msPreviewMemberPrice">₱8,000</strong>
+                                </div>
+                                <div class="ms-preview-row">
+                                    <span>Savings</span><strong id="msPreviewSavings"
+                                        style="color:var(--c-emerald);">₱2,000</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ms-card">
+                        <div class="ms-card-header">
+                            <span class="ms-card-title">🎖️ Tier Info</span>
+                            <span class="ms-card-sub">Label and description shown to users</span>
+                        </div>
+                        <div class="ms-card-body">
+                            <div class="ms-field-group">
+                                <label class="ms-label">Tier Name</label>
+                                <input type="text" id="msTierName" class="ms-input" style="padding-left:14px;"
+                                    placeholder="Annual Member" maxlength="60">
+                            </div>
+                            <div class="ms-field-group">
+                                <label class="ms-label">Tier Description</label>
+                                <textarea id="msTierDescription" class="ms-textarea" rows="3"
+                                    placeholder="Full access to all facilities for one year."
+                                    maxlength="300"></textarea>
+                            </div>
+                            <div class="ms-field-group">
+                                <label class="ms-label">Enrollment Status</label>
+                                <div class="ms-toggle-row">
+                                    <label class="ms-toggle-label" id="msEnrollmentLabel">Open</label>
+                                    <div class="ms-toggle" id="msEnrollmentToggle" onclick="toggleEnrollment()">
+                                        <div class="ms-toggle-knob"></div>
+                                    </div>
+                                </div>
+                                <span class="ms-hint">When closed, users cannot submit new membership
+                                    applications</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- end ms-settings-grid -->
+
+                <!-- ── Save button ── -->
+                <div class="ms-save-bar">
+                    <span id="msSaveStatus" class="ms-save-status"></span>
+                    <button class="ms-save-btn" onclick="saveMembershipSettings()">💾 Save Changes</button>
+                </div>
+
+            </div>
+        </div>
+
+    </div><!-- end .main -->
+
+    <!-- MODALS -->
+    <div class="modal-overlay" id="removeModal">
+        <div class="modal-card">
+            <div class="modal-icon">📦</div>
+            <hr>
+            <p>Are you sure you want to archive this account?<br><small style="color:#aaa;font-size:12px;">The account
+                    will be hidden from the system but not permanently deleted.</small></p>
+            <div class="modal-btns">
+                <button class="btn-confirm-modal" onclick="confirmRemove()">Archive</button>
+                <button class="btn-cancel-modal" onclick="closeModal('removeModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="refundConfirmModal">
+        <div class="modal-card">
+            <div class="modal-icon">⛳</div>
+            <hr>
+            <p id="refundConfirmText">Make a refund for this user?<br>Refund will be made through original payment
+                method.</p>
+            <div class="modal-btns">
+                <button class="btn-confirm-modal" onclick="openRefundReasons()">Confirm</button>
+                <button class="btn-cancel-modal" onclick="closeModal('refundConfirmModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="refundReasonsModal">
+        <div class="modal-card" style="max-width:420px;width:94%;">
+            <div class="modal-icon">💳</div>
+            <hr>
+            <h3 id="refundReasonTitle" style="margin:0 0 12px;font-size:15px;text-align:center;">Make a refund</h3>
+            <div style="text-align:left;width:100%;">
+                <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">Reason for
+                    Refund <span style="color:#dc3545;">*</span></label>
+                <textarea id="refundReasonText" rows="4" placeholder="Enter the reason for this refund…"
+                    style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+            </div>
+            <div class="modal-btns" style="margin-top:16px;">
+                <button class="btn-confirm-modal" onclick="processRefund()">Confirm Refund</button>
+                <button class="btn-cancel-modal" onclick="closeModal('refundReasonsModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="blockUserModal">
+        <div class="modal-card" style="max-width:420px;width:94%;">
+            <div class="modal-icon">🚫</div>
+            <hr>
+            <h3 id="blockUserTitle" style="margin:0 0 6px;font-size:15px;text-align:center;">Block User from Messaging
+            </h3>
+            <p id="blockUserSubtitle" style="font-size:13px;color:#666;text-align:center;margin:0 0 14px;">This user
+                will no longer be able to send messages to admin.</p>
+            <div style="text-align:left;width:100%;">
+                <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px;">Reason for
+                    Block <span style="color:#dc3545;">*</span></label>
+                <textarea id="blockReasonText" rows="3" placeholder="Enter the reason for blocking this user…"
+                    style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+            </div>
+            <div class="modal-btns" style="margin-top:16px;">
+                <button class="btn-confirm-modal" style="background:#9c403d;" onclick="confirmBlockUser()">Block
+                    User</button>
+                <button class="btn-cancel-modal" onclick="closeModal('blockUserModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="resDetailModal">
+        <div class="res-detail-modal" style="width:560px;max-width:94%;">
+            <div class="res-detail-header" id="resDetailDate">Select a date</div>
+            <div class="res-detail-body" style="max-height:70vh;overflow-y:auto;padding:20px;">
+                <div style="text-align:center;padding:40px;color:var(--c-text-muted);">Click on a date to see
+                    reservations</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="validatePaymentModal">
+        <div class="validate-modal">
+            <div class="validate-modal-header">
+                <h3>🔍 Verify Payment Application</h3>
+                <button class="close-modal-btn" onclick="closeValidateModal()">&times;</button>
+            </div>
+            <div class="validate-modal-body" id="validateModalBody">
+                <div class="loading-spinner">Loading application details…</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="reservation-modal" id="reservationModal">
+        <div class="reservation-modal-content">
+            <div class="reservation-modal-header">
+                <h2 id="modalTitle">Add Reservation Type</h2>
+                <button class="close-modal-btn" onclick="closeReservationModal()">&times;</button>
+            </div>
+            <div class="reservation-modal-body">
+                <form id="reservationForm" onsubmit="saveReservationType(event)">
+                    <input type="hidden" id="typeId">
+                    <div class="form-group"><label>Name *</label><input type="text" id="typeName" required
+                            placeholder="e.g., Tee Time, Driving Range"></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Category *</label>
+                            <select id="typeCategory" required>
+                                <option value="golf">Golf</option>
+                                <option value="amenities">Amenities</option>
+                                <option value="events">Events</option>
+                                <option value="accommodation">Accommodation</option>
+                                <option value="premium">Premium</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Icon (emoji)</label><input type="text" id="typeIcon"
+                                placeholder="🏌️"></div>
+                    </div>
+                    <div class="form-group"><label>Description</label><textarea id="typeDescription" rows="2"
+                            placeholder="Describe this reservation type…"></textarea></div>
+                    <div class="form-group"><label>Base Price (₱) *</label><input type="number" id="typeBasePrice"
+                            required placeholder="0"></div>
+                    <div class="form-group"><label>Time Slots (comma separated)</label><input type="text"
+                            id="typeTimeSlots" placeholder="6:00 AM, 7:00 AM, 8:00 AM"><small
+                            style="color:var(--c-text-muted);font-size:11px;">Example: 6:00 AM, 7:00 AM, 8:00 AM</small>
+                    </div>
+                    <div class="form-group"><label>Default Capacity per Slot</label><input type="number"
+                            id="typeCapacity" value="10"></div>
+                    <div class="modal-buttons">
+                        <button type="submit" class="btn-save">Save</button>
+                        <button type="button" class="btn-cancel" onclick="closeReservationModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="reservation-modal" id="timeSlotModal">
+        <div class="reservation-modal-content">
+            <div class="reservation-modal-header">
+                <h2>Add Time Slot</h2>
+                <button class="close-modal-btn" onclick="closeTimeSlotModal()">&times;</button>
+            </div>
+            <div class="reservation-modal-body">
+                <form id="timeSlotForm" onsubmit="addTimeSlot(event)">
+                    <input type="hidden" id="slotTypeId">
+                    <div class="form-group"><label>Time *</label><input type="text" id="slotTime" required
+                            placeholder="9:00 AM"></div>
+                    <div class="form-group"><label>Capacity *</label><input type="number" id="slotCapacity" required
+                            value="10"></div>
+                    <div class="modal-buttons">
+                        <button type="submit" class="btn-save">Add Slot</button>
+                        <button type="button" class="btn-cancel" onclick="closeTimeSlotModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/admin.js"></script>
+    <script>
+        /* Chart.js instances */
+        let lineChartInstance = null;
+        let doughnutChartInstance = null;
+
+        /* Renders the Enrollment Trends line chart — called by admin.js renderFinancialChart() */
+        function renderFinancialChart(months, membershipData, reservationData) {
+            const legacyContainer = document.getElementById('financialChart');
+            if (legacyContainer) legacyContainer.innerHTML = '';
+
+            const canvas = document.getElementById('enrollmentLineChart');
+            if (!canvas) return;
+            if (lineChartInstance) lineChartInstance.destroy();
+
+            lineChartInstance = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        { label: 'Membership', data: membershipData, borderColor: '#0d2b0f', backgroundColor: 'rgba(13,43,15,.08)', borderWidth: 2.5, pointBackgroundColor: '#0d2b0f', pointRadius: 4, tension: 0.4, fill: true },
+                        { label: 'Reservations', data: reservationData, borderColor: '#6b7e5f', backgroundColor: 'rgba(107,126,95,.08)', borderWidth: 2.5, pointBackgroundColor: '#6b7e5f', pointRadius: 4, tension: 0.4, fill: true }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { backgroundColor: '#0d2b0f', titleColor: '#d4b36a', bodyColor: '#fff', padding: 12, callbacks: { label: ctx => ` ₱${ctx.parsed.y.toLocaleString()}` } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 12 }, color: '#64748b' } },
+                        y: { grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { size: 11 }, color: '#64748b', callback: v => '₱' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) } }
+                    }
+                }
+            });
+
+            const total = [...membershipData, ...reservationData].reduce((a, b) => a + b, 0);
+            const el = document.getElementById('statRevenue');
+            if (el) el.textContent = '₱' + (total >= 1000000 ? (total / 1000000).toFixed(1) + 'M' : total >= 1000 ? (total / 1000).toFixed(0) + 'k' : total.toLocaleString());
+        }
+
+        /* Renders the Membership Types doughnut chart */
+        function renderMembershipDoughnut(users) {
+            const canvas = document.getElementById('membershipDoughnutChart');
+            if (!canvas) return;
+
+            const counts = { Active: 0, Pending: 0, Expired: 0, None: 0 };
+            (users || []).forEach(u => {
+                const s = (u.membershipStatus || 'none').toLowerCase();
+                if (s === 'active') counts.Active++;
+                else if (s === 'pending') counts.Pending++;
+                else if (s === 'expired') counts.Expired++;
+                else counts.None++;
+            });
+
+            const labels = Object.keys(counts);
+            const data = Object.values(counts);
+            const total = data.reduce((a, b) => a + b, 0);
+            const colors = ['#0d2b0f', '#d4b36a', '#9c403d', '#6b7e5f'];
+
+            const totalEl = document.getElementById('doughnutTotal');
+            if (totalEl) totalEl.textContent = total;
+
+            const legendEl = document.getElementById('doughnutLegend');
+            if (legendEl) legendEl.innerHTML = labels.map((l, i) => `<span class="legend-dot" style="--dot-color:${colors[i]};">${l} (${data[i]})</span>`).join('');
+
+            if (doughnutChartInstance) doughnutChartInstance.destroy();
+            doughnutChartInstance = new Chart(canvas, {
+                type: 'doughnut',
+                data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 3, borderColor: '#fff', hoverOffset: 6 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '68%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { backgroundColor: '#0d2b0f', titleColor: '#d4b36a', bodyColor: '#fff', padding: 10, callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${total ? ((ctx.parsed / total) * 100).toFixed(1) : 0}%)` } }
+                    }
+                }
+            });
+        }
+
+        /* Patch loadDashboardStats to populate hero cards and trigger doughnut */
+        const _origLoadDashboardStats = window.loadDashboardStats;
+        window.loadDashboardStats = async function () {
+            if (_origLoadDashboardStats) await _origLoadDashboardStats();
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) return;
+
+                const usersRes = await fetch('https://ilisy-golf-and-country-club-enrollment.onrender.com/api/admin/users', { headers: { Authorization: 'Bearer ' + token } });
+                if (usersRes.ok) {
+                    const users = await usersRes.json();
+                    const active = users.filter(u => (u.membershipStatus || '').toLowerCase() === 'active').length;
+                    const mEl = document.getElementById('statMembers'); if (mEl) mEl.textContent = active;
+                    renderMembershipDoughnut(users);
+                }
+
+                const typesRes = await fetch('https://ilisy-golf-and-country-club-enrollment.onrender.com/api/reservation-types/admin/all', { headers: { Authorization: 'Bearer ' + token } });
+                if (typesRes.ok) {
+                    const types = await typesRes.json();
+                    const activeTypes = types.filter(t => t.isActive);
+                    const totalSlots = activeTypes.reduce((s, t) => s + (t.timeSlots || []).length, 0);
+                    const utilEl = document.getElementById('statUtilization');
+                    if (utilEl) utilEl.textContent = totalSlots > 0 ? totalSlots : '—';
+                    const utilLabel = document.getElementById('statUtilizationLabel');
+                    if (utilLabel) utilLabel.textContent = 'active time slots';
+                }
+
+                const pendRes = await fetch('https://ilisy-golf-and-country-club-enrollment.onrender.com/api/admin/pending-applications', { headers: { Authorization: 'Bearer ' + token } });
+                if (pendRes.ok) {
+                    const apps = await pendRes.json();
+                    const count = apps.length;
+                    const pEl = document.getElementById('statPending'); if (pEl) pEl.textContent = count;
+                    const pLabel = document.getElementById('statPendingLabel');
+                    if (pLabel) {
+                        pLabel.textContent = count > 0 ? 'Action required' : 'All clear';
+                        pLabel.className = 'hero-card-badge ' + (count > 0 ? 'badge-warn' : 'badge-up');
+                    }
+                    const badge = document.getElementById('pendingCountBadge');
+                    if (badge) badge.textContent = count;
+                }
+            } catch (e) { console.warn('Hero card patch error:', e); }
+        };
+
+        const _origLoadFinancialReportForCharts = window.loadFinancialReport;
+        window.loadFinancialReport = async function () {
+            if (_origLoadFinancialReportForCharts) await _origLoadFinancialReportForCharts();
+
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) return;
+                const res = await fetch('https://ilisy-golf-and-country-club-enrollment.onrender.com/api/admin/payments', {
+                    headers: { Authorization: 'Bearer ' + token }
+                });
+                if (!res.ok) return;
+                window._cachedPayments = await res.json();
+
+                const months = getFilteredMonths();
+                const { membershipData, reservationData, byType } = slicePayments(window._cachedPayments, months);
+                renderTopReservationTypes(byType);
+                renderCumulativeRevenue(months.map(m => m.label), membershipData, reservationData);
+                updateFilterSummary(membershipData, reservationData);
+            } catch (e) {
+                console.warn('New charts error:', e);
+            }
+        };
+
+        async function onDashboardFilterChange() {
+            if (!window._cachedPayments) return;
+            const months = getFilteredMonths();
+            const { membershipData, reservationData, byType } = slicePayments(window._cachedPayments, months);
+            renderFinancialChart(months.map(m => m.label), membershipData, reservationData);
+            renderTopReservationTypes(byType);
+            renderCumulativeRevenue(months.map(m => m.label), membershipData, reservationData);
+            updateFilterSummary(membershipData, reservationData);
+        }
+
+        function getFilteredMonths() {
+            const n = parseInt(document.getElementById('dashboardPeriodFilter')?.value || '6');
+            const now = new Date();
+            const result = [];
+            for (let i = n - 1; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                result.push({ label: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }), year: d.getFullYear(), month: d.getMonth() });
+            }
+            return result;
+        }
+
+        function slicePayments(payments, months) {
+            const typeFilter = document.getElementById('dashboardTypeFilter')?.value || 'all';
+            const membershipData = new Array(months.length).fill(0);
+            const reservationData = new Array(months.length).fill(0);
+            const byType = {};
+            payments.forEach(p => {
+                if (p.paymentStatus !== 'completed') return;
+                const pd = new Date(p.createdAt);
+                const idx = months.findIndex(m => m.year === pd.getFullYear() && m.month === pd.getMonth());
+                if (idx === -1) return;
+                const isMembership = p.transactionType === 'membership';
+                const isReservation = p.transactionType === 'reservation';
+                if (typeFilter === 'membership' && !isMembership) return;
+                if (typeFilter === 'reservation' && !isReservation) return;
+                if (isMembership) membershipData[idx] += p.amount || 0;
+                if (isReservation) {
+                    reservationData[idx] += p.amount || 0;
+                    const typeName = p.reservationTypeName || p.transactionType || 'Other';
+                    if (!byType[typeName]) byType[typeName] = { revenue: 0, count: 0 };
+                    byType[typeName].revenue += p.amount || 0;
+                    byType[typeName].count += 1;
+                }
+            });
+            if (typeFilter === 'membership' || typeFilter === 'all') {
+                const totalMem = membershipData.reduce((a, b) => a + b, 0);
+                if (totalMem > 0) byType['Membership'] = { revenue: totalMem, count: payments.filter(p => p.paymentStatus === 'completed' && p.transactionType === 'membership').length };
+            }
+            return { membershipData, reservationData, byType };
+        }
+
+        let topTypesChartInstance = null, cumulativeChartInstance = null;
+        function renderTopReservationTypes(byType) {
+            const canvas = document.getElementById('topReservationTypesChart');
+            if (!canvas) return;
+            if (topTypesChartInstance) topTypesChartInstance.destroy();
+            const sorted = Object.entries(byType).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 7);
+            if (sorted.length === 0) { canvas.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:var(--c-text-muted);font-size:13px;">No reservation data for this period</div>'; return; }
+            const labels = sorted.map(([name]) => name);
+            const revenues = sorted.map(([, v]) => v.revenue);
+            const counts = sorted.map(([, v]) => v.count);
+            const barColors = ['#0d2b0f', '#d4b36a', '#6b7e5f', '#059669', '#3b82f6', '#d97706', '#9c403d'];
+            topTypesChartInstance = new Chart(canvas, { type: 'bar', data: { labels, datasets: [{ label: 'Revenue (₱)', data: revenues, backgroundColor: barColors.map(c => c + 'cc'), borderColor: barColors, borderWidth: 1.5, borderRadius: 5, yAxisID: 'yRevenue' }, { label: 'Bookings', data: counts, type: 'line', borderColor: '#6b7e5f', backgroundColor: 'rgba(107,126,95,.15)', borderWidth: 2, pointBackgroundColor: '#6b7e5f', pointRadius: 4, tension: 0.3, fill: false, yAxisID: 'yCount' }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0d2b0f', titleColor: '#d4b36a', bodyColor: '#fff', padding: 12, callbacks: { label: ctx => ctx.datasetIndex === 0 ? ` ₱${ctx.parsed.y.toLocaleString()}` : ` ${ctx.parsed.y} booking${ctx.parsed.y !== 1 ? 's' : ''}` } } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#64748b', maxRotation: 30 } }, yRevenue: { position: 'left', grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { size: 11 }, color: '#64748b', callback: v => '₱' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) } }, yCount: { position: 'right', grid: { display: false }, ticks: { font: { size: 11 }, color: '#6b7e5f', stepSize: 1 } } } } });
+        }
+
+        function renderCumulativeRevenue(labels, membershipData, reservationData) {
+            const canvas = document.getElementById('cumulativeRevenueChart');
+            if (!canvas) return;
+            if (cumulativeChartInstance) cumulativeChartInstance.destroy();
+            const combined = membershipData.map((v, i) => v + reservationData[i]);
+            const cumulative = []; combined.reduce((acc, v, i) => { cumulative[i] = acc + v; return acc + v; }, 0);
+            const cumulativeMem = []; membershipData.reduce((acc, v, i) => { cumulativeMem[i] = acc + v; return acc + v; }, 0);
+            const cumulativeRes = []; reservationData.reduce((acc, v, i) => { cumulativeRes[i] = acc + v; return acc + v; }, 0);
+            cumulativeChartInstance = new Chart(canvas, { type: 'line', data: { labels, datasets: [{ label: 'Total', data: cumulative, borderColor: '#059669', backgroundColor: 'rgba(5,150,105,.08)', borderWidth: 2.5, pointBackgroundColor: '#059669', pointRadius: 4, tension: 0.4, fill: true }, { label: 'Membership', data: cumulativeMem, borderColor: '#0d2b0f', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4, 3], pointRadius: 3, tension: 0.4, fill: false }, { label: 'Reservations', data: cumulativeRes, borderColor: '#d4b36a', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4, 3], pointRadius: 3, tension: 0.4, fill: false }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0d2b0f', titleColor: '#d4b36a', bodyColor: '#fff', padding: 12, callbacks: { label: ctx => ` ${ctx.dataset.label}: ₱${ctx.parsed.y.toLocaleString()}` } } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 12 }, color: '#64748b' } }, y: { grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { size: 11 }, color: '#64748b', callback: v => '₱' + (v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) } } } } });
+        }
+
+        function updateFilterSummary(membershipData, reservationData) {
+            const total = [...membershipData, ...reservationData].reduce((a, b) => a + b, 0);
+            const el = document.getElementById('dashboardFilterSummary');
+            if (el) el.textContent = `Total: ₱${total >= 1000000 ? (total / 1000000).toFixed(2) + 'M' : total >= 1000 ? (total / 1000).toFixed(0) + 'k' : total.toLocaleString()}`;
+        }
+
+        function toggleDashboardAccordion() { const body = document.getElementById('dashboardAccordionBody'); const btn = document.getElementById('dashboardAccordionChevron'); if (body.style.maxHeight && body.style.maxHeight !== '0px') { body.style.maxHeight = '0'; btn.style.transform = 'rotate(0deg)'; } else { body.style.maxHeight = body.scrollHeight + 'px'; btn.style.transform = 'rotate(180deg)'; } }
+    </script>
+</body>
+
+</html>
