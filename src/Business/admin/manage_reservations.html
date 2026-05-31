@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Reservations | Admin</title>
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+
+<div class="reservation-management">
+    <div class="reservation-header">
+        <h1>🏌️ Manage Reservation Types</h1>
+        <button class="add-type-btn" onclick="openAddReservationModal()">+ Add New Reservation Type</button>
+    </div>
+    
+    <div class="reservation-cards" id="reservationCards">
+        <div class="empty-state">Loading reservation types...</div>
+    </div>
+</div>
+
+<!-- Add/Edit Reservation Type Modal -->
+<div class="reservation-modal" id="reservationModal">
+    <div class="reservation-modal-content">
+        <div class="reservation-modal-header">
+            <h2 id="modalTitle">Add Reservation Type</h2>
+            <button class="close-modal-btn" onclick="closeReservationModal()">&times;</button>
+        </div>
+        <div class="reservation-modal-body">
+            <form id="reservationForm" onsubmit="saveReservationType(event)">
+                <input type="hidden" id="typeId">
+                
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="typeName" required placeholder="e.g., Tee Time, Driving Range">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Category *</label>
+                        <select id="typeCategory" required>
+                            <option value="golf">Golf</option>
+                            <option value="amenities">Amenities</option>
+                            <option value="events">Events</option>
+                            <option value="accommodation">Accommodation</option>
+                            <option value="premium">Premium</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Icon (emoji)</label>
+                        <input type="text" id="typeIcon" placeholder="🏌️">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="typeDescription" rows="2" placeholder="Describe this reservation type..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Base Price (₱) *</label>
+                    <input type="number" id="typeBasePrice" required placeholder="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Time Slots (comma separated)</label>
+                    <input type="text" id="typeTimeSlots" placeholder="6:00 AM, 7:00 AM, 8:00 AM">
+                    <small>Example: 6:00 AM, 7:00 AM, 8:00 AM</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Default Capacity per Slot</label>
+                    <input type="number" id="typeCapacity" value="10">
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="submit" class="btn-save">Save</button>
+                    <button type="button" class="btn-cancel" onclick="closeReservationModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Time Slot Modal -->
+<div class="reservation-modal" id="timeSlotModal">
+    <div class="reservation-modal-content">
+        <div class="reservation-modal-header">
+            <h2>Add Time Slot</h2>
+            <button class="close-modal-btn" onclick="closeTimeSlotModal()">&times;</button>
+        </div>
+        <div class="reservation-modal-body">
+            <form id="timeSlotForm" onsubmit="addTimeSlot(event)">
+                <input type="hidden" id="slotTypeId">
+                
+                <div class="form-group">
+                    <label>Time *</label>
+                    <input type="text" id="slotTime" required placeholder="9:00 AM">
+                </div>
+                
+                <div class="form-group">
+                    <label>Capacity *</label>
+                    <input type="number" id="slotCapacity" required value="10">
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="submit" class="btn-save">Add Slot</button>
+                    <button type="button" class="btn-cancel" onclick="closeTimeSlotModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="../js/admin.js"></script>
+
+<script>
+    // Load reservation types when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        // Check if user is admin
+        const isAdmin = localStorage.getItem('isAdmin');
+        if (!isAdmin || isAdmin !== 'true') {
+            window.location.href = '../index.html';
+            return;
+        }
+        loadReservationTypes();
+    });
+</script>
+
+</body>
+</html>
